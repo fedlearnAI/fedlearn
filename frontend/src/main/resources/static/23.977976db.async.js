@@ -1,0 +1,1 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[23],{"1Ri8":function(n,e,t){"use strict";t.r(e);var i=t("q1tI"),a=t.n(i),u=t("7DNP"),c=t("jnCu");e.default=function(){return a.a.createElement(c.a,{type:"404",style:{minHeight:500,height:"80%"},linkElement:u.Link})}}}]);

@@ -1,0 +1,59 @@
+{
+  "parameter": {
+    "num_boost_round": 1,
+    "first_round_pred": 0.0,
+    "maximize": true,
+    "rowsample": 1.0,
+    "colsample": 1.0,
+    "early_stopping_round": 10,
+    "min_child_weight": 1.0,
+    "min_sample_split": 10,
+    "lambda": 1.0,
+    "gamma": 0.0,
+    "scale_pos_weight": 1.0,
+    "num_bin": 33,
+    "eval_metric": "rmse",
+    "max_depth": 7,
+    "eta": 0.3,
+    "loss": "reg:square",
+    "cat_features": "1",
+    "randomized_response_probability": 0.0,
+    "differential_privacy_parameter": 0.0
+  },
+  "idMap": {
+    "1": "1",
+    "2": "2"
+  },
+  "featureList": {
+    "featureList": [
+      {
+        "name": "uid",
+        "type": "int",
+        "frequency": 1,
+        "id": 0
+      },
+      {
+        "name": "x0",
+        "type": "float",
+        "frequency": 1,
+        "id": 0
+      },
+      {
+        "name": "x1",
+        "type": "float",
+        "frequency": 1,
+        "id": 0
+      },
+      {
+        "name": "y",
+        "type": "float",
+        "frequency": 1,
+        "id": 0
+      }
+    ],
+    "label": "y"
+  },
+  "pubKey": "",
+  "modelToken": "19-SecureBoost-20200902165345",
+  "newTree": true
+}

@@ -1,0 +1,269 @@
+// FedLearning gPRC proto file
+// Version 0.1.4
+// Should be exactly the same as the proto file in federated-learning-java repo except for line 7
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.jdt.fedlearn.grpc.federatedlearning";
+option java_outer_classname = "FederatedLearningProto";
+option objc_class_prefix = "FL";
+
+package federatedlearning;
+
+// RPC Calculation service for all algorithms.
+service Calculate {
+  //Horizontal FL
+  rpc HFLModelHandler (HFLModelMessage) returns (HFLModelMessage) {}
+
+  // Kernel Approximation
+  rpc KernelApproximationPhase1 (InputMessage) returns (OutputMessage) {}
+  rpc KernelApproximationPhase2 (InputMessage) returns (OutputMessage) {}
+
+  rpc ceKernelLinearRegressionPhase1 (InputMessage) returns (OutputMessage) {}
+
+  // Kernel LinearRegression Algorithm
+  // Phase 1
+  rpc KernelLinearRegressionPhase1 (InputMessage) returns (OutputMessage) {}
+  // Phase 2
+  rpc KernelLinearRegressionPhase2 (InputMessage) returns (OutputMessage) {}
+
+  rpc KernelLinearRegressionPhase2withoutfeature (InputMessage) returns (OutputMessage) {}
+
+  // Phase 3
+  rpc KernelLinearRegressionPhase3 (InputMessage) returns (OutputMessage) {}
+  // Phase 4
+  rpc KernelLinearRegressionPhase4 (InputMessage) returns (OutputMessage) {}
+
+  // Kernel LinearRegression Inference Algorithm
+  // Phase 1
+  rpc KernelLinearRegressionInferencePhase1 (InputMessage) returns (OutputMessage) {}
+  // Phase 2
+  rpc KernelLinearRegressionInferencePhase2 (InputMessage) returns (OutputMessage) {}
+  // LinearRegression Algorithm
+  // Phase1
+  rpc LinearRegressionPhase1 (InputMessage) returns (OutputMessage) {}
+  // Phase2
+  rpc LinearRegressionPhase2 (InputMessage) returns (OutputMessage) {}
+  // Phase3
+  rpc LinearRegressionPhase3 (InputMessage) returns (OutputMessage) {}
+  // Phase4
+  rpc LinearRegressionPhase4 (InputMessage) returns (OutputMessage) {}
+
+  // Random Forest Algorithm
+  // Phase1
+  rpc RandomForestPhase1 (InputMessage) returns (OutputMessage) {}
+  // Phase2
+  rpc RandomForestPhase2 (InputMessage) returns (OutputMessage) {}
+  // Phase3
+  rpc RandomForestPhase3 (InputMessage) returns (OutputMessage) {}
+  // Phase4
+  rpc RandomForestPhase4 (InputMessage) returns (OutputMessage) {}
+  // Multi-processing experimental
+  // Phase1
+  rpc MPRandomForestPhase1 (MultiInputMessage) returns (MultiOutputMessage) {}
+  // Phase2
+  rpc MPRandomForestPhase2 (MultiInputMessage) returns (MultiOutputMessage) {}
+  // Phase3
+  rpc MPRandomForestPhase3 (MultiInputMessage) returns (MultiOutputMessage) {}
+  // Phase4
+  rpc MPRandomForestPhase4 (MultiInputMessage) returns (MultiOutputMessage) {}
+  // VerticalFDNN experimental
+  rpc VerticalFDNNTrainPhase0Passive (VerticalFDNNMessage) returns (VerticalFDNNMessage) {}
+  rpc VerticalFDNNTrainPhase0Active (VerticalFDNNMessage) returns (VerticalFDNNMessage) {}
+  rpc VerticalFDNNTrainPhase1 (VerticalFDNNMessage) returns (VerticalFDNNMessage) {}
+  rpc VerticalFDNNTrainPhase2 (VerticalFDNNMessage) returns (VerticalFDNNMessage) {}
+  rpc VerticalFDNNTrainPhase3 (VerticalFDNNMessage) returns (VerticalFDNNMessage) {}
+  rpc VerticalFDNNTrainPhase99 (VerticalFDNNMessage) returns (VerticalFDNNMessage) {}
+  rpc VerticalFDNNInferencePhase1 (VerticalFDNNMessage) returns (VerticalFDNNMessage) {}
+  rpc VerticalFDNNInferencePhase2 (VerticalFDNNMessage) returns (VerticalFDNNMessage) {}
+
+  // Test HomoEncryption transfer across JAVA / Python
+  rpc TestEncryptedNumberAdd1 (EncryptedNumberAddInput) returns (EncryptedNumberOutput) {}
+  rpc TestEncryptedNumberAdd2 (EncryptedNumberAddInput) returns (EncryptedNumberOutput) {}
+  rpc TestEncryptedNumberMul1 (EncryptedNumberMulInput) returns (EncryptedNumberOutput) {}
+  rpc TestEncryptedNumberMul2 (EncryptedNumberMulInput) returns (EncryptedNumberOutput) {}
+}
+
+//horizontal FL message
+message HFLModelMessage {
+    string CommandMsg = 1;
+    string ModelName = 2;
+    string ClientInfo = 3;
+    string ModelHyperPara = 4;
+    string ModelParameter = 5;
+    bytes  ModelBytes = 6;
+    Matrix matrices = 7;
+    Vector vectors = 8;
+    double globalMetric = 9;
+    double localMetric = 10;
+    string TaskID = 11;
+}
+
+// temp vertical deeplearning message
+message VerticalFDNNMessage {
+    string ModelToken = 1;
+    repeated bytes  ModelBytes = 2;
+    repeated double ModelParameters = 3;
+}
+
+// Algorithms parameters definition
+message LinearRegressionParam {
+  // Learning rate.
+  double learning_rate = 1;
+  // Epsilon error to stop iteration.
+  double epsilon = 2;
+}
+
+message RandomForestParam {
+  // Number of decision tree.
+  int32 num_dt = 1;
+  // Feature sampling rate.
+  double feature_sampling_rate = 2;
+  // Datapoint sampling rate.
+  double datapoint_sampling_rate = 3;
+  // Number of running instances
+  int32 num_parallel = 4;
+  // Encryption scheme
+  string encryption_scheme = 5;
+}
+
+// Kernel method parameters.
+message KernelMethodParam {
+  // Support following:
+  // 1) AdditiveChi2Sampler
+  // 2) Nystroem
+  // 3) RBFSampler
+  // 4) SkewedChi2Sampler
+  string kernel_method = 1;
+}
+
+message AlgorithmParam {
+  LinearRegressionParam lr_params = 1;
+  RandomForestParam rf_params = 2;
+  KernelMethodParam kn_params = 3;
+}
+
+
+// Put string type here as it helps converting to integer
+// Otherwise int64 cannot support Java BigInteger type
+message PaillierKeyPublic {
+  string g = 1;
+  string n = 2;
+  string nsquare = 3;
+}
+
+message PaillierValue {
+  string ciphertext = 2;
+  string exponent = 3;
+}
+
+message EncryptedNumberAddInput {
+  PaillierValue en1 = 1;
+  PaillierValue en2 = 2;
+  PaillierKeyPublic pkp = 3;
+}
+
+message EncryptedNumberMulInput {
+  PaillierValue en = 1;
+  double n = 2;
+  PaillierKeyPublic pkp = 3;
+}
+
+message EncryptedNumberOutput {
+  PaillierValue en = 1;
+  PaillierKeyPublic pkp = 2;
+}
+
+// TODO: Decide whether we want to use current proposal where we combine Encrypted value and plaintext value.
+message BaseValue {
+  int32 value_type = 1;
+  PaillierValue paillier_value = 2;
+  double plaintext_value = 3;
+}
+
+// TODO: Replace double with BaseValue OR we make a new EncryptedVector message.
+// RPC message definition
+message Vector {
+  repeated double values = 1;
+}
+
+message Matrix {
+  repeated Vector rows = 1;
+}
+
+message PaillierVector {
+  repeated PaillierValue values = 1;
+}
+
+message PaillierMatrix {
+  repeated PaillierVector rows = 1;
+}
+
+// Randomized iterative affine encryption scheme
+message IterativeAffineValue {
+  string cipher1 = 1;
+  string cipher2 = 2;
+  string nfinal = 3;
+  string multtimes = 4;
+}
+
+message IterativeAffineVector {
+  repeated IterativeAffineValue values = 1;
+}
+
+message IterativeAffineMatrix {
+  repeated IterativeAffineVector rows = 1;
+}
+
+// The general request message.
+message InputMessage {
+  repeated Matrix matrices = 1;
+  repeated Vector vectors = 2;
+  repeated double values = 3;
+
+  // params hold all parameters required for a specific algorithm phase.
+  AlgorithmParam params = 4;
+
+  repeated PaillierMatrix pailliermatrices = 5;
+  repeated PaillierVector pailliervectors = 6;
+  repeated PaillierValue pailliervalues = 7;
+  PaillierKeyPublic paillierkeypublic = 8;
+
+  // TODO: combine difference encryption scheme
+  repeated IterativeAffineMatrix iterativeaffinematrices = 9;
+  repeated IterativeAffineVector iterativeaffinevectors = 10;
+  repeated IterativeAffineValue iterativeaffinevalues = 11;
+}
+
+// The general multi-processing request message
+message MultiInputMessage {
+  repeated InputMessage messages = 1;
+}
+
+// The general single response message
+message OutputMessage {
+  repeated Matrix matrices = 1;
+  repeated Vector vectors = 2;
+  repeated double values = 3;
+
+  // params hold all parameters required for a specific algorithm phase.
+  AlgorithmParam params = 4;
+
+  // message keeps final algorithm status.
+  string message = 5;
+
+  repeated PaillierMatrix pailliermatrices = 6;
+  repeated PaillierVector pailliervectors = 7;
+  repeated PaillierValue pailliervalues = 8;
+  PaillierKeyPublic paillierkeypublic = 9;
+  // TODO: combine difference encryption scheme
+
+  repeated IterativeAffineMatrix iterativeaffinematrices = 10;
+  repeated IterativeAffineVector iterativeaffinevectors = 11;
+  repeated IterativeAffineValue iterativeaffinevalues = 12;
+}
+
+// The general multi-processing response message
+message MultiOutputMessage {
+  repeated OutputMessage messages = 1;
+}

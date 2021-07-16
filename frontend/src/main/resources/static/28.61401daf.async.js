@@ -1,0 +1,1 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[28],{kBKu:function(n,e,t){"use strict";t.r(e);var i=t("q1tI"),u=t.n(i),a=t("7DNP"),c=t("jnCu");e.default=function(){return u.a.createElement(c.a,{type:"500",style:{minHeight:500,height:"80%"},linkElement:a.Link})}}}]);

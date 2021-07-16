@@ -1,0 +1,75 @@
+{
+  "endTime": "2020-09-07T20:30:22.188+08:00",
+  "modelMap": {
+    "data": [
+      {
+        "dateTime": "2020-09-07T20:30:10.195+08:00",
+        "job": {
+          "jobReq": {
+            "businessTypeEnum": "FED_LEARNING",
+            "jobId": "132-SecureBoost-20200902165345",
+            "managerCommandEnum": "START",
+            "subRequest": {
+              "algorithm": "SecureBoost",
+              "data": "{\n  \"parameter\": {\n    \"num_boost_round\": 1,\n    \"first_round_pred\": 0.0,\n    \"maximize\": true,\n    \"rowsample\": 1.0,\n    \"colsample\": 1.0,\n    \"early_stopping_round\": 10,\n    \"min_child_weight\": 1.0,\n    \"min_sample_split\": 10,\n    \"lambda\": 1.0,\n    \"gamma\": 0.0,\n    \"scale_pos_weight\": 1.0,\n    \"num_bin\": 33,\n    \"eval_metric\": \"rmse\",\n    \"max_depth\": 7,\n    \"eta\": 0.3,\n    \"loss\": \"reg:square\",\n    \"cat_features\": \"1\",\n    \"randomized_response_probability\": 0.0,\n    \"differential_privacy_parameter\": 0.0\n  },\n  \"idMap\": {\n    \"1\": \"1\",\n    \"2\": \"2\"\n  },\n  \"featureList\": {\n    \"featureList\": [\n      {\n        \"name\": \"uid\",\n        \"type\": \"int\",\n        \"frequency\": 1,\n        \"id\": 0\n      },\n      {\n        \"name\": \"x0\",\n        \"type\": \"float\",\n        \"frequency\": 1,\n        \"id\": 0\n      },\n      {\n        \"name\": \"x1\",\n        \"type\": \"float\",\n        \"frequency\": 1,\n        \"id\": 0\n      },\n      {\n        \"name\": \"y\",\n        \"type\": \"float\",\n        \"frequency\": 1,\n        \"id\": 0\n      }\n    ],\n    \"label\": \"y\"\n  },\n  \"pubKey\": \"\",\n  \"modelToken\": \"132-SecureBoost-20200902165345\",\n  \"newTree\": true\n}\n",
+              "dataIndex": 0,
+              "dataNum": 1,
+              "gzip": false,
+              "modelToken": "132-SecureBoost-20200902165345",
+              "phase": 1,
+              "status": "RUNNING"
+            },
+            "username": "127.0.0.1:49966"
+          },
+          "jobResult": {
+            "modelMap": {},
+            "startTime": "2020-09-07T20:29:30.472+08:00"
+          }
+        },
+        "preTaskList": [
+          {
+            "dateTime": "2020-09-07T20:30:10.221+08:00",
+            "job": {
+              "jobReq": {
+                "businessTypeEnum": "FED_LEARNING",
+                "jobId": "132-SecureBoost-20200902165345",
+                "managerCommandEnum": "START",
+                "subRequest": {
+                  "algorithm": "SecureBoost",
+                  "data": "{\n  \"parameter\": {\n    \"num_boost_round\": 1,\n    \"first_round_pred\": 0.0,\n    \"maximize\": true,\n    \"rowsample\": 1.0,\n    \"colsample\": 1.0,\n    \"early_stopping_round\": 10,\n    \"min_child_weight\": 1.0,\n    \"min_sample_split\": 10,\n    \"lambda\": 1.0,\n    \"gamma\": 0.0,\n    \"scale_pos_weight\": 1.0,\n    \"num_bin\": 33,\n    \"eval_metric\": \"rmse\",\n    \"max_depth\": 7,\n    \"eta\": 0.3,\n    \"loss\": \"reg:square\",\n    \"cat_features\": \"1\",\n    \"randomized_response_probability\": 0.0,\n    \"differential_privacy_parameter\": 0.0\n  },\n  \"idMap\": {\n    \"1\": \"1\",\n    \"2\": \"2\"\n  },\n  \"featureList\": {\n    \"featureList\": [\n      {\n        \"name\": \"uid\",\n        \"type\": \"int\",\n        \"frequency\": 1,\n        \"id\": 0\n      },\n      {\n        \"name\": \"x0\",\n        \"type\": \"float\",\n        \"frequency\": 1,\n        \"id\": 0\n      },\n      {\n        \"name\": \"x1\",\n        \"type\": \"float\",\n        \"frequency\": 1,\n        \"id\": 0\n      },\n      {\n        \"name\": \"y\",\n        \"type\": \"float\",\n        \"frequency\": 1,\n        \"id\": 0\n      }\n    ],\n    \"label\": \"y\"\n  },\n  \"pubKey\": \"\",\n  \"modelToken\": \"132-SecureBoost-20200902165345\",\n  \"newTree\": true\n}\n",
+                  "dataIndex": 0,
+                  "dataNum": 1,
+                  "gzip": false,
+                  "modelToken": "132-SecureBoost-20200902165345",
+                  "phase": 1,
+                  "status": "RUNNING"
+                },
+                "username": "127.0.0.1:49966"
+              },
+              "jobResult": {
+                "modelMap": {},
+                "startTime": "2020-09-07T20:29:30.472+08:00"
+              }
+            },
+            "preTaskList": [],
+            "priority": 10,
+            "runStatusEnum": "SUCCESS",
+            "workerUnit": {
+              "ip": "127.0.0.1",
+              "name": "127.0.0.1:9095",
+              "port": 9095
+            },
+            "taskId": "132-SecureBoost-20200902165345@SINGLE@10@278806527503700",
+            "taskTypeEnum": "SINGLE"
+          }
+        ],
+        "priority": 40,
+        "runStatusEnum": "INIT",
+        "taskId": "132-SecureBoost-20200902165345@FINISH@40@278828580629899",
+        "taskTypeEnum": "FINISH"
+      }
+    ]
+  },
+  "resultTypeEnum": "SUCCESS",
+  "startTime": "2020-09-07T20:30:10.183+08:00"
+}

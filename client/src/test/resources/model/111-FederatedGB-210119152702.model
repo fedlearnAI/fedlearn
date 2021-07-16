@@ -1,0 +1,7 @@
+first_round_predict=0.0
+eta=0.3
+crossEntropy
+passiveQueryTable={"1":{"recordId":1,"featureIndex":2,"splitValue":3.4917}}
+multiClassUniqueLabelList
+
+tree[end]
