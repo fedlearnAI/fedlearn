@@ -13,14 +13,16 @@ limitations under the License.
 
 package com.jdt.fedlearn.client.entity.inference;
 
+import java.util.List;
+
 public class SingleInference {
     private String uid;
-    private String score;
+    private List<String> score;
 
     public SingleInference() {
     }
 
-    public SingleInference(String uid, String score) {
+    public SingleInference(String uid, List<String> score) {
         this.uid = uid;
         this.score = score;
     }
@@ -33,11 +35,11 @@ public class SingleInference {
         this.uid = uid;
     }
 
-    public String getScore() {
+    public List<String> getScore() {
         return score;
     }
 
-    public void setScore(String score) {
+    public void setScore(List<String> score) {
         this.score = score;
     }
 }

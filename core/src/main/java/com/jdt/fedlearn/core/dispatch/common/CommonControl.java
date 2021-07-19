@@ -46,11 +46,6 @@ public class CommonControl {
                 algorithm = new FederatedGB(fgbParameter);
                 break;
             }
-            case MixGBoost: {
-                MixGBParameter mixGBParameter = (MixGBParameter) parameter;
-                algorithm = new MixGBoost(mixGBParameter);
-                break;
-            }
             case LinearRegression: {
                 LinearParameter linearParameter = (LinearParameter) parameter;
                 algorithm = new LinearRegression(linearParameter);

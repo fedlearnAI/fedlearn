@@ -41,9 +41,6 @@ public class CommonModel {
             case FederatedGB:
                 model = new FederatedGBModel();
                 break;
-            case MixGBoost:
-                model = new MixGBModel();
-                break;
             case LinearRegression:
                 model = new LinearRegressionModel();
                 break;
@@ -89,9 +86,6 @@ public class CommonModel {
             case FederatedGB:
                 FgbModelSerializer fgbModelSerializer = (FgbModelSerializer)serializer;
                 model = new FederatedGBModel(fgbModelSerializer);
-                break;
-            case MixGBoost:
-                model = new MixGBModel();
                 break;
             case LinearRegression:
                 model = new LinearRegressionModel();

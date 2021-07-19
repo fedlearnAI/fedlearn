@@ -310,8 +310,9 @@ public class InferenceService {
             for (int i = 0; i < picArray.size(); i++) {
                 SingleInference jsonObject = picArray.get(i);
                 String uid = jsonObject.getUid();
-                String score = jsonObject.getScore();
-                bw.write(uid + "," + score + "\n");
+                List<String> score = jsonObject.getScore();
+                String stringScore = String.join("|",score);
+                bw.write(uid + "," + stringScore + "\n");
                 bw.flush();
             }
             logger.info("push success size:" + picArray.size());

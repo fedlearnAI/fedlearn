@@ -26,7 +26,7 @@ public enum AlgorithmType {
     MixGBoost("MixGBoost"),
     RandomForest("RandomForest"),
     RandomForestJava("RandomForestJava"),
-    //KernelLinearRegression("KernelLinearRegression"),
+//    KernelLinearRegression("KernelLinearRegression"),
     KernelBinaryClassification("KernelBinaryClassification"),
     KernelBinaryClassificationJava("KernelBinaryClassificationJava"),
     HorizontalFedAvg("HorizontalFedAvg"),
@@ -47,22 +47,20 @@ public enum AlgorithmType {
     }
 
     public static AlgorithmType[] getAlgorithmTypes() {
-        return AlgorithmType.values();
+        return new AlgorithmType[]{
+                VerticalLinearRegression,
+                LinearRegression,
+                FederatedGB,
+                RandomForestJava,
+                KernelBinaryClassificationJava,
+                VerticalLR,
+                DistributedRandomForest,
+        };
     }
 
 
     public static String[] getAlgorithms() {
-        return Arrays.stream(AlgorithmType.values()).map(AlgorithmType::getAlgorithm).toArray(String[]::new);
+        return Arrays.stream(getAlgorithmTypes()).map(AlgorithmType::getAlgorithm).toArray(String[]::new);
     }
-
-    public static AlgorithmType[] getAlgorithmTypesWithResearch() {
-        return AlgorithmType.values();
-    }
-
-
-    public static String[] getAlgorithmsWithResearch() {
-        return Arrays.stream(AlgorithmType.values()).map(AlgorithmType::getAlgorithm).toArray(String[]::new);
-    }
-
 
 }
