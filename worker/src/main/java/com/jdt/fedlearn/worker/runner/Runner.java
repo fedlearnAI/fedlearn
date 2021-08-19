@@ -15,6 +15,8 @@ package com.jdt.fedlearn.worker.runner;
 import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.Task;
 
+import java.io.IOException;
+
 /**
  * @Author:liuzhaojun10
  * @Date: 2020/8/20 20:45
@@ -28,7 +30,7 @@ public interface Runner {
      * @param task
      * @return 返回任务执行状态
      */
-    CommonResultStatus run(Task task);
+    CommonResultStatus run(Task task) throws IOException;
 
     /**
      * 在runner 中心注册服务

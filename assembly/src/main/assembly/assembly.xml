@@ -85,16 +85,6 @@
             <outputDirectory>lib</outputDirectory>
         </fileSet>
 
-        <fileSet>
-            <directory>
-                ${project.parent.basedir}/worker/target/fedlearn-worker-assembly/fedlearn-worker/lib/
-            </directory>
-            <includes>
-                <include>aspect*.jar</include>
-                <include>*spring*.jar</include>
-            </includes>
-            <outputDirectory>lib</outputDirectory>
-        </fileSet>
 
         <fileSet>
             <directory>
@@ -114,29 +104,26 @@
             <outputDirectory>lib</outputDirectory>
         </fileSet>
 
-
         <fileSet>
             <directory>
-                ${project.parent.basedir}/frontend/target/fedlearn-frontend-assembly/fedlearn-frontend/lib/
+                ${project.parent.basedir}/manager/target/lib/
             </directory>
             <includes>
-<!--                <include>spring-*.jar</include>-->
-<!--                <include>javax*.jar</include>-->
-<!--                <include>jd-security-tomcat*.jar</include>-->
-<!--                <include>commons-fileupload*.jar</include>-->
-<!--                <include>taglibs*.jar</include>-->
-<!--                <include>sdk-client*.jar</include>-->
-<!--                <include>crypto-classic*.jar</include>-->
-<!--                <include>crypto-sm*.jar</include>-->
-<!--                <include>sqlite-jdbc*.jar</include>-->
-<!--                <include>mybatis-*.jar</include>-->
-<!--                <include>caffeine*.jar</include>-->
-<!--                <include>snakeyaml-*.jar</include>-->
-<!--                <include></include>-->
                 <include>*.jar</include>
             </includes>
             <outputDirectory>lib</outputDirectory>
         </fileSet>
+
+        <fileSet>
+            <directory>
+                ${project.parent.basedir}/worker/target/lib/
+            </directory>
+            <includes>
+                <include>*.jar</include>
+            </includes>
+            <outputDirectory>lib</outputDirectory>
+        </fileSet>
+
 
     </fileSets>
     <dependencySets>

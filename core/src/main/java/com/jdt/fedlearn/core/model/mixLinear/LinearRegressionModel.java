@@ -12,6 +12,7 @@ limitations under the License.
 */
 package com.jdt.fedlearn.core.model.mixLinear;
 
+import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillier;
 import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierNative.signedByteArray;
 import com.jdt.fedlearn.core.encryption.distributedPaillier.HomoEncryptionDebugUtil;
 import com.jdt.fedlearn.core.encryption.distributedPaillier.HomoEncryptionUtil;
@@ -23,6 +24,7 @@ import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.mixedLinearRegression.*;
 import com.jdt.fedlearn.core.entity.psi.MatchResourceLinReg;
 import com.jdt.fedlearn.core.exception.NotMatchException;
+import com.jdt.fedlearn.core.exception.WrongValueException;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.loader.linearRegression.LinearInferenceData;
@@ -35,15 +37,12 @@ import com.jdt.fedlearn.core.optimizer.bfgs.WeightedLinRegLossPriv;
 import com.jdt.fedlearn.core.parameter.LinearParameter;
 import com.jdt.fedlearn.core.parameter.SuperParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
-import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ujmp.core.Matrix;
 
-import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.IntStream;
 
@@ -56,7 +55,7 @@ import static java.lang.Math.sqrt;
  */
 public class LinearRegressionModel implements Model {
 
-    boolean useFakeDec = true;
+    boolean useFakeDec = false;
     boolean debugMode = false;
 
     // model variables
@@ -96,6 +95,7 @@ public class LinearRegressionModel implements Model {
     private signedByteArray[] yHatEnc;
 
     private boolean phiReady = false;
+    private int thisPartyID;
 
     public WeightedLinRegLossPriv privLoss;
     public WeightedLinRegLossNonprivClient nonPrivLoss;
@@ -109,22 +109,32 @@ public class LinearRegressionModel implements Model {
 
     HomoEncryptionDebugUtil decHelper;
 
-    public LinearRegressionModel() {
-    }
+    public LinearRegressionModel() { }
 
     @Override
     public TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter parameter,
                                Features features, Map<String, Object> others) {
         this.p = (LinearParameter) parameter;
         numP = p.getNump();
-        // Standalone version, master generates Keys, clients receive.
         this.pheKeys = new HomoEncryptionUtil(numP, p.getEncBits(), useFakeDec);
-        if (!useFakeDec) {
-            this.pheKeys.setPk((String) others.get("pkStr"));
-            this.pheKeys.setSk((String) others.get("skStr"));
-        }
         this.clientPortList = (String[]) others.get("clientList");
         this.selfPort = (String) others.get("selfPort");
+        this.thisPartyID =  (Integer) others.get("thisPartyID") ;
+
+        if (!useFakeDec) {
+            DistributedPaillier.DistPaillierPubkey pubkey = new DistributedPaillier.DistPaillierPubkey();
+            DistributedPaillier.DistPaillierPrivkey privkey = new DistributedPaillier.DistPaillierPrivkey();
+
+            if((others.get("pubKeyStr")==null) || (others.get("privKeyStr")==null)) {
+                throw new WrongValueException("LinearRegressionModel init error, input keys are wrong");
+            }
+            pubkey.parseJson((String)others.get( "pubKeyStr" ));
+            privkey.parseJson((String)others.get("privKeyStr"));
+
+            this.pheKeys.setPk(pubkey);
+            this.pheKeys.setSk(privkey);
+            this.pheKeys.getSk().setRank(thisPartyID);
+        }
         return new LinearTrainData(rawData, features);
     }
 
@@ -144,7 +154,7 @@ public class LinearRegressionModel implements Model {
         // if : no idmapping result, do idmapping
         // else : idmapping is done, return empty request.
         if (phase == 1) { // TODO: use enum instead of 1, 2, 3... because 1, 2, 3, has no meanining
-            // send Empty request, wait client to return MatchResourceLinReg
+            // mockSend Empty request, wait client to return MatchResourceLinReg
             ret = trainIdMatchingPhase1SendMatchingArgs(trainData);
         } else if (phase == 2) {
             ret = trainIdMatchingPhase2RecvMatchingRes(masterReturnedMsg);
@@ -154,7 +164,7 @@ public class LinearRegressionModel implements Model {
             // getLocalYhat, 计算本地的y_hat
             ret = trainPhase1ComputeLocalYHat(trainData);
         } else if (phase == 4) {
-            // get d_final from master compute compute_g_part and send back, master聚合各方y_hat计算残差并返回后，在
+            // get d_final from master compute compute_g_part and mockSend back, master聚合各方y_hat计算残差并返回后，在
             // client 计算本地的g
             ret = trainPhase2ComputeLocalG(masterReturnedMsg);
         } else if (phase == 5) {
@@ -177,7 +187,7 @@ public class LinearRegressionModel implements Model {
     }
 
     /**
-     * client prepare labels, uid and featName, then send to Master
+     * client prepare labels, uid and featName, then mockSend to Master
      *
      * @param trainData LinearTrainData
      * @return MatchResourceLinReg
@@ -325,12 +335,12 @@ public class LinearRegressionModel implements Model {
         if (N == 0) {
             nonPrivLoss = null;
         } else {
-            nonPrivLoss = new WeightedLinRegLossNonprivClient(phiNonpriv, weight, hNonPriv, p.getEta(), BigInteger.ONE, p.getLambda());
+            nonPrivLoss = new WeightedLinRegLossNonprivClient(phiNonpriv, weight, hNonPriv, p.getEta(), p.getLambda());
         }
     }
 
     /**
-     * Client compute local y_hat then do encryption and send it to Master
+     * Client compute local y_hat then do encryption and mockSend it to Master
      *
      * @param data a LinearTrainData object
      * @return encrypted y_hat
@@ -431,7 +441,7 @@ public class LinearRegressionModel implements Model {
             }
         }
         if (gInfo.size() != numP - 1) {
-            throw new NotMatchException("client " + selfPort + " needs to send out " + (numP - 1) +
+            throw new NotMatchException("client " + selfPort + " needs to mockSend out " + (numP - 1) +
                     ", but only got " + gInfo.size());
         }
         return new PartialDecMessage(gInfo);
@@ -707,19 +717,32 @@ public class LinearRegressionModel implements Model {
      **/
 
     @Override
-    public Message inferenceInit(String[] uidList, String[][] inferenceCacheFile, Map<String, Object> Others) {
+    public Message inferenceInit(String[] uidList, String[][] inferenceCacheFile, Map<String, Object> others) {
 
         this.p = new LinearParameter();
-        this.p.setEncBits((Integer) Others.get("encBits"));
-        this.p.setNump((Integer) Others.get("numP"));
+        this.p.setEncBits((Integer) others.get("encBits"));
+        this.p.setNump((Integer) others.get("numP"));
         // Standalone version, master generates Keys, clients receive.
         this.pheKeys = new HomoEncryptionUtil(p.getNump(), p.getEncBits(), useFakeDec);
+
+        this.pheKeys = new HomoEncryptionUtil(numP, p.getEncBits(), useFakeDec);
+        this.clientPortList = (String[]) others.get("clientList");
+        this.selfPort = (String) others.get("selfPort");
+        this.thisPartyID =  (Integer) others.get("thisPartyID") ;
+
+        DistributedPaillier.DistPaillierPubkey pubkey = new DistributedPaillier.DistPaillierPubkey();
+        DistributedPaillier.DistPaillierPrivkey privkey = new DistributedPaillier.DistPaillierPrivkey();
+        pubkey.parseJson((String)others.get("pubKeyStr"));
+        privkey.parseJson((String)others.get("privKeyStr"));
+
         if (!useFakeDec) {
-            this.pheKeys.setPk((String) Others.get("pkStr"));
-            this.pheKeys.setSk((String) Others.get("skStr"));
+            this.pheKeys.setPk(pubkey);
+            this.pheKeys.setSk(privkey);
+            this.pheKeys.getSk().setRank(thisPartyID);
         }
-        this.clientPortList = (String[]) Others.get("clientList");
-        this.selfPort = (String) Others.get("selfPort");
+
+        this.clientPortList = (String[]) others.get("clientList");
+        this.selfPort = (String) others.get("selfPort");
         this.predictUid = uidList;
 
         return InferenceFilter.filter(uidList, inferenceCacheFile);
@@ -749,7 +772,7 @@ public class LinearRegressionModel implements Model {
     }
 
     /**
-     * client prepare labels, uid and featName, then send to Master
+     * client prepare labels, uid and featName, then mockSend to Master
      *
      * @param data a LinearInferenceData object
      * @return a MatchResourceLinReg object
@@ -838,7 +861,7 @@ public class LinearRegressionModel implements Model {
         if (N == 0) {
             nonPrivLoss = null;
         } else {
-            nonPrivLoss = new WeightedLinRegLossNonprivClient(phiNonpriv, weight, BigInteger.ONE);
+            nonPrivLoss = new WeightedLinRegLossNonprivClient(phiNonpriv, weight);
         }
     }
 

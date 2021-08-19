@@ -35,7 +35,8 @@ public class ChainTrainProgressInnerServiceImpl implements TrainService {
     @Override
     public Map<String, Object> service(String content) {
         boolean flag = true;
-        CommonTrainQuery subRequest = new CommonTrainQuery(content);
+        CommonTrainQuery subRequest = new CommonTrainQuery();
+        subRequest.parseJson(content);
         TrainStatus trainStatus = getTrainProgress(subRequest);
         if (trainStatus == null) {
             flag = false;

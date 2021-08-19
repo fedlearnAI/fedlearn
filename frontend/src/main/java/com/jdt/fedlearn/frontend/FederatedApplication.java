@@ -27,10 +27,7 @@ import org.springframework.context.annotation.Conditional;
 @Conditional(JdChainFalseCondition.class)
 @SpringBootApplication
 public class FederatedApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(FederatedApplication.class, args);
     }
-
-
 }

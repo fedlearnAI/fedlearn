@@ -79,9 +79,9 @@ public class HomoEncryptionUtil {
      *  Encryption APIs
      * ========================================
      */
-    public void generateKeys() {
+    public void generateKeyStandalone() {
         if (!usingFake) {
-            DistributedPaillier.genPrivpubKeys(skAll, pk, length, t, n);
+            DistributedPaillier.genPrivpubKeysStandalone(skAll, pk, length, t, n);
         } else {
             for(int i = 0; i < skAll.length; i++) {
                 skAll[i] = new DistPaillierPrivkey();
@@ -503,7 +503,7 @@ public class HomoEncryptionUtil {
 
     public static void main(String[] args) {
         HomoEncryptionUtil test = new HomoEncryptionUtil(3, 1024, false);
-        test.generateKeys();
+        test.generateKeyStandalone();
         int N = 20;
         double [] a = new double[N];
         double [] b = new double[N];

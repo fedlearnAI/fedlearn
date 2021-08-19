@@ -5,7 +5,6 @@ import com.jdt.fedlearn.core.dispatch.FederatedGB;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.psi.MappingReport;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.*;
 import com.jdt.fedlearn.core.type.data.Tuple2;
@@ -46,7 +45,7 @@ public class RunFederatedGB {
         //---------------------------下面不需要手动设置-------------------------------------
         this.clientInfos = new ClientInfo[partnerSize];
         for (int i = 0; i < partnerSize; i++) {
-            this.clientInfos[i] = new ClientInfo("127.0.0.1", 80 + i, "http", i + 1);
+            this.clientInfos[i] = new ClientInfo("127.0.0.1", 80 + i, "http", "", String.valueOf(i + 1));
             String fileName = "train" + i + ".csv";
             String[][] data = DataParseUtil.loadTrainFromFile(baseDir + fileName);
             rawDataMap.put(clientInfos[i], data);
@@ -62,9 +61,9 @@ public class RunFederatedGB {
         System.out.println("secure boost binary classification test start:");
         //-----------------id match and feature extract---------------------////
         // coordinate端singleMatch生成的内容是MappingOutput
-        Tuple2<MappingReport, String[]> mappingReport = CommonRun.match(MappingType.VERTICAL_MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
+        Tuple2<MatchResult, String[]> mappingReport = CommonRun.match(MappingType.MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
         // match之后生成的是MatchResult
-        MatchResult matchResult = new MatchResult(mappingReport._1().getSize());
+        MatchResult matchResult = mappingReport._1();
 
         Map<ClientInfo, Features> featuresMap = new HashMap<>();
         for (Map.Entry<ClientInfo, String[][]> entry : rawDataMap.entrySet()) {
@@ -98,7 +97,7 @@ public class RunFederatedGB {
             tmp.deserialize(content);
             modelMap.put(clientInfo, tmp);
         }
-        List<CommonRequest> requests = boost.initInference(Arrays.asList(clientInfos.clone()), predictUid);
+        List<CommonRequest> requests = boost.initInference(Arrays.asList(clientInfos.clone()), predictUid,null);
         double[][] result = CommonRun.inference(boost, requests, modelMap, inferenceRawData).getPredicts();
         System.out.println("inference result is " + Arrays.deepToString(result));
         System.out.println("secure boost binary classification test end:");
@@ -117,7 +116,7 @@ public class RunFederatedGB {
 
         //参数
         final MetricType[] metrics = new MetricType[]{MetricType.ACC, MetricType.AUC, MetricType.F1, MetricType.RECALL};
-        final FgbParameter parameter = new FgbParameter(3, 1.0, 0.0, 5, 0.3, 33, ObjectiveType.binaryLogistic, metrics, BitLengthType.bit1024, new String[0]);
+        final FgbParameter parameter = new FgbParameter.Builder(3, metrics, ObjectiveType.binaryLogistic).firstRoundPred(FirstPredictType.ZERO).minSampleSplit(10).colSample(1).rowSample(1).maxDepth(5).build();
         final FederatedGB boost = new FederatedGB(parameter);
         runFederatedGB.trainAndTest(trainId, boost);
 
@@ -141,7 +140,7 @@ public class RunFederatedGB {
 
         //参数
         final MetricType[] metrics = new MetricType[]{MetricType.ACC, MetricType.AUC, MetricType.F1, MetricType.RECALL};
-        final FgbParameter parameter = new FgbParameter(2, 1.0, 0.0, 3, 0.3, 33, ObjectiveType.binaryLogistic, metrics, BitLengthType.bit1024, new String[0]);
+        final FgbParameter parameter = new FgbParameter.Builder(2, metrics, ObjectiveType.binaryLogistic).maxDepth(3).build();
         final FederatedGB boost = new FederatedGB(parameter);
         runFederatedGB.trainAndTest(trainId, boost);
 
@@ -163,8 +162,7 @@ public class RunFederatedGB {
 
         //参数
         final MetricType[] metrics = new MetricType[]{MetricType.MACC, MetricType.MERROR};
-        final FgbParameter parameter = new FgbParameter(3, 1.0, 0.0, 3, 0.1, 33, ObjectiveType.multiSoftmax, 40, metrics, BitLengthType.bit1024, new String[0]);
-//        final FgbParameter parameter = new FgbParameter(2, 1.0, 0.0, 3, 0.1, 33, ObjectiveType.multiSoftmax, 10, metrics, BitLengthType.bit1024, new String[0]);
+        final FgbParameter parameter = new FgbParameter.Builder(3, metrics,  ObjectiveType.multiSoftmax).numClass(40).maxDepth(3).build();
         final FederatedGB boost = new FederatedGB(parameter);
         runFederatedGB.trainAndTest(trainId, boost);
 
@@ -184,7 +182,7 @@ public class RunFederatedGB {
 
         //参数
         final MetricType[] metrics = new MetricType[]{MetricType.MAPE, MetricType.MAAPE};
-        final FgbParameter parameter = new FgbParameter(5, 1.0, 0.0, 7, 0.1, 33, ObjectiveType.countPoisson, metrics, BitLengthType.bit1024, new String[0]);
+        final FgbParameter parameter = new FgbParameter.Builder(5, metrics, ObjectiveType.countPoisson).build();
         final FederatedGB boost = new FederatedGB(parameter);
         runFederatedGB.trainAndTest(trainId, boost);
 
@@ -207,7 +205,7 @@ public class RunFederatedGB {
 
         //参数
         final MetricType[] metrics = new MetricType[]{MetricType.MAPE, MetricType.RMSE};
-        final FgbParameter parameter = new FgbParameter(10, 1.0, 0.0, 7, 0.1, 33, ObjectiveType.regSquare, metrics, BitLengthType.bit1024, new String[0]);
+        final FgbParameter parameter = new FgbParameter.Builder(10, metrics, ObjectiveType.regSquare).build();
         final FederatedGB boost = new FederatedGB(parameter);
         runFederatedGB.trainAndTest(trainId, boost);
 

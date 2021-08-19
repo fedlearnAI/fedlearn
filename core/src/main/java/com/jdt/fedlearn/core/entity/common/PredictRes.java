@@ -35,7 +35,7 @@ public class PredictRes implements Message {
 
     private double[][] trans(double[] predict){
         double[][] res = new double[predict.length][1];
-        IntStream.range(0,predict.length).forEach(x->res[x][0]=predict[x]);
+        IntStream.range(0,predict.length).forEach(x->res[x][0] = predict[x]);
         return res;
     }
 

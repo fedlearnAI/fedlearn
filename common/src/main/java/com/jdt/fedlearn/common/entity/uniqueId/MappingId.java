@@ -17,13 +17,11 @@ public class MappingId implements UniqueId, Message {
         this.projectId = projectId;
         this.mappingType = mappingType;
         this.createTime = new Date();
+
     }
 
-    public MappingId(String trainId) throws ParseException {
+    public MappingId(String trainId) throws ParseException{
         String[] parseRes = trainId.split(separator);
-        if (parseRes.length != 3){
-            throw new NotMatchException("do not conform the standard trainId format");
-        }
         this.projectId = parseRes[0];
         this.mappingType = MappingType.valueOf(parseRes[1]);
         this.createTime = df.get().parse(parseRes[2]) ;

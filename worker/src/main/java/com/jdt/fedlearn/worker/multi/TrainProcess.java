@@ -12,10 +12,9 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.multi;
 
+import com.jdt.fedlearn.common.constant.CacheConstant;
 import com.jdt.fedlearn.worker.cache.ManagerCache;
-import com.jdt.fedlearn.worker.cache.ModelCache;
 import com.jdt.fedlearn.worker.service.TrainService;
-import com.jdt.fedlearn.worker.constant.CacheConstant;
 import com.jdt.fedlearn.common.util.SerializationUtils;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.core.entity.Message;
@@ -58,9 +57,6 @@ public class TrainProcess {
             String trainResultKey = CacheConstant.getTrainResultKey(stamp);
             TrainService.responseQueue.put(trainResultKey, strMessage);
             logger.info("trainResultKey={}, phase={}, stamp={}", trainResultKey, phase, stamp);
-            String moldeKey = CacheConstant.getMoldeKey(modelToken, requestId);
-            /* 将model保存在manager*/
-            ManagerCache.putCache(AppConstant.MODEL_CACHE,moldeKey,SerializationUtils.serialize(model));
         } catch (Exception e){
             logger.error(" phase: " + this.phase + " + modeltoken: " +  this.modelToken + " stemp : "+this.stamp );
             logger.error("train process error:" );

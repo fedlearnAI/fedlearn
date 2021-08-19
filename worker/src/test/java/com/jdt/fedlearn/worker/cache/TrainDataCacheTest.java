@@ -12,7 +12,9 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.cache;
 
-import com.jdt.fedlearn.worker.util.ConfigUtil;
+import ch.qos.logback.core.joran.spi.JoranException;
+import com.jdt.fedlearn.client.cache.TrainDataCache;
+import com.jdt.fedlearn.client.util.ConfigUtil;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -25,7 +27,7 @@ import java.util.Map;
 public class TrainDataCacheTest {
 
     @BeforeClass
-    public void setUp(){
+    public void setUp() throws IOException, JoranException {
         ConfigUtil.init("src/test/resources/conf/worker.properties");
     }
 
@@ -46,7 +48,7 @@ public class TrainDataCacheTest {
 
     @Test
     public void readFullTrainData() throws IOException {
-        String[][] strings = TrainDataCache.readFullTrainData("mo17k.csv");
+        String[][] strings = TrainDataCache.readFullTrainData("","mo17k.csv");
         Assert.assertEquals(strings[0][0],"uid");
     }
 
@@ -57,7 +59,7 @@ public class TrainDataCacheTest {
     @Test
     public void getFirstColumnUid() throws IOException {
         String firstUid = "19393tA";
-        String[][] udis = TrainDataCache.readFullTrainData("mo17k.csv");
+        String[][] udis = TrainDataCache.readFullTrainData("","mo17k.csv");
         String[] firstColumnUid = TrainDataCache.getFirstColumnUid(udis);
         Assert.assertEquals(firstColumnUid[0],firstUid);
     }

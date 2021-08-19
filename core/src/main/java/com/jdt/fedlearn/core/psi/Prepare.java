@@ -41,7 +41,7 @@ public interface Prepare {
      * @param responses 各个返回结果
      * @return 预测结果
      */
-    MappingReport postMaster(List<CommonResponse> responses);
+    MatchResult postMaster(List<CommonResponse> responses);
 
     /**
      *

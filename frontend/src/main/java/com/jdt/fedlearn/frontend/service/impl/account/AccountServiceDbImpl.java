@@ -16,9 +16,9 @@ package com.jdt.fedlearn.frontend.service.impl.account;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.jdt.fedlearn.frontend.jdchain.config.JdChainFalseCondition;
-import com.jdt.fedlearn.frontend.mapper.entity.Account;
+import com.jdt.fedlearn.frontend.entity.table.AccountDO;
 import com.jdt.fedlearn.frontend.mapper.account.AccountDbMapper;
-import com.jdt.fedlearn.frontend.service.AccountService;
+import com.jdt.fedlearn.frontend.service.IAccountService;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Service;
 
@@ -27,42 +27,42 @@ import java.util.List;
 
 @Conditional(JdChainFalseCondition.class)
 @Service
-public class AccountServiceDbImpl implements AccountService {
+public class AccountServiceDbImpl implements IAccountService {
     @Resource
     AccountDbMapper accountDbMapper;
     @Override
-    public boolean createAccount(Account account) {
-        int insert = accountDbMapper.insert(account);
+    public boolean createAccount(AccountDO accountDO) {
+        int insert = accountDbMapper.insert(accountDO);
         return insert>0;
     }
 
     @Override
-    public Account queryAccount(String userName) {
-        Account account = accountDbMapper.selectOne(new QueryWrapper<Account>().eq("user_name", userName));
-        return account;
+    public AccountDO queryAccount(String userName) {
+        AccountDO accountDO = accountDbMapper.selectOne(new QueryWrapper<AccountDO>().eq("user_name", userName));
+        return accountDO;
     }
 
     @Override
-    public List<Account> queryAllAccount() {
-        List<Account> accounts = accountDbMapper.selectList(null);
-        return accounts;
+    public List<AccountDO> queryAllAccount() {
+        List<AccountDO> accountDOS = accountDbMapper.selectList(null);
+        return accountDOS;
     }
 
     @Override
-    public boolean updateAccount(Account account) {
-        int i = accountDbMapper.update(account,new UpdateWrapper<Account>().eq("id",account.getUserId()));
+    public boolean updateAccount(AccountDO accountDO) {
+        int i = accountDbMapper.update(accountDO,new UpdateWrapper<AccountDO>().eq("id", accountDO.getUserId()));
         return i>0;
     }
 
     @Override
-    public List<Account> queryAllAccountByMerCode(String merCode) {
-        List<Account> list = accountDbMapper.selectList(new QueryWrapper<Account>().eq("mer_code",merCode).orderByDesc("modified_time"));
+    public List<AccountDO> queryAllAccountByMerCode(String merCode) {
+        List<AccountDO> list = accountDbMapper.selectList(new QueryWrapper<AccountDO>().eq("mer_code",merCode).orderByDesc("modified_time"));
         return list;
     }
 
     @Override
     public void updateAccountByMerCode(String merCode, String status) {
-        List<Account> list = this.queryAllAccountByMerCode(merCode);
+        List<AccountDO> list = this.queryAllAccountByMerCode(merCode);
         list.stream().forEach(account -> {
             account.setStatus(status);
             this.updateAccount(account);

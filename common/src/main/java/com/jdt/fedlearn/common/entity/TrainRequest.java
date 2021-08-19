@@ -18,6 +18,7 @@ import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.util.ToString;
 import com.jdt.fedlearn.core.exception.DeserializeException;
 import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.core.type.ReduceType;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -36,7 +37,7 @@ public class TrainRequest extends ToString {
     private RunningType status;
     private boolean isSync;
     private String requestId;
-    private String reduceType;
+    private ReduceType reduceType;
     private String dataset;
 
     public String getDataset() {
@@ -167,11 +168,11 @@ public class TrainRequest extends ToString {
         this.requestId = requestId;
     }
 
-    public String getReduceType() {
+    public ReduceType getReduceType() {
         return reduceType;
     }
 
-    public void setReduceType(String reduceType) {
+    public void setReduceType(ReduceType reduceType) {
         this.reduceType = reduceType;
     }
 

@@ -23,7 +23,7 @@ public class TestJsonUtil {
     @Test
     public void testParseJson() {
         String jsonStr = "{\"name\":\"admin\"}";
-        ModelMap modelMap = JsonUtil.parseJson(jsonStr);
+        ModelMap modelMap = JsonUtil.json2Object(jsonStr,ModelMap.class);
 
         ModelMap res = new ModelMap();
         res.put("name", "admin");

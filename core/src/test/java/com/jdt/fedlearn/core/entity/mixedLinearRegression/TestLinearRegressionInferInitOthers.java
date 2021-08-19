@@ -29,7 +29,7 @@ public class TestLinearRegressionInferInitOthers {
     int[] dataCategory = new int[]{0};
     double[] yTrue = new double[]{0};
     ClientInfo[] clientList = new ClientInfo[0];
-    ClientInfo selfClientInfo = new ClientInfo("127.0.0.1", 8094, "http", 0);
+    ClientInfo selfClientInfo = new ClientInfo("127.0.0.1", 8094, "http", "","0");
     int encMode = 0;
     double[] h = new double[]{0};
     String pkStr = "";
@@ -66,7 +66,7 @@ public class TestLinearRegressionInferInitOthers {
 
     @Test
     public void jsonSerialize() {
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.mixedLinearRegression.LinearRegressionInferInitOthers\",\"DATA\":{\"numP\":0,\"m\":1,\"n\":0,\"nPriv\":0,\"mPriv\":1,\"fullM\":1,\"fullN\":2,\"featMap\":{},\"idMapLinReg\":{},\"k\":[[0,1],[0,2]],\"dataCategory\":[0],\"clientList\":[],\"selfClientInfo\":{\"ip\":\"127.0.0.1\",\"port\":8094,\"protocol\":\"http\",\"uniqueId\":0},\"encMode\":0,\"h\":[0.0],\"encBits\":0}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.mixedLinearRegression.LinearRegressionInferInitOthers\",\"DATA\":{\"numP\":0,\"m\":1,\"n\":0,\"nPriv\":0,\"mPriv\":1,\"fullM\":1,\"fullN\":2,\"featMap\":{},\"idMapLinReg\":{},\"k\":[[0,1],[0,2]],\"dataCategory\":[0],\"clientList\":[],\"selfClientInfo\":{\"ip\":\"127.0.0.1\",\"port\":8094,\"path\":\"\",\"protocol\":\"http\",\"uniqueId\":\"0\"},\"encMode\":0,\"h\":[0.0],\"encBits\":0}}";
         Serializer serializer = new JsonSerializer();
         LinearRegressionInferInitOthers linearRegressionInferInitOthers = new LinearRegressionInferInitOthers(k, featMap, idMapLinReg, numP, m, n, mPriv, nPriv, encMode, dataCategory, h, encBits, clientList, selfClientInfo);
         String str = serializer.serialize(linearRegressionInferInitOthers);

@@ -21,6 +21,10 @@ public class ClientInfoFeatures {
     private JdchainClientInfo clientInfo;
     @JsonProperty("features")
     private JdchainCreateFeatures features;
+    private String taskPwd;
+
+    public ClientInfoFeatures() {
+    }
 
     public String getDataset() {
         return dataset;
@@ -44,5 +48,13 @@ public class ClientInfoFeatures {
 
     public void setFeatures(JdchainCreateFeatures features) {
         this.features = features;
+    }
+
+    public String getTaskPwd() {
+        return taskPwd;
+    }
+
+    public void setTaskPwd(String taskPwd) {
+        this.taskPwd = taskPwd;
     }
 }

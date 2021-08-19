@@ -287,7 +287,7 @@ public class VerticalLinearRegression implements Control {
      * @param predictUid  需要推理的uid
      * @return
      */
-    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid) {
+    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid,Map<String, Object> others) {
         phase = -255;
         originIdArray = predictUid;
         predict = new double[originIdArray.length];

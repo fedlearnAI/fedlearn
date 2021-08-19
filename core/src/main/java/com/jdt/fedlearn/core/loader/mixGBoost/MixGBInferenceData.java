@@ -18,31 +18,31 @@ import com.jdt.fedlearn.core.util.Tool;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+/**
+ * @author zhangwenxi
+ */
 public class MixGBInferenceData extends AbstractInferenceData {
     private final Map<String, Integer> idIndexMap;
 
     public MixGBInferenceData(String[][] rawTable) {
         super.scan(rawTable);
         idIndexMap = new HashMap<>();
-        for (int i = 0; i < datasetSize; i++) {
-            if (idIndexMap.containsKey(uid[i])) {
-                continue;
-            }
-            idIndexMap.put(uid[i], i);
-        }
+        IntStream.range(0, datasetSize).filter(i -> !idIndexMap.containsKey(uid[i]))
+                .forEach(i -> idIndexMap.put(uid[i], i));
     }
 
     public void computeUidIndex(String[] partUid) {
         fakeIdIndex = Arrays.stream(partUid).parallel().mapToInt(id -> idIndexMap.getOrDefault(id, -1)).toArray();
     }
 
-    public double getInstanceFeatureValue(String instId, String fname) {
+    public double getInstanceFeatureValue(String instId, String name) {
         if (!idIndexMap.containsKey(instId)) {
             return Double.MAX_VALUE;
         }
         int columnIndex = 0;
-        while (columnIndex < featureName.length && !(fname.equals(featureName[columnIndex]))) {
+        while (columnIndex < featureName.length && !(name.equals(featureName[columnIndex]))) {
             columnIndex++;
         }
         if (columnIndex == featureName.length) {
@@ -51,9 +51,9 @@ public class MixGBInferenceData extends AbstractInferenceData {
         return sample[idIndexMap.get(instId)][columnIndex];
     }
 
-    public double[] getInstanceFeatureValue(String[] instIds, String fname) {
+    public double[] getInstanceFeatureValue(String[] instIds, String name) {
         int columnIndex = 0;
-        while (columnIndex < featureName.length && !(fname.equals(featureName[columnIndex]))) {
+        while (columnIndex < featureName.length && !(name.equals(featureName[columnIndex]))) {
             columnIndex++;
         }
         if (columnIndex == featureName.length) {
@@ -71,9 +71,9 @@ public class MixGBInferenceData extends AbstractInferenceData {
         }).toArray();
     }
 
-    public Set<String> getLeftInstance(Set<String> instIds, String fname, double value) {
+    public Set<String> getLeftInstance(Set<String> instIds, String name, double value) {
         int columnIndex = 0;
-        while (columnIndex < featureName.length && !(fname.equals(featureName[columnIndex]))) {
+        while (columnIndex < featureName.length && !(featureName[columnIndex].equals(name))) {
             columnIndex++;
         }
         if (columnIndex == featureName.length) {
@@ -81,7 +81,8 @@ public class MixGBInferenceData extends AbstractInferenceData {
         }
         int finalColumnIndex = columnIndex;
         return instIds.parallelStream().filter(instId ->
-                idIndexMap.containsKey(instId) && Tool.compareDoubleValue(sample[idIndexMap.get(instId)][finalColumnIndex], value) <= 0)
+                idIndexMap.containsKey(instId) &&
+                        Tool.compareDoubleValue(sample[idIndexMap.get(instId)][finalColumnIndex], value) <= 0)
                 .collect(Collectors.toSet());
     }
 

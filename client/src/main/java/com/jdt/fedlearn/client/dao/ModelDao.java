@@ -31,7 +31,7 @@ public class ModelDao {
 
 
     public static Boolean saveModel(String modelToken, Model model) {
-        String modelPath = ConfigUtil.getModelDir() + generateModelName(modelToken);
+        String modelPath = ConfigUtil.getClientConfig().getModelDir() + generateModelName(modelToken);
         String modelSerialize = model.serialize();
         FileUtil.writeFile(modelSerialize, modelPath);
         return true;
@@ -50,7 +50,7 @@ public class ModelDao {
 
 
     public static Model loadModel(String modelToken) {
-        String modelPath = ConfigUtil.getModelDir();
+        String modelPath = ConfigUtil.getClientConfig().getModelDir();
         String fileName = modelPath + generateModelName(modelToken);
         String modelType = parseModelName(modelToken);
         try {
@@ -67,7 +67,7 @@ public class ModelDao {
 
     // 下载模型
     public static String downloadModel(String modelToken) {
-        String modelPath = ConfigUtil.getModelDir();
+        String modelPath = ConfigUtil.getClientConfig().getModelDir();
         String fileName = modelPath + generateModelName(modelToken);
         try {
             String modelContent = FileUtil.readFileLines(fileName);
@@ -80,7 +80,7 @@ public class ModelDao {
 
     // 上传模型
     public static Boolean uploadModel(String modelToken, String modelString) {
-        String modelPath = ConfigUtil.getModelDir() + generateModelName(modelToken);
+        String modelPath = ConfigUtil.getClientConfig().getModelDir() + generateModelName(modelToken);
         FileUtil.writeFile(modelString, modelPath);
         return true;
     }

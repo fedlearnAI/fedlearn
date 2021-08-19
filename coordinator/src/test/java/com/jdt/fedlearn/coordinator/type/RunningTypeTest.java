@@ -1,5 +1,6 @@
 package com.jdt.fedlearn.coordinator.type;
 
+import com.jdt.fedlearn.common.enums.RunningType;
 import org.testng.annotations.Test;
 import org.ujmp.core.util.R;
 

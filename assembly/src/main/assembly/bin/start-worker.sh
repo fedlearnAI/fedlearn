@@ -110,7 +110,7 @@ fi
 JAVA_MEM_OPTS=""
 BITS=`${JAVA_EXE} -version 2>&1 | grep -i 64-bit`
 if [[ -n "$BITS" ]]; then
-    JAVA_MEM_OPTS=" -server -Xmx8g -Xms2g -Xmn800m  -Xss256k -XX:+DisableExplicitGC -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled  -XX:LargePageSizeInBytes=128m -XX:+UseFastAccessorMethods -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=70 "
+    JAVA_MEM_OPTS=" -server -Xmx12g -Xms12g -Xmn2g  -Xss256k -XX:+DisableExplicitGC -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled  -XX:LargePageSizeInBytes=128m -XX:+UseFastAccessorMethods -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=70 "
 else
     JAVA_MEM_OPTS=" -server -Xms1g -Xmx2g -XX:SurvivorRatio=2 -XX:+UseParallelGC "
 fi

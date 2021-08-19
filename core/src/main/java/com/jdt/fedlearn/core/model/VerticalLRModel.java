@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import com.jdt.fedlearn.core.type.*;
@@ -212,7 +213,7 @@ public class VerticalLRModel implements Model {
             sigmoidWxMinusY[j] = encryptionTool.add(sigmoidWx, minusLabel, pubKey);
 
             // compute sigmoid(wx_i) when y==1 and (1 - sigmoid(wx_i)) when y==0
-            // then we send it to Master, decrypting, taking log and computing loss
+            // then we mockSend it to Master, decrypting, taking log and computing loss
             if (label[j] == 1) {
                 lossXi[j] = sigmoidWx;
             } else if (label[j] == 0) {

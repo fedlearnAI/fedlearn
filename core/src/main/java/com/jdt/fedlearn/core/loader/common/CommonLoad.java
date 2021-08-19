@@ -15,10 +15,10 @@ package com.jdt.fedlearn.core.loader.common;
 
 import com.jdt.fedlearn.core.entity.verticalFDNN.VFDNNInferenceData;
 import com.jdt.fedlearn.core.exception.NotImplementedException;
-import com.jdt.fedlearn.core.loader.boost.BoostInferenceData;
 import com.jdt.fedlearn.core.loader.linearRegression.LinearInferenceData;
 import com.jdt.fedlearn.core.loader.mixGBoost.MixGBInferenceData;
 import com.jdt.fedlearn.core.loader.randomForest.RFInferenceData;
+import com.jdt.fedlearn.core.loader.secureInference.DelphiInferenceData;
 import com.jdt.fedlearn.core.loader.secureInference.TreeInferenceData;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 
@@ -31,21 +31,17 @@ public class CommonLoad {
             case VerticalLR:
             case KernelBinaryClassification:
             case KernelBinaryClassificationJava:
-                inferenceData = new CommonInferenceData(rawData,"uid",null);
+            case FederatedGB:
+            case HorizontalFedAvg:
+                inferenceData = new CommonInferenceData(rawData, "uid", null);
                 break;
             case LinearRegression: {
                 inferenceData = new LinearInferenceData(rawData, null);
                 break;
             }
-            case RandomForest:
             case RandomForestJava:
-            case DistributedRandomForest:{
+            case DistributedRandomForest: {
                 inferenceData = new RFInferenceData(rawData);
-                break;
-            }
-            case FederatedGB:
-            case HorizontalFedAvg: {
-                inferenceData = new BoostInferenceData(rawData);
                 break;
             }
             case MixGBoost: {
@@ -58,6 +54,10 @@ public class CommonLoad {
             }
             case TreeInference: {
                 inferenceData = new TreeInferenceData(rawData);
+                break;
+            }
+            case DelphiInference: {
+                inferenceData = new DelphiInferenceData(rawData);
                 break;
             }
             default: {

@@ -17,6 +17,7 @@ import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jdt.fedlearn.common.constant.JdChainConstant;
 import com.jdt.fedlearn.common.entity.jdchain.JdchainTask;
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTaskMapper;
@@ -26,7 +27,6 @@ import com.jdt.fedlearn.coordinator.entity.jdchain.JdchainTrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.exception.jdchain.RandomServerException;
 import com.jdt.fedlearn.coordinator.exception.jdchain.StartTrainException;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.coordinator.util.JdChainUtils;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
@@ -76,7 +76,7 @@ public class ChainTrainCommonServiceImpl {
         JdChainTaskStatus taskStatus = new JdChainTaskStatus();
         if(typedKVEntry != null){
             String result = (String) typedKVEntry.getValue();
-            Map map = JsonUtil.parseJson(result);
+            Map map = JsonUtil.json2Object(result,Map.class);
             String params = (String) map.get(PARAMS);
              taskStatus = (JdChainTaskStatus) jsonSerializer.deserialize(params);
         }

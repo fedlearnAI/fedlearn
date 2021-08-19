@@ -16,7 +16,7 @@ public class TestHorizontalZooMsgStream {
     @Test
     public void jsonSerialize(){
         String trainId  = "FedAvg";
-        ClientInfo clientInfo = new ClientInfo("127.0.0.1", 8092, "http", 1);
+        ClientInfo clientInfo = new ClientInfo("127.0.0.1", 8092, "http", "", "1");
         HorizontalZooMsgType msgType = HorizontalZooMsgType.GlobalModelInit;
         HorizontalFedAvgPara parameter = new HorizontalFedAvgPara();
         HorizontalZooMsgStream req = new HorizontalZooMsgStream(trainId, clientInfo, msgType, parameter, "", new byte[0]);
@@ -24,7 +24,7 @@ public class TestHorizontalZooMsgStream {
         Serializer serializer = new JsonSerializer();
         String json = serializer.serialize(req);
 
-        String res = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.horizontalZoo.HorizontalZooMsgStream\",\"DATA\":{\"modelToken\":\"FedAvg\",\"client\":{\"ip\":\"127.0.0.1\",\"port\":8092,\"protocol\":\"http\",\"uniqueId\":1},\"msgType\":\"GlobalModelInit\",\"parameter\":{\"numRound\":100,\"fraction\":1.0,\"numClients\":3,\"batchSize\":50,\"localEpoch\":5,\"eval_metric\":[\"RMSE\"],\"loss\":\"Regression:MSE\",\"datasetSize\":0},\"modelName\":\"\",\"modelString\":[],\"datasetSize\":0,\"gMetric\":0.0,\"lMetric\":0.0}}";
+        String res = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.horizontalZoo.HorizontalZooMsgStream\",\"DATA\":{\"modelToken\":\"FedAvg\",\"client\":{\"ip\":\"127.0.0.1\",\"port\":8092,\"path\":\"\",\"protocol\":\"http\",\"uniqueId\":\"1\"},\"msgType\":\"GlobalModelInit\",\"parameter\":{\"numRound\":100,\"fraction\":1.0,\"numClients\":3,\"batchSize\":50,\"localEpoch\":5,\"eval_metric\":[\"RMSE\"],\"loss\":\"Regression:MSE\",\"datasetSize\":0},\"modelName\":\"\",\"modelString\":[],\"datasetSize\":0,\"gMetric\":0.0,\"lMetric\":0.0}}";
         Assert.assertEquals(json, res);
     }
 
@@ -37,14 +37,14 @@ public class TestHorizontalZooMsgStream {
         HorizontalZooMsgStream restore = (HorizontalZooMsgStream)message;
         System.out.println(restore);
         Assert.assertEquals(restore.getModelToken(), "FedAvg");
-        Assert.assertEquals(restore.getClient(), new ClientInfo("127.0.0.1", 8092, "http", 1));
+        Assert.assertEquals(restore.getClient(), new ClientInfo("127.0.0.1", 8092, "http", "", "1"));
         Assert.assertEquals(restore.getMsgType(), HorizontalZooMsgType.GlobalModelInit);
     }
 
     @Test
     public void test(){
         String trainId  = "FedAvg";
-        ClientInfo clientInfo = new ClientInfo("127.0.0.1", 8092, "http", 1);
+        ClientInfo clientInfo = new ClientInfo("127.0.0.1", 8092, "http", "", "1");
         HorizontalZooMsgType msgType = HorizontalZooMsgType.GlobalModelInit;
         HorizontalFedAvgPara parameter = new HorizontalFedAvgPara();
         String name = "";

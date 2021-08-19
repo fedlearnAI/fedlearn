@@ -12,6 +12,7 @@ import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.parameter.KernelLinearRegressionParameter;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.core.type.KernelDispatchJavaPhaseType;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.data.Pair;
 import org.testng.Assert;
@@ -26,7 +27,7 @@ public class TestKernelLinearRegressionJava {
     @Test
     public void getNextPhase() {
         KernelLinearRegressionJava kernelLinearRegressionJava = new KernelLinearRegressionJava(new KernelLinearRegressionParameter());
-        int p = kernelLinearRegressionJava.getNextPhase(1, new ArrayList<>());
+        int p = kernelLinearRegressionJava.getNextPhase(1,new ArrayList<>());
         Assert.assertEquals(p, 2);
     }
 
@@ -49,8 +50,6 @@ public class TestKernelLinearRegressionJava {
         Message message = first.getBody();
         TrainInit body = (TrainInit) message;
         Assert.assertEquals(body.getFeatureList(), features.get(clientInfos.get(0)));
-
-
     }
 
     @Test
@@ -62,7 +61,6 @@ public class TestKernelLinearRegressionJava {
         responses.add(new CommonResponse(clientInfos.get(1), new SingleElement("init_success")));
         responses.add(new CommonResponse(clientInfos.get(2), new SingleElement("init_success")));
         List<CommonRequest> requests = kernelLinearRegressionJava.control(responses);
-        //TODO
         Assert.assertEquals(requests.size(), 3);
     }
 
@@ -72,49 +70,38 @@ public class TestKernelLinearRegressionJava {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         List<CommonResponse> responses = new ArrayList<>();
         boolean isActive = false;
-//        ArrayList<Double> vector = new ArrayList<>();
-//        vector.add(0d);
-//        vector.add(0d);
-        double[] vector = new double[]{0d, 0d};
+        double[][] vector = new double[][]{{0d, 0d},{1d,2d}};
         double paraNorm = 0d;
         Map<MetricType, List<Double>> metricTypeListMap = new HashMap<>();
         List<Double> list = new ArrayList<>();
         list.add(-Double.MAX_VALUE);
         metricTypeListMap.put(MetricType.TRAINLOSS, list);
         metricTypeListMap.put(MetricType.AUC, list);
-        clientInfos.forEach(client -> responses.add(new CommonResponse(client, new TrainRes(client, vector, metricTypeListMap, paraNorm, isActive))));
+        int numClassRound = 0;
+        int clientInd = 1;
+        KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType = KernelDispatchJavaPhaseType.UPDATE_METRIC;
+        clientInfos.forEach(client -> responses.add(new CommonResponse(client, new TrainRes(client, vector, paraNorm,isActive,clientInd,numClassRound, clientInfos,kernelDispatchJavaPhaseType))));
         List<CommonRequest> requests = kernelLinearRegressionJava.control(responses);
         List<CommonRequest> target = new ArrayList<>();
-        List<Integer> sampleIndex = new ArrayList<>();
-        TrainReq req = new TrainReq(clientInfos.get(0), (double[][]) null, sampleIndex, false);
+        TrainReq req = new TrainReq(clientInfos.get(0), null, false);
         clientInfos.forEach(client -> target.add(new CommonRequest(client, req, 1)));
         Assert.assertEquals(requests.size(), target.size());
         Assert.assertEquals(requests.get(0).getPhase(), target.get(0).getPhase());
         Assert.assertEquals(requests.get(0).getClient(), target.get(0).getClient());
         Assert.assertEquals(((TrainReq) requests.get(0).getBody()).getClient(), ((TrainReq) target.get(0).getBody()).getClient());
-        Assert.assertEquals(((TrainReq) requests.get(0).getBody()).getSampleIndex(), ((TrainReq) target.get(0).getBody()).getSampleIndex());
         Assert.assertNull(((TrainReq) requests.get(0).getBody()).getValueList());
         Assert.assertEquals(((TrainReq) requests.get(0).getBody()).isUpdate(), ((TrainReq) target.get(0).getBody()).isUpdate());
     }
 
     @Test
-    public void testControlPhase2() {
+    public void testControlPhase1() {
         KernelLinearRegressionJava kernelLinearRegressionJava = new KernelLinearRegressionJava(new KernelLinearRegressionParameter());
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        kernelLinearRegressionJava.setForUnitTest(2, 1, clientInfos, token, 2);
+        kernelLinearRegressionJava.setForUnitTest(2);
         List<CommonResponse> responses = new ArrayList<>();
         boolean isActive = false;
-//        ArrayList<Double> vector = new ArrayList<>();
-//        vector.add(0d);
-//        vector.add(0d);
-        double[] vector = new double[]{0d, 0d};
-        double paraNorm = 0d;
-        Map<MetricType, List<Double>> metricTypeListMap = new HashMap<>();
-        List<Double> list = new ArrayList<>();
-        list.add(-Double.MAX_VALUE);
-        metricTypeListMap.put(MetricType.TRAINLOSS, list);
-        metricTypeListMap.put(MetricType.AUC, list);
-        clientInfos.forEach(client -> responses.add(new CommonResponse(client, new TrainRes(client, vector, metricTypeListMap, paraNorm, isActive))));
+        int numClassRound = 1;
+        clientInfos.forEach(client -> responses.add(new CommonResponse(client, new TrainRes(client, numClassRound, isActive))));
         List<CommonRequest> controlPhase2Res = kernelLinearRegressionJava.controlPhase1(responses);
         List<CommonRequest> target = new ArrayList<>();
         TrainReq req = new TrainReq(clientInfos.get(0), new ArrayList<>());
@@ -127,24 +114,21 @@ public class TestKernelLinearRegressionJava {
 
 
     @Test
-    public void testControlPhase1() {
+    public void testControlPhase2() {
         KernelLinearRegressionJava kernelLinearRegressionJava = new KernelLinearRegressionJava(new KernelLinearRegressionParameter());
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        kernelLinearRegressionJava.setForUnitTest(2, 2, clientInfos, token, 3);
+        kernelLinearRegressionJava.setForUnitTest(2);
         List<CommonResponse> responses = new ArrayList<>();
         boolean isActive = true;
-//        ArrayList<Double> vector = new ArrayList<>();
-//        vector.add(0d);
-//        vector.add(0d);
-        double[] vector = new double[]{0d, 0d};
+        double[][] vector = new double[][]{{0d, 0d}, {1d, 2d}};
         double paraNorm = 0d;
-        double trainingloss = 0;
         Map<MetricType, List<Double>> metricTypeListMap = new HashMap<>();
         List<Double> list = new ArrayList<>();
         list.add(-Double.MAX_VALUE);
         metricTypeListMap.put(MetricType.TRAINLOSS, list);
         metricTypeListMap.put(MetricType.AUC, list);
-        clientInfos.forEach(client -> responses.add(new CommonResponse(client, new TrainRes(client, vector, metricTypeListMap, paraNorm, isActive))));
+        int numClassRound = 0;
+        clientInfos.forEach(client -> responses.add(new CommonResponse(client, new TrainRes(client, vector, paraNorm, isActive, 0, numClassRound,clientInfos, KernelDispatchJavaPhaseType.UPDATE_METRIC))));
         List<CommonRequest> controlPhase1Res = kernelLinearRegressionJava.controlPhase2(responses);
         List<CommonRequest> target = new ArrayList<>();
         List<Integer> sampleIndex = new ArrayList<>();
@@ -158,9 +142,7 @@ public class TestKernelLinearRegressionJava {
         Assert.assertEquals(controlPhase1Res.get(0).getPhase(), target.get(0).getPhase());
         Assert.assertEquals(controlPhase1Res.get(0).getClient(), target.get(0).getClient());
         Assert.assertEquals(((TrainReq) controlPhase1Res.get(0).getBody()).getClient(), ((TrainReq) target.get(0).getBody()).getClient());
-//        Assert.assertEquals(((TrainReq)controlPhase1Res.get(0).getBody()).getValueList(),((TrainReq)target.get(0).getBody()).getValueList());
         Assert.assertEquals(((TrainReq) controlPhase1Res.get(0).getBody()).isUpdate(), ((TrainReq) target.get(0).getBody()).isUpdate());
-        Assert.assertEquals(((TrainReq) controlPhase1Res.get(0).getBody()).getSampleIndex(), ((TrainReq) target.get(0).getBody()).getSampleIndex());
     }
 
 
@@ -194,7 +176,7 @@ public class TestKernelLinearRegressionJava {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         KernelLinearRegressionJava kernelLinearRegressionJava = new KernelLinearRegressionJava(new KernelLinearRegressionParameter());
         String[] predUid = new String[]{"0A", "1B", "2C"};
-        List<CommonRequest> requests = kernelLinearRegressionJava.initInference(clientInfos, predUid);
+        List<CommonRequest> requests = kernelLinearRegressionJava.initInference(clientInfos, predUid, new HashMap<>());
         Assert.assertEquals(clientInfos.size(), requests.size());
         CommonRequest commonRequest = requests.get(0);
         Message message = commonRequest.getBody();
@@ -208,11 +190,11 @@ public class TestKernelLinearRegressionJava {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         String[] originIdArray = new String[]{"0", "1", "2"};
         int[] idIndexArray = new int[]{0, 1, 2};
-        kernelLinearRegressionJava.setForUnitTestInfer(originIdArray, idIndexArray, -1, clientInfos, token);
+        kernelLinearRegressionJava.setForUnitTestInfer(originIdArray, idIndexArray, -1);
         List<CommonResponse> commonResponses = new ArrayList<>();
         InferenceInitRes inferenceInitRes = new InferenceInitRes(false, new int[0]);
         clientInfos.forEach(client -> commonResponses.add(new CommonResponse(client, inferenceInitRes)));
-        List<CommonRequest> res = kernelLinearRegressionJava.inferenceControlPhase0(commonResponses);
+        List<CommonRequest> res = kernelLinearRegressionJava.inferenceFilter(commonResponses);
         List<CommonRequest> commonRequests = new ArrayList<>();
         Message init = new InferenceInit(originIdArray);
         clientInfos.forEach(client -> commonRequests.add(new CommonRequest(client, init, -1)));
@@ -226,11 +208,11 @@ public class TestKernelLinearRegressionJava {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         String[] originIdArray = new String[]{"0", "1", "2"};
         int[] idIndexArray = new int[]{0, 1, 2};
-        kernelLinearRegressionJava.setForUnitTestInfer(originIdArray, idIndexArray, -2, clientInfos, token);
+        kernelLinearRegressionJava.setForUnitTestInfer(originIdArray, idIndexArray, -2);
         List<CommonResponse> commonResponses = new ArrayList<>();
-        InferenceReqAndRes inferenceInitRes = new InferenceReqAndRes(new ArrayList<>(), true, 1);
+        InferenceReqAndRes inferenceInitRes = new InferenceReqAndRes(new ArrayList<>(), true, 1,KernelDispatchJavaPhaseType.INFERENCE_EMPTY_REQUEST);
         clientInfos.forEach(client -> commonResponses.add(new CommonResponse(client, inferenceInitRes)));
-        List<CommonRequest> res = kernelLinearRegressionJava.inferencecontrolPhase1(commonResponses);
+        List<CommonRequest> res = kernelLinearRegressionJava.constructHeaders(commonResponses);
         List<CommonRequest> commonRequests = new ArrayList<>();
         Map<String, Double> predict = new HashMap<>();
         Message reqAndRes = new InferenceReqAndRes(clientInfos.get(0), predict);

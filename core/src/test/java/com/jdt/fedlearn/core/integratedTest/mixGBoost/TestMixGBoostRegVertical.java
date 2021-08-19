@@ -5,7 +5,6 @@ import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.example.CommonRun;
-import com.jdt.fedlearn.core.psi.MappingReport;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.ObjectiveType;
@@ -32,8 +31,11 @@ import java.util.Map;
 public class TestMixGBoostRegVertical {
     //服务端维护
     private final String modelToken = "50" + "_" + AlgorithmType.MixGBoost;
-    private static final MetricType[] metrics = new MetricType[]{MetricType.MAPE};
-    private static final MixGBParameter parameter = new MixGBParameter(1.0, 1.0, 10, 1, 0, ObjectiveType.regSquare, metrics, 3, 5, 1, 0.3, 33, 0.6, "", 512);
+    private static final MetricType[] metrics = new MetricType[]{MetricType.MAPE, MetricType.RMSE};
+    private static final MixGBParameter parameter = new MixGBParameter(1.0, 1.0,
+            10, 1, 0,
+            ObjectiveType.regSquare, metrics, 3,
+            3, 0.3, 33, 0.6, "", 512);
 
     private static final MixGBoost boost = new MixGBoost(parameter);
     private ClientInfo[] clientInfos;
@@ -66,10 +68,10 @@ public class TestMixGBoostRegVertical {
     public void testTrainAndTest() throws IOException {
         ////-----------id match and feature process-------------////////////////
         System.out.println(rawDataMap.size());
-        Tuple2<MappingReport, String[]> mappingOutput = CommonRun.match(MappingType.MIX_MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
+        Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(MappingType.DH, Arrays.asList(clientInfos.clone()), rawDataMap);
         String[] commonIds = mappingOutput._2();
 
-        MatchResult matchResult = new MatchResult(mappingOutput._1().getSize());
+        MatchResult matchResult = mappingOutput._1();
 //        for (ClientInfo clientInfo : clientInfos) {
 //            System.out.println(matchResult.getResultByClient(clientInfo).getSize());
 //        }
@@ -100,6 +102,7 @@ public class TestMixGBoostRegVertical {
             String key = x.getKey().getPort() + "";
             String content = boostModel.serialize();
             FileUtil.saveModel(content, "./" + modelToken + "_" + key + ".model");
+            System.out.println(content);
         }
     }
 
@@ -115,13 +118,16 @@ public class TestMixGBoostRegVertical {
         }
         //根据需要预测的id，和任务id，生成预测请求
 //        String[] predictUid = DataParseUtil.loadInferenceUidList(baseDir + "inference0.csv");
-        String[] predictUid = new String[]{"291", "292", "293", "294", "295", "296"};
+//        String[] predictUid = new String[]{"291B", "292A", "293B", "294", "295", "296"};
+        String[] predictUid = new String[]{"291B", "TEST"};
         System.out.println("predictUid.length " + predictUid.length);
-        List<CommonRequest> requests = boost.initInference(Arrays.asList(clientInfos.clone()), predictUid); //initial request
+        List<CommonRequest> requests = boost.initInference(Arrays.asList(clientInfos.clone()), predictUid, new HashMap<>()); //initial request
 
         double[][] result = CommonRun.inference(boost, requests, modelMap, inferenceRawData).getPredicts();
-        System.out.println("inference result is " + Arrays.toString(result));
-    }
+        System.out.println("inference result is ");
+        for (int i = 0; i < result.length; i++) {
+            System.out.println(Arrays.toString(result[i]));
+        }    }
 
     public static void main(String[] args) throws IOException {
         TestMixGBoostRegVertical mixGBoostRegVertical = new TestMixGBoostRegVertical();

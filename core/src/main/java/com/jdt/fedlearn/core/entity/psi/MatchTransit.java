@@ -2,7 +2,6 @@ package com.jdt.fedlearn.core.entity.psi;
 
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.type.data.Tuple2;
 
 import java.util.Map;
 

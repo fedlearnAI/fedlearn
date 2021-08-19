@@ -13,8 +13,6 @@ limitations under the License.
 
 package com.jdt.fedlearn.client.util;
 
-import com.jdt.fedlearn.client.entity.source.DbConfig;
-import com.jdt.fedlearn.client.entity.source.DataSourceConfig;
 import com.jdt.fedlearn.client.entity.source.DbSourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,26 +33,20 @@ public class DbUtil {
 
     }
 
-    public static Connection getConnection(DataSourceConfig config) {
+    public static Connection getConnection(DbSourceConfig config) {
         String username;
         String password;
         String url;
         String driver;
         Connection con = null;
+        if (config == null){
+            return null;
+        }
         try {
-            if (config == null) {
-                DbConfig dbconfig = ConfigUtil.getInferenceDbProperties();
-                username = dbconfig.getUsername();
-                password = dbconfig.getPassword();
-                url = dbconfig.getUrl();
-                driver = "com.mysql.jdbc.Driver";
-            } else {
-                DbSourceConfig paramMap = getConf(config);
-                username = paramMap.getUsername();
-                password = paramMap.getPassword();
-                url = paramMap.getUrl();
-                driver = paramMap.getDriver();
-            }
+            username = config.getUsername();
+            password = config.getPassword();
+            url = config.getUrl();
+            driver = config.getDriver();
             Class.forName(driver);
             con = DriverManager.getConnection(url, username, password);
         } catch (SQLException e) {
@@ -88,10 +80,6 @@ public class DbUtil {
                 logger.error("rs关闭异常", e);
             }
         }
-    }
-
-    private static DbSourceConfig getConf(DataSourceConfig config) {
-        return (DbSourceConfig) config;
     }
 
 }

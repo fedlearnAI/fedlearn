@@ -10,7 +10,6 @@ import com.jdt.fedlearn.core.dispatch.HorizontalFedAvg;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.psi.MappingReport;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.MappingType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
@@ -134,9 +133,9 @@ public class TestHorizontalZoo {
                 new MetricType[]{metricTp}, lossName);
         master = new HorizontalFedAvg(hflParameter, modelName);
 
-        Tuple2<MappingReport, String[]> mappingOutput = CommonRun.match(MappingType.EMPTY, clientInfos, rawDataMap);
+        Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(MappingType.EMPTY, clientInfos, rawDataMap);
         // TODO check是否可以是modelName作为taskId
-        MatchResult matchResult = new MatchResult( mappingOutput._1().getSize());
+        MatchResult matchResult = mappingOutput._1();
         List<CommonRequest> initRequests = master.initControl(clientInfos, matchResult, featuresMap, null);
         CommonRun.train(master, initRequests, modelMap,  rawDataMap, mappingOutput._2());
 
@@ -163,7 +162,7 @@ public class TestHorizontalZoo {
         //String[] predictUid = new String[]{};
         long start = System.currentTimeMillis();
 
-        List<CommonRequest> requests = master.initInference(clientInfos, predictUid); //initial request
+        List<CommonRequest> requests = master.initInference(clientInfos, predictUid,new HashMap<>()); //initial request
         List<CommonResponse> responses = new ArrayList<>();
         while (master.isInferenceContinue()) {
             responses = new ArrayList<>();

@@ -12,21 +12,24 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.cache;
 
+import ch.qos.logback.core.joran.spi.JoranException;
+import com.jdt.fedlearn.client.cache.InferenceDataCache;
+import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
 import com.jdt.fedlearn.core.type.AlgorithmType;
-import com.jdt.fedlearn.worker.util.ConfigUtil;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 
+import java.io.IOException;
 import java.util.List;
 
 public class InferenceDataCacheTest {
 
     @BeforeClass
-    public void setUp(){
+    public void setUp() throws IOException, JoranException {
         ConfigUtil.init("src/test/resources/conf/worker.properties");
     }
 

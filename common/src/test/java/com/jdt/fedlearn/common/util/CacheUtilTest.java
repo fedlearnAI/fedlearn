@@ -23,12 +23,14 @@ import java.util.concurrent.TimeUnit;
 public class CacheUtilTest {
     CacheUtil cacheUtil;
     private static final String CACHE_KEY = "test";
-    private static final String CACHE_VALUE = "test";
+    private static final String CACHE_VALUE = "test1111";
 
     @BeforeClass
     public void setUp(){
         cacheUtil = new CacheUtil(100L, TimeUnit.SECONDS.toSeconds(30));
         cacheUtil.putValue(CACHE_KEY,CACHE_VALUE);
+       String res = (String) cacheUtil.getValue(CACHE_KEY);
+        System.out.println(res);
     }
 
     @Test
@@ -37,6 +39,10 @@ public class CacheUtilTest {
         Assert.assertEquals(CACHE_VALUE,value);
     }
 
+    @Test
+    public void containsKey(){
+        System.out.println(cacheUtil.constainsKey(CACHE_KEY));
+    }
     @Test
     public void testGetValue() throws Exception {
         String NO_VALUE = "noValue";

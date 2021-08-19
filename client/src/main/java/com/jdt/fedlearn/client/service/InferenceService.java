@@ -18,9 +18,10 @@ import com.jdt.fedlearn.client.cache.InferenceDataCache;
 import com.jdt.fedlearn.client.cache.ModelCache;
 import com.jdt.fedlearn.client.constant.Constant;
 import com.jdt.fedlearn.client.entity.inference.*;
+import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.util.FileUtil;
-import com.jdt.fedlearn.common.util.HttpClientUtil;
+import com.jdt.fedlearn.common.util.GZIPCompressUtil;
 import com.jdt.fedlearn.common.util.LogUtil;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
@@ -71,14 +72,16 @@ public class InferenceService {
         //TODO model 不存在或者为null时 返回特定标记
         ModelCache modelCache = ModelCache.getInstance();
         if (!modelCache.contain(token) || modelCache.get(token) == null) {
+            logger.error("未加载到模型，modelToken:{}", token);
             return null;
         }
         Model model = modelCache.get(token);
         assert model != null;
         String inferenceId = req.getInferenceId();
         int phase = req.getPhase();
-        String data = HttpClientUtil.unCompress(req.getData());
-        Message messageData = Constant.serializer.deserialize(data);
+        logger.info("phase : " + phase);
+//        String data = GZIPCompressUtil.unCompress(req.getBody());
+        Message messageData = Constant.serializer.deserialize(req.getBody());
 //        String data = req.getData();
         AlgorithmType algorithm = req.getAlgorithm();
         long s1 = System.currentTimeMillis();
@@ -86,11 +89,20 @@ public class InferenceService {
         //通用预处理步骤，检测uid是否存在，以及缓存加载的数据
         if (!InferenceDataCache.INFERENCE_CACHE.constainsKey(inferenceId)) {
             long s2 = System.currentTimeMillis();
-            InferenceInit init = (InferenceInit)messageData;
+            InferenceInit init = (InferenceInit) messageData;
             //1.检测uid 在不在训练集, 2.检测uid在不在推理数据集中
             String[] uid = init.getUid();
-            String[][] rawData = InferenceDataCache.loadAndCache(inferenceId, algorithm, uid);
-            Message message = model.inferenceInit(uid, rawData,init.getOthers());
+            String[][] rawData = InferenceDataCache.loadAndCache(inferenceId, algorithm, uid, req.getDataset());
+            Map<String,Object> others = init.getOthers();
+            if (others!=null && others.containsKey("secureMode") && (boolean)others.get("secureMode")){
+                String pubkeyContent = FileUtil.loadClassFromFile("/export/Data/pubkey");
+                String prikeyPath = ConfigUtil.getClientConfig().getModelDir();
+
+                String prikeyContent = FileUtil.loadClassFromFile(prikeyPath + "prikey");
+                others.put("pubKeyStr", pubkeyContent);
+                others.put("privKeyStr", prikeyContent);
+            }
+            Message message = model.inferenceInit(uid, rawData, others);
 //            int[] filterIndexArray = filterIndexList.stream().mapToInt(i->i).toArray();
             //uid预处理结果返回
 //            IntArray inferencePrepareRes = new IntArray(filterIndexArray);
@@ -120,7 +132,7 @@ public class InferenceService {
 //        logger.info("phase : "+ phase + " messageData: " + SerializeUtil.serializeToString(messageData) + " + inferData : " + inferData.getDatasetSize());
         Message result = model.inference(phase, messageData, inferData);
         logger.info("model.inference cost time: " + (System.currentTimeMillis() - s5) + " ms");
-        String strMessage =  Constant.serializer.serialize(result);
+        String strMessage = Constant.serializer.serialize(result);
         logger.info("inferenceId: " + inferenceId + " phase:" + req.getPhase() + ",result:" + LogUtil.logLine(strMessage));
         return strMessage;
     }
@@ -139,7 +151,7 @@ public class InferenceService {
         assert model != null;
         String inferenceId = req.getInferenceId();
         int phase = req.getPhase();
-        String data = HttpClientUtil.unCompress(req.getData());
+        String data = GZIPCompressUtil.unCompress(req.getBody());
         Message messageData = Constant.serializer.deserialize(data);
 //        String data = req.getData();
         AlgorithmType algorithm = req.getAlgorithm();
@@ -148,7 +160,7 @@ public class InferenceService {
         //通用预处理步骤，检测uid是否存在，以及缓存加载的数据
         if (!InferenceDataCache.INFERENCE_CACHE.constainsKey(inferenceId)) {
             long s2 = System.currentTimeMillis();
-            InferenceInit init = (InferenceInit)messageData;
+            InferenceInit init = (InferenceInit) messageData;
             //1.检测uid 在不在训练集, 2.检测uid在不在推理数据集中
             String[] uid = init.getUid();
             String[][] rawData = InferenceDataCache.loadAndCachValidate(inferenceId, algorithm, uid, labelName);
@@ -182,7 +194,7 @@ public class InferenceService {
 //        logger.info("phase : "+ phase + " messageData: " + SerializeUtil.serializeToString(messageData) + " + inferData : " + inferData.getDatasetSize());
         Message result = model.inference(phase, messageData, inferData);
         logger.info("model.inference cost time: " + (System.currentTimeMillis() - s5) + " ms");
-        String strMessage =  Constant.serializer.serialize(result);
+        String strMessage = Constant.serializer.serialize(result);
         logger.info("inferenceId: " + inferenceId + " phase:" + req.getPhase() + ",result:" + LogUtil.logLine(strMessage));
         return strMessage;
     }
@@ -208,7 +220,7 @@ public class InferenceService {
 
     private String getMetric(List arrayList, ArrayList metricTypes) {
         //todo master传过来label的特征名
-        Map labelMap = (Map)InferenceDataCache.INFERENCE_CACHE.getValue("labelMap");
+        Map labelMap = (Map) InferenceDataCache.INFERENCE_CACHE.getValue("labelMap");
         if (null == labelMap) {
             return "no_label";
         }
@@ -231,18 +243,18 @@ public class InferenceService {
         Map<String, Double[][]> metricArrMap = new HashMap<>();
         Map<String, Double> metricMap = new HashMap<>();
         String[] arr = {"CONFUSION", "ROCCURVE", "KSCURVE", "TPR", "FPR"};
-        for (int i = 0; i < metricTypes.size(); i++ ) {
-            if (Arrays.asList(arr).contains((String)metricTypes.get(i))) {
-                metricArrMap.put((String)metricTypes.get(i),  Metric.calculateMetricArr(MetricType.valueOf((String)metricTypes.get(i)), pred, label, new ArrayList<>()));
+        for (int i = 0; i < metricTypes.size(); i++) {
+            if (Arrays.asList(arr).contains((String) metricTypes.get(i))) {
+                metricArrMap.put((String) metricTypes.get(i), Metric.calculateMetricArr(MetricType.valueOf((String) metricTypes.get(i)), pred, label, new ArrayList<>()));
             } else {
-                metricMap.put((String)metricTypes.get(i), Metric.calculateMetric(MetricType.valueOf((String)metricTypes.get(i)), pred, label));
+                metricMap.put((String) metricTypes.get(i), Metric.calculateMetric(MetricType.valueOf((String) metricTypes.get(i)), pred, label));
             }
         }
 
         double res = Metric.root_mean_square_error(pred, label);
         logger.info("getMetric:" + res);
         String metricString = metricMap.keySet().parallelStream()
-                .map(key -> "\""+ key + "\""+ ":" + metricMap.get(key))
+                .map(key -> "\"" + key + "\"" + ":" + metricMap.get(key))
                 .collect(Collectors.joining(", "));
 
         String metricArrRes = "";
@@ -250,18 +262,19 @@ public class InferenceService {
         int idx = 0;
         for (Map.Entry<String, Double[][]> matricArri : metricArrMap.entrySet()) {
             Double[][] metricArrValue = matricArri.getValue();
-            String[] metricValueStr =new String[metricArrValue.length];;
+            String[] metricValueStr = new String[metricArrValue.length];
+            ;
             for (int i = 0; i < metricArrValue.length; i++) {
                 String[] temp = Arrays.stream(metricArrValue[i]).map(x -> Double.toString(x)).toArray(String[]::new);
                 metricValueStr[i] = String.join(",", temp);
-                metricValueStr[i] =  "[" + metricValueStr[i] + "]";
+                metricValueStr[i] = "[" + metricValueStr[i] + "]";
             }
-            metricArrString[idx] = "\"" + matricArri.getKey() + "\"" + ": " +"["+ String.join(",", metricValueStr)+ "]";
+            metricArrString[idx] = "\"" + matricArri.getKey() + "\"" + ": " + "[" + String.join(",", metricValueStr) + "]";
             idx += 1;
         }
         metricArrRes = String.join(",", metricArrString);
 
-        return "{"+metricString +","+ metricArrRes + ", \"dataSize\": " + pred.length + "}";
+        return "{" + metricString + "," + metricArrRes + ", \"dataSize\": " + pred.length + "}";
     }
 
     /**
@@ -311,7 +324,7 @@ public class InferenceService {
                 SingleInference jsonObject = picArray.get(i);
                 String uid = jsonObject.getUid();
                 List<String> score = jsonObject.getScore();
-                String stringScore = String.join("|",score);
+                String stringScore = String.join("|", score);
                 bw.write(uid + "," + stringScore + "\n");
                 bw.flush();
             }

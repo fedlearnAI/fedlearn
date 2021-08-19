@@ -14,6 +14,7 @@ package com.jdt.fedlearn.manager.service;
 
 
 import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
 import com.jdt.fedlearn.common.enums.RunStatusEnum;
@@ -133,7 +134,7 @@ public class TaskManagerTest {
         CommonResultStatus commonResultStatus = new CommonResultStatus();
         commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
         Map<String, Object> map = new HashMap<>();
-        map.put(AppConstant.DATA, "true");
+        map.put(ResponseConstant.DATA, "true");
         commonResultStatus.setData(map);
         PowerMockito.mockStatic(WorkerCommandUtil.class);
         PowerMockito.when(WorkerCommandUtil.request(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(commonResultStatus);

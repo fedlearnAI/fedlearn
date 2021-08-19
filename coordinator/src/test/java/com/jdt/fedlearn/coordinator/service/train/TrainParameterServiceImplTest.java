@@ -1,13 +1,13 @@
 package com.jdt.fedlearn.coordinator.service.train;
 
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
-import com.jdt.fedlearn.coordinator.entity.train.SingleParameter;
+import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.entity.train.TrainParameterQuery;
 import com.jdt.fedlearn.coordinator.entity.train.TrainParameterRes;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.core.dispatch.FederatedGB;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.parameter.FgbParameter;

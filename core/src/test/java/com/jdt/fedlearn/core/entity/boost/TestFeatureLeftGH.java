@@ -25,11 +25,13 @@ public class TestFeatureLeftGH {
     @Test
     public void jsonSerialize(){
         Serializer serializer = new JsonSerializer();
+//        FeatureLeftGH boostP5Res = new FeatureLeftGH(new ClientInfo());
         FeatureLeftGH boostP5Res = new FeatureLeftGH(new ClientInfo(), "age", new StringTuple2[0]);
         String str = serializer.serialize(boostP5Res);
         System.out.println(str);
 
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.FeatureLeftGH\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"feature\":\"age\",\"ghLeft\":[]}}";
+//        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.FeatureLeftGH\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"feature\":\"age\",\"ghLeft\":[]}}";
+        String content="{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.FeatureLeftGH\",\"DATA\":{\"client\":{\"port\":0},\"feature\":\"age\",\"ghLeft\":[]}}";
         Assert.assertEquals(str, content);
     }
 
@@ -37,13 +39,13 @@ public class TestFeatureLeftGH {
     public void javaSerializeDeserialize(){
         Serializer serializer = new JavaSerializer();
 
-        FeatureLeftGH boostP5Res = new FeatureLeftGH(new ClientInfo(), "sex", new StringTuple2[0]);
+        FeatureLeftGH boostP5Res = new FeatureLeftGH(new ClientInfo(null,0,null,null,null), "sex", new StringTuple2[0]);
         String str = serializer.serialize(boostP5Res);
 
         Message message = serializer.deserialize(str);
         FeatureLeftGH restore = (FeatureLeftGH)message;
 
-        Assert.assertEquals(restore.getClient(), new ClientInfo());
+        Assert.assertEquals(restore.getClient(), new ClientInfo(null,0,null,null,null));
         Assert.assertEquals(restore.getFeature(), "sex");
         Assert.assertEquals(restore.getGhLeft().length, 0);
     }

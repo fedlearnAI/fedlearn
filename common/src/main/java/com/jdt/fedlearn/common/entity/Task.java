@@ -19,12 +19,13 @@ import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.common.util.ToString;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
  * @Description: 任务执行
  */
-public class Task extends ToString implements Comparable<Task> {
+public class Task extends ToString implements Comparable<Task>, Serializable {
     //前置依赖任务
     private List<Task> preTaskList = new ArrayList<>();
     //job

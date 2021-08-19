@@ -1,6 +1,7 @@
 package com.jdt.fedlearn.core.entity.boost;
 
 import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
 import com.jdt.fedlearn.core.entity.serialize.JsonSerializer;
 import com.jdt.fedlearn.core.entity.serialize.Serializer;
@@ -12,24 +13,24 @@ import java.util.HashMap;
 public class TestBoostP5Res {
     @Test
     public void jsonDeserialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP5Res\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"depth\":7, \"isStop\":true, \"trainMetric\":[]}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP5Res\",\"DATA\":{\"isStop\":true,\"depth\":7,\"trainMetric\":{\"bestRound\":0}}}";
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
 
         BoostP5Res boostP5Res = (BoostP5Res) message;
         Assert.assertTrue(boostP5Res.isStop());
         Assert.assertEquals(boostP5Res.getDepth(), 7);
-        Assert.assertEquals(boostP5Res.getTrainMetric().size(), 0);
+        Assert.assertNull(boostP5Res.getTrainMetric().getMetrics());
     }
 
     @Test
     public void jsonSerialize(){
         Serializer serializer = new JsonSerializer();
-        BoostP5Res boostP5Res = new BoostP5Res(true, 7, new HashMap<>());
+        BoostP5Res boostP5Res = new BoostP5Res(true, 7, new MetricValue(null));
         String str = serializer.serialize(boostP5Res);
         System.out.println(str);
 
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP5Res\",\"DATA\":{\"isStop\":true,\"depth\":7,\"trainMetric\":{}}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP5Res\",\"DATA\":{\"isStop\":true,\"depth\":7,\"trainMetric\":{\"bestRound\":0}}}";
         Assert.assertEquals(str, content);
     }
 
@@ -37,7 +38,7 @@ public class TestBoostP5Res {
     public void javaSerializeDeserialize(){
         Serializer serializer = new JavaSerializer();
 
-        BoostP5Res boostP5Res = new BoostP5Res(true, 7, new HashMap<>());
+        BoostP5Res boostP5Res = new BoostP5Res(true, 7, new MetricValue(null));
         String str = serializer.serialize(boostP5Res);
 
         Message message = serializer.deserialize(str);
@@ -45,6 +46,6 @@ public class TestBoostP5Res {
 
         Assert.assertTrue(restore.isStop());
         Assert.assertEquals(restore.getDepth(), 7);
-        Assert.assertEquals(restore.getTrainMetric(), new HashMap<>());
+        Assert.assertEquals(restore.getTrainMetric(), new MetricValue(null));
     }
 }

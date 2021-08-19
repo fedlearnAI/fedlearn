@@ -7,6 +7,7 @@ import java.util.Map;
 
 /**
  * Freedman ID对齐算法在master端的phase3时的请求实体
+ * 非主动方加密好的多项式计算结果
  * @author lijingxi
  */
 public class FreedmanPassiveUidMap implements Message {

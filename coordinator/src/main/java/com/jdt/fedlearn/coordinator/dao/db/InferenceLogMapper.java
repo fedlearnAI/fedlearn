@@ -43,6 +43,7 @@ public class InferenceLogMapper {
                 ps = conn.prepareStatement(sql);
                 ps.setString(1, inferenceEntity.getInferenceId());
                 ps.setString(2, inferenceEntity.getModelToken());
+                //todo username
                 ps.setString(3, inferenceEntity.getUserName());
                 ps.setString(4, TimeUtil.defaultFormat(inferenceEntity.getStartTime()));
                 ps.setString(5, TimeUtil.defaultFormat(inferenceEntity.getEndTime()));

@@ -26,10 +26,10 @@ import java.util.Map;
  */
 public class SystemServiceImpl {
 
-    public static final String MODEL = "model";
-    public static final String ENCRYPTION_ALGORITHM = "encryptionAlgorithm";
-    public static final String RSA = "RSA";
-    public static final String DES = "DES";
+    private static final String MODEL = "model";
+    private static final String ENCRYPTION_ALGORITHM = "encryptionAlgorithm";
+    private static final String RSA = "RSA";
+    private static final String DES = "DES";
 
     //算法参数提取
     public Map fetchSuperParameter() {

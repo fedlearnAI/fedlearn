@@ -21,7 +21,6 @@ import java.io.Serializable;
 public class QueryPredict implements Serializable {
     private static final long serialVersionUID = 3427817464528650155L;
 
-    private String username;
     private String inferenceId;
 
     private QueryPredict() {
@@ -31,16 +30,12 @@ public class QueryPredict implements Serializable {
         ObjectMapper mapper = new ObjectMapper();
         try {
             QueryPredict query = mapper.readValue(jsonStr, this.getClass());
-            username = query.username;
             inferenceId = query.inferenceId;
         } catch (Exception e) {
             throw new DeserializeException("remote predict error");
         }
     }
 
-    public String getUsername() {
-        return username;
-    }
 
     public String getInferenceId() {
         return inferenceId;
@@ -49,8 +44,7 @@ public class QueryPredict implements Serializable {
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer("QueryPredict{");
-        sb.append("username='").append(username).append('\'');
-        sb.append(", inferenceId='").append(inferenceId).append('\'');
+        sb.append("inferenceId='").append(inferenceId).append('\'');
         sb.append('}');
         return sb.toString();
     }

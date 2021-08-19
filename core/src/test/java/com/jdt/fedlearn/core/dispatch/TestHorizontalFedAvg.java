@@ -73,7 +73,7 @@ public class TestHorizontalFedAvg {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         HorizontalFedAvg fedAvg = new HorizontalFedAvg(new HorizontalFedAvgPara());
         String[] predictUid = new String[]{"1", "2"};
-        List<CommonRequest> requests = fedAvg.initInference(clientInfos, predictUid);
+        List<CommonRequest> requests = fedAvg.initInference(clientInfos, predictUid,new HashMap<>());
 
         Assert.assertEquals(requests.size(), 3);
         CommonRequest request = requests.stream().findAny().get();

@@ -17,6 +17,7 @@ import com.jdt.fedlearn.common.entity.TokenDTO;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import org.apache.http.util.Asserts;
 
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -36,6 +37,7 @@ public class TokenUtil {
     public static final int TWO = 2;
     public static final int THREE = 3;
     public static final int FOUR = 4;
+    public static Random random = new Random();
 
     /**
      * 初始化构造方法
@@ -54,7 +56,7 @@ public class TokenUtil {
      * @param supportedAlgorithm 算法
      * @return trainToken
      */
-    public static String generateTrainToken(String taskId, AlgorithmType supportedAlgorithm) {
+    public static String generateTrainId(String taskId, AlgorithmType supportedAlgorithm) {
         StringBuffer sb = new StringBuffer();
         sb.append(taskId);
         sb.append(SPILT);
@@ -68,9 +70,9 @@ public class TokenUtil {
      * 获取推理token
      *
      * @param trainToken 训练token
-     * @return inferenceToken
+     * @return inferenceId
      */
-    public static String generateInferenceToken(String trainToken) {
+    public static String generateInferenceId(String trainToken) {
         StringBuffer sb = new StringBuffer();
         sb.append(trainToken);
         sb.append(SPILT);
@@ -96,7 +98,7 @@ public class TokenUtil {
      * @param matchAlgorithm id对齐算法
      * @return matchToken
      */
-    public static String generateMatchToken(String taskId, String matchAlgorithm) {
+    public static String generateMatchId(String taskId, String matchAlgorithm) {
         StringBuffer sb = new StringBuffer();
         sb.append(taskId);
         sb.append(SPILT);
@@ -126,5 +128,9 @@ public class TokenUtil {
             tokenDTO.setRandom(split[THREE]);
         }
         return tokenDTO;
+    }
+
+    public static Integer generateClientInfoToken() {
+        return random.nextInt();
     }
 }

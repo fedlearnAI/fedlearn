@@ -49,7 +49,15 @@ public enum MessageType {
     EvalRight("EvalRight"),
     EvalFetchVertical("EvalFetchVertical"),
     EvalFinish("EvalFinish"),
-    EpochFinish("EpochFinish");
+    EpochFinish("EpochFinish"),
+    HorizontalEnc("HorizontalEnc"),
+    HorizontalDec("HorizontalDec"),
+    HorizontalGain("HorizontalGain"),
+    VerticalEnc("VerticalEnc"),
+    VerticalDec("VerticalEnc"),
+    WjEnc("WjEnc"),
+    WjDec("WjDec"),
+    SkipHorizontal("SkipHorizontal");
 
     private final String msgType;
 

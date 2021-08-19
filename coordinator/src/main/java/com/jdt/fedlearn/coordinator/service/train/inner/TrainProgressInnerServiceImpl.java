@@ -36,6 +36,7 @@ import java.util.*;
  * 相对于提供给外部的API接口外，增加了描述信息
  *
  * @author lijingxi
+ * @author fanmingjie
  * @see TrainStatusServiceImpl
  */
 public class TrainProgressInnerServiceImpl implements TrainService {
@@ -44,7 +45,8 @@ public class TrainProgressInnerServiceImpl implements TrainService {
     @Override
     public Map<String, Object> service(String content) {
         try {
-            CommonTrainQuery subRequest = new CommonTrainQuery(content);
+            CommonTrainQuery subRequest = new CommonTrainQuery();
+            subRequest.parseJson(content);
             return queryTrainProgress(subRequest);
         } catch (Exception ex) {
             //TODO 各种错误类型

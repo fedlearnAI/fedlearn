@@ -22,6 +22,9 @@ import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.base.Int2dArray;
 import com.jdt.fedlearn.core.entity.base.StringArray;
+import com.jdt.fedlearn.core.entity.common.MetricValue;
+import com.jdt.fedlearn.core.entity.distributed.SplitResult;
+import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.model.common.loss.Loss;
 import com.jdt.fedlearn.core.model.common.loss.SquareLoss;
 import com.jdt.fedlearn.core.model.common.loss.crossEntropy;
@@ -32,27 +35,22 @@ import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.model.serialize.FgbModelSerializer;
 import com.jdt.fedlearn.core.parameter.SuperParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
-import com.jdt.fedlearn.core.psi.MappingResult;
-import com.jdt.fedlearn.core.type.AlgorithmType;
-import com.jdt.fedlearn.core.type.FirstPredictType;
-import com.jdt.fedlearn.core.type.ObjectiveType;
+import com.jdt.fedlearn.core.type.*;
 import com.jdt.fedlearn.core.type.data.DoubleTuple2;
+import com.jdt.fedlearn.core.type.data.Pair;
 import com.jdt.fedlearn.core.type.data.StringTuple2;
 import com.jdt.fedlearn.core.entity.boost.Bucket;
 import com.jdt.fedlearn.core.loader.boost.BoostTrainData;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.parameter.FgbParameter;
-import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.Tool;
 import com.jdt.fedlearn.core.model.common.loss.LogisticLoss;
 import com.jdt.fedlearn.core.model.common.tree.TreeNode;
 import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.loader.common.TrainData;
-import com.jdt.fedlearn.core.loader.boost.BoostInferenceData;
 import com.jdt.fedlearn.core.metrics.Metric;
 
-import com.jdt.fedlearn.core.type.*;
 import com.jdt.fedlearn.core.entity.boost.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,12 +69,11 @@ import static java.util.stream.Collectors.toList;
 public class FederatedGBModel implements Model {
     private static final Logger logger = LoggerFactory.getLogger(FederatedGBModel.class);
 
-    private String trainId;
     private int depth = 0;
     //four col, id,val,grad,hess
     private Map<Integer, List<Bucket>> sortedFeatureMap = new ConcurrentHashMap<>();
     private TreeNode currentNode;
-    private LinkedHashMap<Integer, QueryEntry> passiveQueryTable = new LinkedHashMap<>();
+    private List<QueryEntry> passiveQueryTable = new ArrayList<>();
     private List<Tree> trees = new ArrayList<>();
     private double eta;
     private double firstRoundPred;
@@ -87,7 +84,7 @@ public class FederatedGBModel implements Model {
     private PrivateKey privateKey;
     private final EncryptionTool encryptionTool = new JavallierTool();
     private PublicKey publicKey;
-    private Map<MetricType, List<Double>> metricMap;
+    private MetricValue metricValue;
     private int numClassRound = 0;
     public boolean hasLabel = false;
     public int datasetSize;
@@ -115,7 +112,7 @@ public class FederatedGBModel implements Model {
     public FederatedGBModel() {
     }
 
-    public FederatedGBModel(List<Tree> trees, Loss loss, double firstRoundPredict, double eta, LinkedHashMap<Integer, QueryEntry> passiveQueryTable, List<Double> multiClassUniqueLabelList) {
+    public FederatedGBModel(List<Tree> trees, Loss loss, double firstRoundPredict, double eta, List<QueryEntry> passiveQueryTable, List<Double> multiClassUniqueLabelList) {
         this.trees = trees;
         this.loss = loss;
         this.firstRoundPred = firstRoundPredict;
@@ -174,11 +171,11 @@ public class FederatedGBModel implements Model {
         //有label 的客户端生成公私钥对
         if (trainData.hasLabel) {
             double initSumLoss = parameter.isMaximize() ? (-Double.MAX_VALUE) : Double.MAX_VALUE;
-//            double[] tmpRoundMetric = new double[parameter.getNumBoostRound() + 1];
-//            Arrays.fill(tmpRoundMetric, initSumLoss);
-            List<Double> tmpRoundMetric = new ArrayList<>();
-            tmpRoundMetric.add(initSumLoss);
-            metricMap = Arrays.stream(parameter.getEvalMetric()).collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetric)));
+            List<Pair<Integer, Double>> tmpRoundMetric = new ArrayList<>();
+            tmpRoundMetric.add(new Pair<>(0, initSumLoss));
+            Map<MetricType, List<Pair<Integer, Double>>> metricMap = Arrays.stream(parameter.getEvalMetric())
+                    .collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetric)));
+            metricValue = new MetricValue(metricMap);
             this.hasLabel = true;
             this.privateKey = encryptionTool.keyGenerate(parameter.getBitLength().getBitLengthType(), 64);
             if (ObjectiveType.regLogistic.equals(parameter.getObjective())) {
@@ -255,27 +252,58 @@ public class FederatedGBModel implements Model {
             }
             case 4: {
                 contributeFea++;
-                Tuple2<LeftTreeInfo, LinkedHashMap<Integer, QueryEntry>> req = trainPhase4(jsonData, sortedFeatureMap, passiveQueryTable);
+                Tuple2<LeftTreeInfo, List<QueryEntry>> req = trainPhase4(jsonData, sortedFeatureMap, passiveQueryTable);
                 passiveQueryTable = req._2();
+                if (trainData.hasLabel) {
+                    req._1().setTrainMetric(metricValue);
+                }
                 return req._1();
             }
             case 5: {
-                if (this.hasLabel) {
-                    LeftTreeInfo lfi = (LeftTreeInfo) jsonData;
-                    currentNode.recordId = lfi.getRecordId();
-                }
-                ArrayList res = trainPhase5(jsonData, grad, hess, numClassRound, currentNode, newTreeNodes,
-                        parameter, correspondingTreeNode, metricMap, trees, loss, datasetSize, pred, label, depth);
+                List res = trainPhase5(jsonData, grad, hess, numClassRound, currentNode, newTreeNodes,
+                        parameter, correspondingTreeNode, metricValue, trees, loss, datasetSize, pred, label, depth);
                 // List of <boostP5Res, numClassRound, correspondingTreeNode, p, g, h, depth>
+                BoostP5Res res0 = (BoostP5Res) res.get(0);
                 numClassRound = (int) res.get(1);
                 correspondingTreeNode = (TreeNode[]) res.get(2);
                 pred = (double[][]) res.get(3);
                 grad = (double[][]) res.get(4);
                 hess = (double[][]) res.get(5);
                 depth = (int) res.get(6);
-                metricMap = (Map<MetricType, List<Double>>) res.get(7);
+                metricValue = (MetricValue) res.get(7);
                 currentNode = (TreeNode) res.get(8);
-                return (BoostP5Res) res.get(0);
+                if (this.hasLabel) {
+                    LeftTreeInfo lfi = (LeftTreeInfo) jsonData;
+                    currentNode.recordId = lfi.getRecordId();
+                    res0.setTrainMetric(metricValue);
+                }
+                return res0;
+            }
+            default:
+                throw new UnsupportedOperationException("unsupported phase in federated gradient boost model");
+        }
+    }
+
+    @Override
+    public SplitResult split(int phase, Message req) {
+        switch (phase) {
+            case 1:
+                //此处无复杂计算，只需单个机器执行
+                SplitResult splitResult = new SplitResult();
+                splitResult.setMessageBodys(Collections.singletonList(req));
+                return splitResult;
+            case 2:
+//                EncryptedGradHess encryptedGradHess = (EncryptedGradHess)req;
+
+                return null;
+            case 3: {
+                return null;
+            }
+            case 4: {
+                return null;
+            }
+            case 5: {
+                return new SplitResult();
             }
             default:
                 throw new UnsupportedOperationException("unsupported phase in federated gradient boost model");
@@ -367,13 +395,16 @@ public class FederatedGBModel implements Model {
         currentNode.Grad = Arrays.stream(instanceSpace).parallel().mapToDouble(x -> grad[numClassRound][x]).sum();
         currentNode.Hess = Arrays.stream(instanceSpace).parallel().mapToDouble(x -> hess[numClassRound][x]).sum();
         // generate publickey and encrytedArray storing (g, h) only at root(new tree)
+        EncryptedGradHess res;
         if (req.isNewTree()) {
             StringTuple2[] encryptedArray = Arrays.stream(instanceSpace).parallel().mapToObj(x -> new StringTuple2(encryptedG.get(x), encryptedH.get(x))).toArray(StringTuple2[]::new);
             String pk = privateKey.generatePublicKey().serialize();
-            return new EncryptedGradHess(req.getClient(), instanceSpace, encryptedArray, pk, true);
+            res = new EncryptedGradHess(req.getClient(), instanceSpace, encryptedArray, pk, true);
         } else {
-            return new EncryptedGradHess(req.getClient(), instanceSpace);
+            res = new EncryptedGradHess(req.getClient(), instanceSpace);
         }
+        res.setTrainMetric(metricValue);
+        return res;
     }
 
     /**
@@ -388,13 +419,15 @@ public class FederatedGBModel implements Model {
     public BoostP2Res trainPhase2(Message jsonData, BoostTrainData trainSet, EncryptionTool encryptionTool) {
         //含label的客户端无需处理
         if (trainSet.hasLabel) {
-            return new BoostP2Res(null);
+            BoostP2Res res = new BoostP2Res(null);
+            res.setTrainMetric(metricValue);
+            return res;
         }
         // jsonData is output from phase1
         EncryptedGradHess req = (EncryptedGradHess) (jsonData);
         // get instance information from the processing node
         int[] instanceSpace = req.getInstanceSpace();
-        // initialize publickKey with null
+        // initialize publicKey with null
         if (req.getNewTree()) {
             // if new tree, get Grad Hess.
             StringTuple2[] gh = req.getGh();
@@ -427,8 +460,7 @@ public class FederatedGBModel implements Model {
                     return new FeatureLeftGH(req.getClient(),"" + col, full);
                 })
                 .toArray(FeatureLeftGH[]::new);
-        BoostP2Res boostP2Res = new BoostP2Res(bodyArray);
-        return boostP2Res;
+        return new BoostP2Res(bodyArray);
     }
     /**
      * 对于一个feature，计算并返回feature bucket
@@ -556,6 +588,7 @@ public class FederatedGBModel implements Model {
         }
         //根据差分隐私指数机制随机选取一个分裂点
         Tuple2<BoostP3Res, Double> t = new Tuple2<BoostP3Res, Double>(new BoostP3Res(client, feature, splitIndex), gain);
+        t._1().setTrainMetric(metricValue);
         return t;
     }
 
@@ -622,13 +655,13 @@ public class FederatedGBModel implements Model {
      * @param passiveQueryTable
      * @return
      */
-    public Tuple2<LeftTreeInfo, LinkedHashMap<Integer, QueryEntry>> trainPhase4(Message jsonData, Map<Integer, List<Bucket>> sortedFeatureMap,
-                                     LinkedHashMap<Integer, QueryEntry> passiveQueryTable) {
+    public Tuple2<LeftTreeInfo, List<QueryEntry>> trainPhase4(Message jsonData, Map<Integer, List<Bucket>> sortedFeatureMap,
+                                     List<QueryEntry> passiveQueryTable) {
 //        Map<Integer, List<Bucket>> sortedFeatureMap,
 //        LinkedHashMap<Integer, QueryEntry> passiveQueryTable, int contributeFea
         BoostP4Req req = (BoostP4Req) (jsonData);
         if (!req.isAccept()) {
-            Tuple2<LeftTreeInfo, LinkedHashMap<Integer, QueryEntry>> t = new Tuple2<>(new LeftTreeInfo(0, null), passiveQueryTable);
+            Tuple2<LeftTreeInfo, List<QueryEntry>> t = new Tuple2<>(new LeftTreeInfo(0, null), passiveQueryTable);
             return t;
         }
         //本次要分裂的特征
@@ -646,7 +679,7 @@ public class FederatedGBModel implements Model {
             double[] ids = Bucket.getIds();
             for (int j = 0; j < ids.length; j++) {
                 double id = ids[j];
-                leftIns.add(new Double(id).intValue());
+                leftIns.add((int)id);;
             }
         }
 
@@ -658,24 +691,24 @@ public class FederatedGBModel implements Model {
                 double v = values[j];
                 if (v <= splitValue) {
                     double id = bucket.getIds()[j];
-                    leftIns.add(new Double(id).intValue());
+                    leftIns.add((int)id);
                 }
             }
         }
         int recordId = 1;
         if (passiveQueryTable == null || passiveQueryTable.size() == 0) {
             QueryEntry entry = new QueryEntry(recordId, featureIndex, splitValue); // 新建查询表条目记录分裂特征和分裂值
-            passiveQueryTable = new LinkedHashMap<>();
-            passiveQueryTable.put(recordId, entry);
+            passiveQueryTable = new ArrayList<>();
+            passiveQueryTable.add(entry);
         } else {
-            Map.Entry<Integer, QueryEntry> lastLine = Tool.getTail(passiveQueryTable); // 当前查询表的最后一行
+            QueryEntry lastLine = passiveQueryTable.get(passiveQueryTable.size()-1); // 当前查询表的最后一行
             assert lastLine != null;
-            recordId = lastLine.getKey() + 1;
+            recordId = lastLine.getRecordId() + 1;
             QueryEntry line = new QueryEntry(recordId, featureIndex, splitValue);
-            passiveQueryTable.put(recordId, line);
+            passiveQueryTable.add(line);
         }
         int[] left = Tool.list2IntArray(leftIns);
-        Tuple2<LeftTreeInfo, LinkedHashMap<Integer, QueryEntry>> t = new Tuple2<>(new LeftTreeInfo(recordId, left), passiveQueryTable);
+        Tuple2<LeftTreeInfo, List<QueryEntry>> t = new Tuple2<>(new LeftTreeInfo(recordId, left), passiveQueryTable);
         return t;
     }
 
@@ -695,10 +728,10 @@ public class FederatedGBModel implements Model {
      * @param trees
      * @return
      */
-    public ArrayList trainPhase5(Message jsonData, double[][] grad, double[][] hess,
+    public List trainPhase5(Message jsonData, double[][] grad, double[][] hess,
                                   int numClassRound, TreeNode currentNode,
                                   Queue<TreeNode> newTreeNodes, FgbParameter parameter,
-                                  TreeNode[] correspondingTreeNode, Map<MetricType, List<Double>> metricMap,
+                                  TreeNode[] correspondingTreeNode, MetricValue metricMap,
                                   List<Tree> trees, Loss loss, int datasetSize, double[][] pred, double[] label, int depth) {
 
         // Update了pred, grad, hess三个全局变量， 由updateGH来update
@@ -709,12 +742,12 @@ public class FederatedGBModel implements Model {
         // update metricMap
         // todo 将datasetSize也放入入参
         //无label的客户端直接返回
-        ArrayList res = new ArrayList();
+        List res = new ArrayList();
 
         if (!this.hasLabel) {
             // List of <boostP5Res, numClassRound, correspondingTreeNode, p,g,h, depth>
             res = addElement(res, new BoostP5Res(false, 0), numClassRound,
-                    correspondingTreeNode, pred, grad, hess, depth, metricMap, currentNode);
+                    correspondingTreeNode, pred, grad, hess, depth, null, currentNode);
             assert res.size() == 9;
             return res;
         }
@@ -813,20 +846,23 @@ public class FederatedGBModel implements Model {
         assert res.size() == 9;
         return res;
     }
-    // method in the if(currentTree.getAliveNodes().isEmpty()) where isStop = true
-    private ArrayList emptyTreeUpdate(Tree currentTree, FgbParameter parameter, TreeNode[] correspondingTreeNode,
+
+    // method in the if(currentTree.getAliveNodes().byteArrayIsEmpty()) where isStop = true
+    private List emptyTreeUpdate(Tree currentTree, FgbParameter parameter, TreeNode[] correspondingTreeNode,
                                       int depth, int datasetSize, double[] label, int numClassRound,
-                                      double[][] pred, Loss loss, Map<MetricType, List<Double>> metricMap, ArrayList res) {
+                                      double[][] pred, Loss loss, MetricValue metricMap, List res) {
         postPrune(currentTree.getRoot(), parameter, correspondingTreeNode);
         BoostP5Res boostP5Res = new BoostP5Res(true, depth);
-        ArrayList pgh = updateGH(datasetSize, correspondingTreeNode, label, numClassRound, pred, parameter, loss);
+        List pgh = updateGH(datasetSize, correspondingTreeNode, label, numClassRound, pred, parameter, loss);
         if (numClassRound + 1 == parameter.getNumClass()) {
             assert metricMap != null;
-            Map<MetricType, Double> trainMetric = updateMetric(metricMap, parameter, loss, pred, label);
+            Map<MetricType, Double> trainMetric = updateMetric(parameter, loss, pred, label);
             assert trainMetric != null;
             // TODO 优化trainMetric.forEach(...);
-            trainMetric.forEach((key, value) -> metricMap.get(key).add(value));
-            boostP5Res.setTrainMetric(metricMap);
+            trainMetric.forEach((key, value) -> {
+                int size = metricMap.getMetrics().get(key).size();
+                metricMap.getMetrics().get(key).add(new Pair<>(size, value));
+                        });
             numClassRound = 0;
         } else {
             numClassRound++;
@@ -838,7 +874,7 @@ public class FederatedGBModel implements Model {
         return res;
     }
 
-    private ArrayList addElement (ArrayList a, Object ...arg) {
+    private List addElement (List a, Object ...arg) {
         for (int i = 0; i < arg.length; i++) {
             a.add(arg[i]);
         }
@@ -863,7 +899,7 @@ public class FederatedGBModel implements Model {
         }
     }
 
-    private ArrayList updateGH(int datasetSize, TreeNode[] correspondingTreeNode, double[] label,
+    private List updateGH(int datasetSize, TreeNode[] correspondingTreeNode, double[] label,
                             int numClassRound, double[][] pred, FgbParameter parameter, Loss loss) {
 //        if (this.hasLabel) {
             // eta = parameter.getEta()
@@ -880,9 +916,8 @@ public class FederatedGBModel implements Model {
 //        }
     }
 
-    private Map<MetricType, Double> updateMetric(Map<MetricType, List<Double>> metricMap,
-                                                 FgbParameter parameter, Loss loss, double[][] pred, double[] label) {
-        if (!this.hasLabel || metricMap == null) {
+    private Map<MetricType, Double> updateMetric(FgbParameter parameter, Loss loss, double[][] pred, double[] label) {
+        if (!this.hasLabel) {
             return null;
         }
         Map<MetricType, Double> trainMetric;
@@ -1004,7 +1039,7 @@ public class FederatedGBModel implements Model {
         //此处的index是基于initial 请求的uid
 
         String[] newUidIndex = data.getData();
-        BoostInferenceData boostInferenceData = (BoostInferenceData)samples;
+        CommonInferenceData boostInferenceData = (CommonInferenceData)samples;
         boostInferenceData.filterOtherUid(newUidIndex);
         if (!trees.isEmpty()) {
             return new BoostN1Res(trees, firstRoundPred, multiClassUniqueLabelList);
@@ -1013,7 +1048,7 @@ public class FederatedGBModel implements Model {
     }
 
 
-    public Message inferencePhase2(Message jsonData, InferenceData inferenceData, LinkedHashMap<Integer, QueryEntry> queryTable) {
+    public Message inferencePhase2(Message jsonData, InferenceData inferenceData, List<QueryEntry> queryTable) {
         if (jsonData == null) {
             return null;
         }
@@ -1032,7 +1067,7 @@ public class FederatedGBModel implements Model {
                     int uid = l[0];
                     int treeIndex = l[1];
                     int recordId = l[2];
-                    QueryEntry x = queryTable.get(recordId);
+                    QueryEntry x = queryTable.get(recordId - 1);
                     int row = uid;
                     double[] line = featuresList[row];
                     double featureValue = line[x.getFeatureIndex() - 1];
@@ -1064,4 +1099,5 @@ public class FederatedGBModel implements Model {
     public AlgorithmType getModelType(){
         return AlgorithmType.FederatedGB;
     }
+
 }

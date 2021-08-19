@@ -19,8 +19,6 @@ package com.jdt.fedlearn.coordinator.entity.inference;
  */
 public class InferenceDto {
     private String modelToken;
-    private String username;
-    private String inferenceResult;
     private String startTime;
     private String endTime;
     private String pageIndex;
@@ -36,13 +34,6 @@ public class InferenceDto {
         this.modelToken = modelToken;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
 
     public String getPageIndex() {
         return pageIndex;
@@ -76,13 +67,6 @@ public class InferenceDto {
         this.endTime = endTime;
     }
 
-    public String getInferenceResult() {
-        return inferenceResult;
-    }
-
-    public void setInferenceResult(String inferenceResult) {
-        this.inferenceResult = inferenceResult;
-    }
 
     public String getCaller() {
         return caller;

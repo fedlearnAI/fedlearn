@@ -21,7 +21,7 @@ public class TestGradientsMetric {
         Message message = serializer.deserialize(content);
         GradientsMetric gradientsMetric = (GradientsMetric) message;
         Assert.assertEquals(gradientsMetric.getMetric().size(), 0);
-        ClientInfo clientInfo = new ClientInfo();
+        ClientInfo clientInfo = new ClientInfo(null,0,null,null,"0");
         Assert.assertEquals(clientInfo,gradientsMetric.getClient());
         double[] gradients = new double[]{0,1,2};
         Assert.assertEquals(gradientsMetric.getGradients(),gradients);
@@ -29,7 +29,7 @@ public class TestGradientsMetric {
 
     @Test
     public void jsonSerialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.verticalLinearRegression.GradientsMetric\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"gradients\":[0.0,1.0,2.0],\"metric\":{}}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.verticalLinearRegression.GradientsMetric\",\"DATA\":{\"client\":{\"port\":0},\"gradients\":[0.0,1.0,2.0],\"metric\":{}}}";
         Serializer serializer = new JsonSerializer();
         ClientInfo clientInfo = new ClientInfo();
         double[] gradients = new double[]{0,1,2};

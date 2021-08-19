@@ -21,6 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 import static com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierNative.*;
@@ -31,10 +34,8 @@ public class DistributedPaillier {
 
     // float point arithmetic is not support yet. To do float number computation, we multiply
     // them by a scalar, i.e SCALE, to turn them into integers. SCALE=100 means precision is
-    // rounded to 2 decimal places. E.g. 4.7321 is rounded to 4.73.
-    public static final long SCALE = 100;
-
-    final static long MAX_LONG = 0x7fff_ffff_ffff_ffffL;
+    // rounded to 2 decimal places. E.g. 4.7654321 is rounded to 4.76.
+    public static final long SCALE = 10000;
 
     public static long factorial(long n) {
         if (n == 0) {
@@ -44,7 +45,6 @@ public class DistributedPaillier {
         }
     }
 
-
     /**
      * Public Key
      */
@@ -53,7 +53,7 @@ public class DistributedPaillier {
         int t;
         signedByteArray n; /* public modulus n = p q */
 
-        DistPaillierPubkey() {
+        public DistPaillierPubkey() {
         }
 
         public DistPaillierPubkey(String jsonStr) {
@@ -85,14 +85,6 @@ public class DistributedPaillier {
             }
         }
 
-        public int getBitLen() {
-            return bitLen;
-        }
-
-        public void setBitLen(int bitLen) {
-            this.bitLen = bitLen;
-        }
-
         public int getT() {
             return t;
         }
@@ -108,13 +100,34 @@ public class DistributedPaillier {
         public void setN(signedByteArray n) {
             this.n = n;
         }
+
+        public void setBitLen(int bitLen) {
+            this.bitLen = bitLen;
+        }
+
+        public void saveToFile(String path){
+            try {
+                Files.write(Paths.get(path), this.toJson().getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                logger.error("PubKey ioexception",e);
+            }
+        }
+
+        public void loadClassFromFile(String path){
+            try {
+                String str = new String(Files.readAllBytes(Paths.get(path)),StandardCharsets.UTF_8) ;
+                parseJson(str);
+            } catch (IOException e) {
+                logger.error("PubKey ioexception",e);
+            }
+        }
     }
 
     /**
      * Private Key
      */
     public static class DistPaillierPrivkey {
-        int t; // dec threashold is 2 * t + 1
+        int t; // dec threshold is 2 * t + 1
         int bitLen;
         int rank; // the rank of this key
         signedByteArray hi; // <lambda * beta>_(2t+1) evaluated at point i;
@@ -122,8 +135,7 @@ public class DistributedPaillier {
         signedByteArray thetaInvmod;
         long nFact;
 
-        DistPaillierPrivkey(int t,
-                            byte[] hi,
+        public DistPaillierPrivkey(byte[] hi,
                             boolean hiIsNeg,
                             byte[] n,
                             boolean n_isNeg,
@@ -140,10 +152,24 @@ public class DistributedPaillier {
             this.thetaInvmod.isNeg = thetaInvIsNeg;
         }
 
-        DistPaillierPrivkey() {
+        public DistPaillierPrivkey(signedByteArray hi,
+                            signedByteArray n,
+                            signedByteArray thetaInvmod,
+                            int rank,
+                            int t,
+                            int bitLen,
+                            long nFact) {
+            this.hi = hi.deep_copy();
+            this.n = n.deep_copy();
+            this.thetaInvmod = thetaInvmod.deep_copy();
+            this.rank = rank;
+            this.t = t;
+            this.bitLen = bitLen;
+            this.nFact = nFact;
         }
 
-        ;
+        public DistPaillierPrivkey() {
+        }
 
         public DistPaillierPrivkey(String jsonStr) {
             parseJson(jsonStr);
@@ -183,14 +209,6 @@ public class DistributedPaillier {
             }
         }
 
-        public int getT() {
-            return t;
-        }
-
-        public void setT(int t) {
-            this.t = t;
-        }
-
         public int getBitLen() {
             return bitLen;
         }
@@ -205,6 +223,14 @@ public class DistributedPaillier {
 
         public void setHi(signedByteArray hi) {
             this.hi = hi;
+        }
+
+        public int getT() {
+            return t;
+        }
+
+        public void setT(int t) {
+            this.t = t;
         }
 
         public signedByteArray getN() {
@@ -238,6 +264,23 @@ public class DistributedPaillier {
         public void setRank(int rank) {
             this.rank = rank;
         }
+
+        public void saveToFile(String path){
+            try {
+                Files.write(Paths.get(path), this.toJson().getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                logger.error("PrivKey ioexception",e);
+            }
+        }
+
+        public void loadClassFromFile(String path){
+            try {
+                String str = new String(Files.readAllBytes(Paths.get(path)),StandardCharsets.UTF_8) ;
+                parseJson(str);
+            } catch (IOException e) {
+                logger.error("PrivKey ioexception",e);
+            }
+        }
     }
 
     /*
@@ -251,26 +294,26 @@ public class DistributedPaillier {
 //            System.loadLibrary("Distpaillier"); // debug nativeLibLoader 时用
             nativeLibLoader.load();
         } catch (UnsatisfiedLinkError e) {
-//            logger.error("library: " + System.getProperty("java.library.path"));
+            logger.error("library: " + System.getProperty("java.library.path"));
             logger.error("Native code library failed to load.  ", e);
             System.exit(1);
         }
     }
 
     /**
-     * 生成
+     * standalone 生成公钥私钥
      *
      * @param outPrivKeys: dist_paillier_privkey n
-     * @param outPubkey : generated public key
-     * @param len : bits of the key
-     * @param t : decryption threshold
-     * @param n : total number of parites
+     * @param outPubkey    : generated public key
+     * @param len          : bits of the key
+     * @param t            : decryption threshold
+     * @param n            : total number of parites
      */
-    public static void genPrivpubKeys(DistPaillierPrivkey[] outPrivKeys,
-                                      DistPaillierPubkey outPubkey,
-                                      int len,
-                                      int t,
-                                      int n) {
+    public static void genPrivpubKeysStandalone(DistPaillierPrivkey[] outPrivKeys,
+                                                DistPaillierPubkey outPubkey,
+                                                int len,
+                                                int t,
+                                                int n) {
         signedByteArray[] byteArray_lst = new signedByteArray[n * 3];
         for (int i = 0; i < byteArray_lst.length; i++) {
             byteArray_lst[i] = new signedByteArray();
@@ -280,7 +323,6 @@ public class DistributedPaillier {
         for (int i = 0; i < n; i++) {
             assert (outPrivKeys[i] != null);
             outPrivKeys[i] = new DistPaillierPrivkey(
-                    t,
                     byteArray_lst[3 * i].byteArr, byteArray_lst[3 * i].isNeg,
                     byteArray_lst[3 * i + 1].byteArr, byteArray_lst[3 * i + 1].isNeg,
                     byteArray_lst[3 * i + 2].byteArr, byteArray_lst[3 * i + 2].isNeg
@@ -296,10 +338,16 @@ public class DistributedPaillier {
         outPubkey.t = t;
     }
 
+    /*
+     * ====================================
+     *  Paillier Encryption / Decryption
+     * ====================================
+     */
+
     /**
      * Encryption of double
      *
-     * @param plain: a double
+     * @param plain:  a double
      * @param pubKey: public key
      * @return res: encrypted value of plain in signedByteArray form
      */
@@ -341,7 +389,7 @@ public class DistributedPaillier {
     /**
      * Partial Decryption
      *
-     * @param c: ciphertext to be decrypted
+     * @param c:       ciphertext to be decrypted
      * @param privkey: private key
      * @return intermediate decryption result
      */
@@ -350,13 +398,13 @@ public class DistributedPaillier {
                                              DistPaillierPrivkey privkey) {
         signedByteArray res = new signedByteArray();
         __partial_dec__(res, c, privkey.bitLen, party_id, privkey.t, privkey.nFact, __get_privkey_as_input__(privkey));
-        return  res;
+        return res;
     }
 
     /**
      * Partial Decryption
      *
-     * @param c: ciphertext to be decrypted
+     * @param c:       ciphertext to be decrypted
      * @param privKey: private key
      * @param partyId: unique ID of this party, choosing from [1, n]
      * @return intermediate decryption result
@@ -367,36 +415,36 @@ public class DistributedPaillier {
             res[i] = new signedByteArray();
         }
         __partial_dec_lst__(res, c, privKey.bitLen, partyId, privKey.t, privKey.nFact, __get_privkey_as_input__(privKey));
-        return  res;
+        return res;
     }
 
     /**
      * Final Decryption
      *
-     * @param im_res: At least 2t+1 intermediate decryption results returned by decPartial()
+     * @param im_res:      At least 2t+1 intermediate decryption results returned by decPartial()
      * @param cypher_text: 密文
      * @param max_neg_abs: The greatest value of abs(to_be_decrypted) when to_be_decrypted
-     *                   is negative.
-     *
-     *                   Some Notes about this parameter:
-     *                   The primitive Paillier only supports non-negative value output because it takes mod.
-     *                   Its final decrypted result is always between 0 and n. When decrypting a negative value
-     *                   (its plaintext is negative), mod n is taken at the last step. A negative value, say x,
-     *                   will become n+x in the final result.
-     *                   Since that n is often a very large value, 2^1024, by carefully choosing
-     *                   a "max_negative_abs", we can make n+x and normal positive results
-     *                   very easy to distinguish.
-     *                   For example, say we set the largest value no larger than 2^64 which is way too
-     *                   less than  2^1024, if we happen to get a value between (2^1024-2^64, 2^1024), then it
-     *                   should be a negative value.
-     * @param privKey: 秘钥
+     *                     is negative.
+     *                     <p>
+     *                     Some Notes about this parameter:
+     *                     The primitive Paillier only supports non-negative value output because it takes mod.
+     *                     Its final decrypted result is always between 0 and n. When decrypting a negative value
+     *                     (its plaintext is negative), mod n is taken at the last step. A negative value, say x,
+     *                     will become n+x in the final result.
+     *                     Since that n is often a very large value, 2^1024, by carefully choosing
+     *                     a "max_negative_abs", we can make n+x and normal positive results
+     *                     very easy to distinguish.
+     *                     For example, say we set the largest value no larger than 2^64 which is way too
+     *                     less than  2^1024, if we happen to get a value between (2^1024-2^64, 2^1024), then it
+     *                     should be a negative value.
+     * @param privKey:     秘钥
      * @return 解密后的数，最大为 MAX_LONG, 最小为 -MAX_LONG
      */
     private static long decFinal(signedByteArray[] im_res,
                                  signedByteArray cypher_text,
                                  long max_neg_abs,
                                  DistPaillierPrivkey privKey) {
-        assert(im_res.length >= 2*privKey.t+1);
+        assert (im_res.length >= 2 * privKey.t + 1);
         return __final_dec__(im_res, cypher_text, privKey.bitLen, privKey.t, privKey.nFact, max_neg_abs, __get_privkey_as_input__(privKey));
     }
 
@@ -404,16 +452,16 @@ public class DistributedPaillier {
                                     signedByteArray cypher_text,
                                     DistPaillierPrivkey priv_key) {
         long max_neg_abs = Long.MAX_VALUE; // maximum value of long in java
-        long res = decFinal(im_res, cypher_text, max_neg_abs,  priv_key);
-        return res/cypher_text.scale;
+        long res = decFinal(im_res, cypher_text, max_neg_abs, priv_key);
+        return res / cypher_text.scale;
     }
 
     public static double decFinalDouble(signedByteArray[] im_res,
                                         signedByteArray cypher_text,
                                         DistPaillierPrivkey priv_key) {
         long max_neg_abs = Long.MAX_VALUE; // maximum value of long in java
-        long res = decFinal(im_res, cypher_text, max_neg_abs,  priv_key);
-        return (double)res/cypher_text.scale;
+        long res = decFinal(im_res, cypher_text, max_neg_abs, priv_key);
+        return (double) res / cypher_text.scale;
     }
 
 
@@ -442,8 +490,8 @@ public class DistributedPaillier {
     /**
      * do scaling when dealing with float data -- mul
      *
-     * @param a:   ciphertext adding number a
-     * @param res: result
+     * @param a:       ciphertext adding number a
+     * @param res:     result
      * @param b_scale: the scaled long value
      */
     private static void __mul_scale_helper__(signedByteArray a, long b_scale, signedByteArray res) {
@@ -469,8 +517,8 @@ public class DistributedPaillier {
     /**
      * Add
      *
-     * @param a: ciphertext
-     * @param b: ciphertext
+     * @param a:       ciphertext
+     * @param b:       ciphertext
      * @param pub_key: public key
      * @return ciphertext result
      */
@@ -507,8 +555,8 @@ public class DistributedPaillier {
     /**
      * Mul
      *
-     * @param a: ciphertext
-     * @param b: plaintext
+     * @param a:       ciphertext
+     * @param b:       plaintext
      * @param pub_key: public key
      * @return ciphertext result
      */

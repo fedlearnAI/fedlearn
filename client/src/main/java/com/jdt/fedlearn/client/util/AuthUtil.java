@@ -15,7 +15,7 @@ public class AuthUtil {
             return false;
         }
         String token = authToken.getToken();
-        String actualToken = ConfigUtil.getConfig().getAuthToken();
+        String actualToken = ConfigUtil.getClientConfig().getAuthToken();
         logger.info("token:" + token);
         logger.info("==authToken==:" + actualToken);
         return token != null && token.equals(actualToken);

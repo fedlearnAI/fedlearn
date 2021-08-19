@@ -26,15 +26,9 @@ public class JdChainConstant {
     public static final String INVOKE_START_TRAINING = "invoke_starttraining";
     public static final String INVOKE_SUMMARY_TRAINING = "invoke_summarytraining";
 
-
-    public static final String REQUEST = "request";
-
-    //用于标识训练开始时存入数据的key
-    public static final String START_SUFFIX = "start";
     //用于标识训练过程中的中间数据的key
     public static final String STATUS_SUFFIX = "status";
 
-    public static final String HTTP_PREFIX = "http://";
     public static final String API_RANDOM_SERVER = "/api/train/random";
 
     public static final String JDCHAIN_AVAILABLE = "jdchain.available";

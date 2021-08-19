@@ -13,13 +13,15 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.allocation;
 
-import com.jdt.fedlearn.coordinator.entity.train.SingleParameter;
+import com.jdt.fedlearn.common.enums.RunningType;
+import com.jdt.fedlearn.common.entity.SingleParameter;
+import com.jdt.fedlearn.common.util.FileUtil;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.StartValues;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.exception.UnknownInterfaceException;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
-import com.jdt.fedlearn.core.dispatch.common.CommonControl;
+import com.jdt.fedlearn.core.dispatch.common.DispatcherFactory;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.exception.NotMatchException;
 import com.jdt.fedlearn.core.parameter.common.CommonParameter;
@@ -31,13 +33,14 @@ import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.parameter.SuperParameter;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+
 import com.jdt.fedlearn.core.psi.MatchResult;
+
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -97,12 +100,17 @@ public class MultiTrain implements Runnable {
         List<ClientInfo> clientInfos = startValues.getClientInfos();
         MatchResult idMap = startValues.getIdMap();
         Map<ClientInfo, Features> features = new HashMap<>();
-        IntStream.range(0, startValues.getFeature().size()).forEach(i->
+        IntStream.range(0, startValues.getFeature().size()).forEach(i ->
                 features.put(clientInfos.get(i), startValues.getFeature().get(i))
         );
 
-        Control dispatcher = CommonControl.dispatchConstruct(algorithmType, superParameter);
+        Control dispatcher = DispatcherFactory.getDispatcher(algorithmType, superParameter);
         Map<String, Object> others = new HashMap<>();
+        List<AlgorithmType> needDistributedKeys = Arrays.asList(AlgorithmType.MixGBoost, AlgorithmType.LinearRegression);
+        if (needDistributedKeys.contains(algorithmType)) {
+            String content = FileUtil.loadClassFromFile("/export/data/pubkey");
+            others.put("pubKeyStr", content);
+        }
         if (algorithmParamMap.containsKey("crossValidation")) {
             double spiltRatio = Double.parseDouble(algorithmParamMap.get("crossValidation").toString());
             others.put("splitRatio", spiltRatio);
@@ -114,7 +122,6 @@ public class MultiTrain implements Runnable {
 
         //更新上下文并保存到全局参数，后续已无需 StartValues，此处可将其设置为 null
         context.setRunningType(RunningType.RUNNING);
-//        context.setValues(null);
         context.updateRequestsAndDispatcher(requests, dispatcher);
         context.setPercent(7);
         updateTrainContext(context);
@@ -130,7 +137,7 @@ public class MultiTrain implements Runnable {
         while (algorithm.isContinue()) {
             //中断条件判断及处理
             if (isInterrupted()) {
-                processInterrupt(requests, algorithmType,algorithm);
+                processInterrupt(requests, algorithmType, algorithm);
                 break;
             }
             //todo 保证给各客户端发送的状态一致 dataset只发一次
@@ -139,7 +146,7 @@ public class MultiTrain implements Runnable {
             //更新状态
             updatePercentAndMetrics(algorithm.readMetrics());
         }
-        if ( !isInterrupted()) {
+        if (!isInterrupted()) {
             //更新全局变量
             context.updateRequestsAndDispatcher(requests, algorithm);
             updateTrainContext(context);
@@ -148,9 +155,8 @@ public class MultiTrain implements Runnable {
 
     /**
      * TODO 此处需要重新设计，
-     *
      */
-    private void trainAfter()  {
+    private void trainAfter() {
         if (isInterrupted()) {
             return;
         }
@@ -187,8 +193,6 @@ public class MultiTrain implements Runnable {
             throw new NotMatchException("不满足运行条件");
         }
         trainAfter();
-//        // 运行中结果
-//        removeTrainProcessResult();
     }
 
     /**
@@ -197,7 +201,7 @@ public class MultiTrain implements Runnable {
      * @return 是否中断
      */
     private boolean isInterrupted() {
-        if (!TrainCommonServiceImpl.trainContextMap.containsKey(modelToken)){
+        if (!TrainCommonServiceImpl.trainContextMap.containsKey(modelToken)) {
             return true;
         }
         TrainContext context = TrainCommonServiceImpl.trainContextMap.get(modelToken);
@@ -209,7 +213,7 @@ public class MultiTrain implements Runnable {
     /**
      * 中断状态处理
      */
-    private void processInterrupt(List<CommonRequest> requests, AlgorithmType algorithmType,Control algorithm) {
+    private void processInterrupt(List<CommonRequest> requests, AlgorithmType algorithmType, Control algorithm) {
         TrainContext context = TrainCommonServiceImpl.trainContextMap.get(modelToken);
         RunningType nowStatus = context.getRunningType();
         if (RunningType.STOP.equals(nowStatus)) {
@@ -234,11 +238,11 @@ public class MultiTrain implements Runnable {
     private void notifyClient(List<CommonRequest> requests, RunningType type, AlgorithmType algorithmType) {
         for (CommonRequest request : requests) {
             String response = SendAndRecv.send(request.getClient(), modelToken, request.getPhase(), algorithmType, request.getBody(), type);
-            if ("stop".equals(response)) {
-                logger.info(request.getClient() + " stop is success");
+            if (RunningType.STOP.getRunningType().equals(response)) {
+                logger.info("{} stop is success", request.getClient());
             }
-            if ("complete".equals(response)) {
-                logger.info(request.getClient() + " train is complete!!!");
+            if (RunningType.COMPLETE.getRunningType().equals(response)) {
+                logger.info("{} train is complete!!!", request.getClient());
             }
         }
     }

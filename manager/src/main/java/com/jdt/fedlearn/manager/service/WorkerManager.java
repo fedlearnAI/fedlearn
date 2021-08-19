@@ -14,6 +14,7 @@ package com.jdt.fedlearn.manager.service;
 
 
 import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.WorkerUnit;
 import com.jdt.fedlearn.common.entity.Task;
@@ -116,7 +117,7 @@ public class WorkerManager {
             //有延迟， 不能保证锁， 用map 的value 标记， 避免出问题
             CommonResultStatus commonResultStatus = WorkerCommandUtil.request(url, WorkerCommandEnum.IS_READY, "");
             boolean isReady =
-                    Boolean.parseBoolean(commonResultStatus.getData().get(AppConstant.DATA).toString());
+                    Boolean.parseBoolean(commonResultStatus.getData().get(ResponseConstant.DATA).toString());
 
             return isReady;
         } catch (Exception e) {

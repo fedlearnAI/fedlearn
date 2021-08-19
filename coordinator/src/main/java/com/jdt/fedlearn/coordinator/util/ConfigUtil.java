@@ -16,7 +16,7 @@ package com.jdt.fedlearn.coordinator.util;
 import com.jdt.fedlearn.common.entity.jdchain.JdChainConfig;
 import com.jdt.fedlearn.coordinator.constant.Constant;
 import com.jdt.fedlearn.coordinator.entity.DbConfig;
-import com.jdt.fedlearn.coordinator.type.DbType;
+import com.jdt.fedlearn.common.enums.DbType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

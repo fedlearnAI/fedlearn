@@ -17,7 +17,9 @@ import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.model.*;
 import com.jdt.fedlearn.core.model.mixLinear.LinearRegressionModel;
 import com.jdt.fedlearn.core.model.serialize.FgbModelSerializer;
+import com.jdt.fedlearn.core.model.serialize.MixGBSerializer;
 import com.jdt.fedlearn.core.model.serialize.ModelSerializer;
+import com.jdt.fedlearn.core.research.secureInference.DelphiInferenceServer;
 import com.jdt.fedlearn.core.research.secureInference.TreeInferenceServer;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 
@@ -29,9 +31,6 @@ public class CommonModel {
             case VerticalLinearRegression:
                 model = new VerticalLinearModel();
                 break;
-            case RandomForest:
-                model = new RandomForestModel();
-                break;
             case RandomForestJava:
                 model = new RandomForestJavaModel();
                 break;
@@ -40,6 +39,9 @@ public class CommonModel {
                 break;
             case FederatedGB:
                 model = new FederatedGBModel();
+                break;
+            case MixGBoost:
+                model = new MixGBModel();
                 break;
             case LinearRegression:
                 model = new LinearRegressionModel();
@@ -61,6 +63,9 @@ public class CommonModel {
                 break;
             case TreeInference:
                 model = new TreeInferenceServer();
+                break;
+            case DelphiInference:
+                model = new DelphiInferenceServer();
                 break;
             default:
                 throw new NotImplementedException("not implemented algorithm");
@@ -74,9 +79,6 @@ public class CommonModel {
             case VerticalLinearRegression:
                 model = new VerticalLinearModel();
                 break;
-            case RandomForest:
-                model = new RandomForestModel();
-                break;
             case RandomForestJava:
                 model = new RandomForestJavaModel();
                 break;
@@ -86,6 +88,10 @@ public class CommonModel {
             case FederatedGB:
                 FgbModelSerializer fgbModelSerializer = (FgbModelSerializer)serializer;
                 model = new FederatedGBModel(fgbModelSerializer);
+                break;
+            case MixGBoost:
+                MixGBSerializer mixGBSerializer = (MixGBSerializer) serializer;
+                model = new MixGBModel(mixGBSerializer);
                 break;
             case LinearRegression:
                 model = new LinearRegressionModel();
@@ -107,6 +113,9 @@ public class CommonModel {
                 break;
             case TreeInference:
                 model = new TreeInferenceServer();
+                break;
+            case DelphiInference:
+                model = new DelphiInferenceServer();
                 break;
             default:
                 throw new NotImplementedException("not implemented algorithm");

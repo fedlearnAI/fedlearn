@@ -27,6 +27,6 @@ public interface IDispatchService {
      * @param content 内容
      * @return map
      */
-    // TODO Map
+    //
     Map<String, Object> service(String content) throws Exception;
 }

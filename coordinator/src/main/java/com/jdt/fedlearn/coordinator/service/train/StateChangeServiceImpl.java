@@ -14,6 +14,7 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.service.train;
 
 import com.jdt.fedlearn.common.constant.ResponseConstant;
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.coordinator.allocation.ResourceManager;
 import com.jdt.fedlearn.coordinator.dao.UniversalMapper;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
@@ -21,7 +22,6 @@ import com.jdt.fedlearn.coordinator.entity.train.StateChangeSignal;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.service.CommonService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.core.exception.NotMatchException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,24 +37,25 @@ import java.util.Map;
 public class StateChangeServiceImpl implements TrainService {
     private static final Logger logger = LoggerFactory.getLogger(StateChangeServiceImpl.class);
 
-    public static final String ERROR_MSG = "重启异常";
-    public static final String SUCCESS_MSG = "重启成功";
-    public static final String STOP_SUCCESS = "停止成功";
-    public static final String STOP_FAIL = "停止异常，任务不存在";
-    public static final String SUSPEND_SUCCESS = "暂停成功";
-    public static final String SUSPEND_FAIL = "暂停异常，任务不存在";
+    private static final String ERROR_MSG = "重启异常";
+    private static final String SUCCESS_MSG = "重启成功";
+    private static final String STOP_SUCCESS = "停止成功";
+    private static final String STOP_FAIL = "停止异常，任务不存在";
+    private static final String SUSPEND_SUCCESS = "暂停成功";
+    private static final String SUSPEND_FAIL = "暂停异常，任务不存在";
 
     @Override
     public Map<String, Object> service(String content) throws Exception {
         Map<String, Object> resultMap = new HashMap<>();
         try {
             StateChangeSignal subRequest = new StateChangeSignal(content);
-            switch (subRequest.getType()) {
-                case "stop":
+            RunningType runningType = RunningType.valueOf(subRequest.getType().toUpperCase());
+            switch (runningType) {
+                case STOP:
                     return stopTrain(subRequest.getModelToken());
-                case "resume":
+                case RESUME:
                     return resumeTrain(subRequest.getModelToken());
-                case "suspend":
+                case SUSPEND:
                     return suspendTrain(subRequest.getModelToken());
                 default:
                     throw new NotMatchException("");
@@ -132,7 +133,7 @@ public class StateChangeServiceImpl implements TrainService {
         if (TrainCommonServiceImpl.isExist(modelId)) {
             TrainCommonServiceImpl.updateRunningType(modelId, RunningType.SUSPEND);
             RunningType old = TrainCommonServiceImpl.trainContextMap.get(modelId).getRunningType();
-            logger.info("modelToken:" + modelId + "，执行状态：" + old);
+            logger.info("modelToken:{}，执行状态：{}",modelId,old);
             resultMap.put(ResponseConstant.STATUS, SUSPEND_SUCCESS);
             resultMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
         } else {

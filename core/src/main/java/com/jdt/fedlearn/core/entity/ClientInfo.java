@@ -15,6 +15,7 @@ package com.jdt.fedlearn.core.entity;
 
 import java.io.Serializable;
 import java.security.SecureRandom;
+import java.util.Objects;
 
 /**
  * <code>ClientInfo</code> 用来实现两个功能，
@@ -27,7 +28,7 @@ public class ClientInfo implements Serializable {
     private int port;
     private String path;
     private String protocol;
-    private int uniqueId;
+    private String uniqueId;
 
     @Deprecated
     public ClientInfo() {
@@ -48,14 +49,7 @@ public class ClientInfo implements Serializable {
         uniqueId = generateToken();
     }
 
-    public ClientInfo(String ip, int port, String protocol, int uniqueId) {
-        this.ip = ip;
-        this.port = port;
-        this.protocol = protocol;
-        this.uniqueId = uniqueId;
-    }
-
-    public ClientInfo(String ip, int port, String protocol, String path, int uniqueId) {
+    public ClientInfo(String ip, int port, String protocol, String path, String uniqueId) {
         this.ip = ip;
         this.port = port;
         this.protocol = protocol;
@@ -79,13 +73,14 @@ public class ClientInfo implements Serializable {
         return path;
     }
 
-    public int getUniqueId() {
+    public String getUniqueId() {
         return uniqueId;
     }
 
-    private int generateToken() {
-        SecureRandom ran = new SecureRandom();
-        return ran.nextInt();
+    private String generateToken() {
+        return url();
+//        SecureRandom ran = new SecureRandom();
+//        return ran.nextInt();
     }
 
 
@@ -93,11 +88,12 @@ public class ClientInfo implements Serializable {
         return this.protocol + "://" + this.ip + ":" + this.port;
     }
 
-    public void parseUrl(String content) {
+    public static ClientInfo parseUrl(String content) {
         String[] head = content.split("://");
-        protocol = head[0];
-        ip = head[1].split(":")[0];
-        port = Integer.parseInt(head[1].split(":")[1]);
+        String protocol = head[0];
+        String ip = head[1].split(":")[0];
+        int port = Integer.parseInt(head[1].split(":")[1]);
+        return new ClientInfo(ip, port, protocol);
     }
 
     public String serialize() {
@@ -105,7 +101,7 @@ public class ClientInfo implements Serializable {
     }
 
     public void deserialize(String content) {
-        uniqueId = Integer.parseInt(content);
+        uniqueId = content;
     }
 
     @Override
@@ -127,11 +123,11 @@ public class ClientInfo implements Serializable {
             return false;
         }
         ClientInfo that = (ClientInfo) o;
-        return uniqueId == that.uniqueId;
+        return port == that.port && Objects.equals(ip, that.ip) && Objects.equals(path, that.path) && Objects.equals(protocol, that.protocol) && Objects.equals(uniqueId, that.uniqueId);
     }
 
     @Override
     public int hashCode() {
-        return uniqueId;
+        return Objects.hash(ip, port, path, protocol, uniqueId);
     }
 }

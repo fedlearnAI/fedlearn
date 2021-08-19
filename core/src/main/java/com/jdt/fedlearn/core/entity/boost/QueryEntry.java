@@ -13,10 +13,12 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.entity.boost;
 
+import java.io.Serializable;
+
 /**
  * 各个客户端查询表的条目
  */
-public class QueryEntry {
+public class QueryEntry implements Serializable {
     //自定义，记录id
     private int recordId;
     //特征索引

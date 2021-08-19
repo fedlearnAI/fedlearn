@@ -1,6 +1,6 @@
 package com.jdt.fedlearn.coordinator.entity;
 
-import com.jdt.fedlearn.coordinator.entity.train.SingleParameter;
+import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.service.prepare.AlgorithmParameterImpl;
 import org.testng.Assert;

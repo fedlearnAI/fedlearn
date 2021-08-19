@@ -13,11 +13,14 @@ limitations under the License.
 
 package com.jdt.fedlearn.common.entity.jdchain;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * 对应前端的Feature代码合并后可以使用同一个
  */
 public class JdchainFeature {
     private String name;
+    @JsonProperty("dtype") //兼容前端发送的字段
     private String dType;
     private String username;
     private String taskId;

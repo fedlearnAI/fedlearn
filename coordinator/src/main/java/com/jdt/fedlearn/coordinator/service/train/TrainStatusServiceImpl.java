@@ -13,6 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.service.train;
 
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.coordinator.entity.metric.*;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.CommonTrainQuery;
@@ -20,7 +21,6 @@ import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.entity.train.TrainStatus;
 import com.jdt.fedlearn.coordinator.service.AbstractDispatchService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.type.MetricType;
@@ -45,7 +45,8 @@ public class TrainStatusServiceImpl implements TrainService {
     @Override
     public Map<String, Object> service(String content) {
         boolean flag = true;
-        CommonTrainQuery subRequest = new CommonTrainQuery(content);
+        CommonTrainQuery subRequest = new CommonTrainQuery();
+        subRequest.parseJson(content);
         TrainStatus trainStatus = getTrainProgress(subRequest);
         if (trainStatus == null) {
             flag = false;

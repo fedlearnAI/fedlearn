@@ -17,7 +17,7 @@ public class TestMappingId {
         MappingId mappingId = new MappingId(projectId,mappingType);
         System.out.println("mappingId : " + mappingId.getMappingId());
         Assert.assertEquals(mappingId.getProjectId(), projectId);
-        Assert.assertEquals(mappingId.getMappingType(), MappingType.VERTICAL_MD5);
+        Assert.assertEquals(mappingId.getMappingType(), MappingType.MD5);
     }
 
     @Test
@@ -25,7 +25,7 @@ public class TestMappingId {
         String mappingIdStr = "10-VERTICAL_MD5-210426113010";
         MappingId mappingId= new MappingId(mappingIdStr);
         Assert.assertEquals(mappingId.getProjectId(), "10");
-        Assert.assertEquals(mappingId.getMappingType(), MappingType.VERTICAL_MD5);
+        Assert.assertEquals(mappingId.getMappingType(), MappingType.MD5);
         Assert.assertEquals(mappingId.getCreateTime(), UniqueId.df.get().parse("210426113010"));
     }
 

@@ -21,8 +21,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,11 +38,25 @@ public class CsvReader implements DataReader {
     private static final String DELIMITER = ",";
     private static final String zeroS = "0";
 
+    private DataSourceConfig dataSourceConfig;
+
+    public CsvReader() {
+    }
+
+    public CsvReader(DataSourceConfig dataSourceConfig) {
+
+        this.dataSourceConfig = dataSourceConfig;
+    }
+
     public String[][] loadTrain(DataSourceConfig config) {
         CsvSourceConfig csvConfig = (CsvSourceConfig) config;
         String basePath = csvConfig.getTrainBase();
         String dataFileName = csvConfig.getDataName();
         String path = basePath + dataFileName;
+        return loadData(path);
+    }
+
+    public String[][] loadData(String path) {
         int cnt = 0;
         //从文件中加载数据，第一行是feature 名称，第一列是用户uid，(如果有label的话)最后一列是label
         List<String[]> res = new ArrayList<>();
@@ -92,10 +107,15 @@ public class CsvReader implements DataReader {
     }
 
 
-    public String[][] loadInference(String[] uid) {
-        String basePath = ConfigUtil.inferenceBaseDir();
-        String dataFileName = ConfigUtil.getInferenceFileName();
+    public String[][] loadInference(DataSourceConfig config, String[] uid) {
+        CsvSourceConfig sourceConfig = (CsvSourceConfig)config;
+        String basePath = sourceConfig.getTrainBase();
+        String dataFileName = sourceConfig.getDataName();
         String path = basePath + dataFileName;
+        return loadData(path,uid);
+    }
+
+    public String[][] loadData(String path,String[] uid) {
         //根据uid列表，从文件中加载数据，
         Set<String> uidSet = Stream.of(uid).collect(Collectors.toSet());
         List<String[]> r = new ArrayList<>();
@@ -119,30 +139,13 @@ public class CsvReader implements DataReader {
     }
 
     @Override
-    public String[][] loadValidate(String[] uid) {
-        String basePath = ConfigUtil.validateBaseDir();
-        String dataFileName = ConfigUtil.getValidateFileName();
+    public String[][] loadValidate(DataSourceConfig config, String[] uid) {
+        CsvSourceConfig sourceConfig = (CsvSourceConfig)config;
+        String basePath = sourceConfig.getTrainBase();
+        String dataFileName = sourceConfig.getDataName();
         String path = basePath + dataFileName;
         //根据uid列表，从文件中加载数据，
-        Set<String> uidSet = Stream.of(uid).collect(Collectors.toSet());
-        List<String[]> r = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8))) {
-            String line = br.readLine();
-            if (null != line) {
-                String[] headers = line.split(DELIMITER);
-                r.add(headers);
-            }
-            while ((line = br.readLine()) != null) {
-                String[] strs = line.split(DELIMITER);
-                //caution 此处默认第一列是uid列
-                if (uidSet.contains(strs[0])) {
-                    r.add(strs);
-                }
-            }
-        } catch (Exception e) {
-            logger.error("load validate error:", e);
-        }
-        return r.toArray(new String[0][]);
+        return loadData(path, uid);
     }
 
     public String[] loadHeader(DataSourceConfig config) {
@@ -165,5 +168,85 @@ public class CsvReader implements DataReader {
         }
         return res;
     }
+    @Override
+    public String[][] readDataIndex(String dataset,Map<Long, String> idMap) throws IOException {
+        CsvSourceConfig csvSourceConfig = (CsvSourceConfig) this.dataSourceConfig;
+        String basePath = csvSourceConfig.getTrainBase();
+        String path = basePath + dataset;
+        // 首先 转换 idMap, 获取到所有的结果
+        Set<String> valueSet = new HashSet<>();
+        for(String value : idMap.values()){
+            valueSet.add(value);
+        }
+        String[][] res = new String[idMap.size()][2];
+        int index = 0;
+        InputStream inputStream = new FileInputStream(path);
+        try (Reader in = new InputStreamReader(inputStream,StandardCharsets.UTF_8); LineNumberReader reader = new LineNumberReader(in)) {
+            String lineStr;
+            while ((lineStr = reader.readLine()) != null) {
+                int i = reader.getLineNumber();
+                String[] selectArray = lineStr.split(DELIMITER);
+                // 判断uid是否存在
+                if (valueSet.contains(selectArray[0])) {
+                    // 保存行索引
+//indexList.add(i-2);
+                    res[index][0] = selectArray[0];
+                    res[index][1] = (i-2) + "";
+                    index++;
+                }
+            }
+        }
+        return res;
+    }
 
+    @Override
+    public String[][] readDataLine(String dataset, List<Integer> seeksList) throws IOException {
+        CsvSourceConfig csvSourceConfig = (CsvSourceConfig) this.dataSourceConfig;
+        String basePath = csvSourceConfig.getTrainBase();
+        String path = basePath + dataset;
+        List<String[]> r = new ArrayList<>();
+        InputStream inputStream = new FileInputStream(path);
+        try (Reader in = new InputStreamReader(inputStream,StandardCharsets.UTF_8); LineNumberReader reader = new LineNumberReader(in)) {
+            // 获取文件总行数
+            Long lineConut = getLineConut(path);
+            int i = 0;
+            for (int lineNumber : seeksList) {
+                if (lineNumber < 0 || lineNumber > lineConut) {
+                    logger.error("不在文件的行数范围之内。");
+                } else {
+                    String lineStr;
+                    while ((lineStr = reader.readLine()) != null) {
+                        int nowLine = i;
+                        i++;
+                        if (lineNumber == nowLine) {
+                            String[] selectArray = lineStr.split(DELIMITER);
+                            r.add(selectArray);
+                            break;
+                        }
+
+                    }
+
+                }
+            }
+        }
+        return r.toArray(new String[r.size()][]);
+    }
+
+    /**
+     * 计算文件总行数
+     *
+     * @param filePath
+     * @return
+     */
+    private static Long getLineConut(String filePath) {
+        Long lines = null;
+        try {
+            lines = Files.lines(Paths.get(new File(filePath).getPath())).count();
+            logger.info("linesCount：" + lines);
+        } catch (IOException e) {
+            logger.error("读取文件行数失败", e);
+        }
+        System.out.println(lines);
+        return lines;
+    }
 }

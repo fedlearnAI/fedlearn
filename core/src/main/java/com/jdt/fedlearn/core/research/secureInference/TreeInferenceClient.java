@@ -62,7 +62,7 @@ public class TreeInferenceClient implements Control {
      * 4. maxsize 二进制数最大比特长度
      */
     @Override
-    public List<CommonRequest> initInference(List<ClientInfo> server, String[] sampleSlash) {
+    public List<CommonRequest> initInference(List<ClientInfo> server, String[] sampleSlash, Map<String, Object> others) {
         return new ArrayList<>();
     }
 

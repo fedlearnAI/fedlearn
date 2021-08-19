@@ -15,27 +15,26 @@ package com.jdt.fedlearn.coordinator.service.validate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jdt.fedlearn.common.entity.project.PartnerInfoNew;
 import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.allocation.ResourceManager;
 import com.jdt.fedlearn.coordinator.constant.Constant;
 import com.jdt.fedlearn.coordinator.constant.RequestConstant;
-import com.jdt.fedlearn.coordinator.dao.db.PartnerMapper;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTrainMapper;
-import com.jdt.fedlearn.coordinator.entity.train.SingleParameter;
+import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.coordinator.entity.validate.ValidateRequest;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdchainTrainInfo;
 import com.jdt.fedlearn.coordinator.entity.common.BaseResp;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
-import com.jdt.fedlearn.coordinator.entity.table.PartnerProperty;
 import com.jdt.fedlearn.coordinator.exception.ForbiddenException;
 import com.jdt.fedlearn.coordinator.exception.NotAcceptableException;
-import com.jdt.fedlearn.coordinator.dao.jdchain.ChainFeaturePartnerMapper;
+import com.jdt.fedlearn.coordinator.service.inference.InferenceCommonService;
 import com.jdt.fedlearn.coordinator.service.train.TrainCommonServiceImpl;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
 import com.jdt.fedlearn.coordinator.util.PacketUtil;
-import com.jdt.fedlearn.core.dispatch.common.CommonControl;
+import com.jdt.fedlearn.core.dispatch.common.DispatcherFactory;
 import com.jdt.fedlearn.core.dispatch.common.Control;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
@@ -57,7 +56,7 @@ import java.util.stream.Collectors;
  * <p>{@code buildPercentStart}方法： 验证开始，设置验证进度10%</p>
  * <p>{@code commonValidate}方法： 调用验证开始</p>
  * <p>{@code buildPercentEnd}方法：验证完成，验证进度100%</p>
- * @see com.jdt.fedlearn.coordinator.service.inference.InferenceService
+ * @see InferenceCommonService
  */
 public class ValidateService {
     private static final Logger logger = LoggerFactory.getLogger(ValidateService.class);
@@ -86,7 +85,7 @@ public class ValidateService {
      * @throws JsonProcessingException 1
      */
     public Map<String, Object> batchValidate(ValidateRequest request) throws JsonProcessingException {
-        String inferenceId = TokenUtil.generateInferenceToken(request.getModel());
+        String inferenceId = TokenUtil.generateInferenceId(request.getModel());
         //进度map
         Map<String, Object> percentMap = new HashMap<>();
         // 验证开始，设置验证进度10%
@@ -150,16 +149,13 @@ public class ValidateService {
         // 查询验证相关信息
         TrainInfo model;
         // 查询客户端缓存
-        List<ClientInfo> clientList;
+        List<ClientInfo> clientList = query.getClientList().stream().map(PartnerInfoNew::toClientInfo).collect(Collectors.toList());
         if (ConfigUtil.getJdChainAvailable()) {
             JdchainTrainInfo trainInfo = ChainTrainMapper.queryModelById(query.getModel());
             model = new TrainInfo(trainInfo.getModelToken(),AlgorithmType.valueOf(trainInfo.getAlgorithm()),trainInfo.getParameterFieldList(),trainInfo.getMetrics(),
                     trainInfo.getTrainStartTime().getTime(),trainInfo.getTrainEndTime().getTime(),trainInfo.getRunningType(),trainInfo.getPercent());
-            clientList = ChainFeaturePartnerMapper.getClientInfos(trainInfo.getTaskId());
         } else {
             model = getModelToken(query);
-            List<PartnerProperty> partnerProperties = getClientInfos(model);
-            clientList = partnerProperties.stream().map(PartnerProperty::toClientInfo).collect(Collectors.toList());
         }
         AlgorithmType supportedAlgorithm = model.getAlgorithmType();
 
@@ -176,7 +172,7 @@ public class ValidateService {
         for (String[] subIds : dataList) {
             long ss = System.currentTimeMillis();
             logger.info("enter transeruid");
-            String subInferenceId = TokenUtil.generateInferenceToken(query.getModel());
+            String subInferenceId = TokenUtil.generateInferenceId(query.getModel());
             // 开始预测
             Map<String, Double> subRes = transferValidUid(subIds, model, supportedAlgorithm, clientList, percentMap, subInferenceId, query.getLabelName());
             compoundRes.putAll(subRes);
@@ -206,7 +202,7 @@ public class ValidateService {
         // TODO 增加传入metrictypes
         data.put("metric", query.getMetricType());
         for (ClientInfo clientInfo : clientList) {
-            String response = SendAndRecv.send(clientInfo, RequestConstant.VALIDATION_METRIC, Constant.HTTP_POST, data);
+            String response = SendAndRecv.send(clientInfo, RequestConstant.VALIDATION_METRIC, data);
             ObjectMapper mapper = new ObjectMapper();
             Map json = mapper.readValue(response, Map.class);
             String metric = (String) json.get("metric");
@@ -217,30 +213,6 @@ public class ValidateService {
         }
         logger.info("validateMetric:" + validateMetric);
         return new Tuple2<>(validateMetric, res);
-    }
-
-    /**
-     * 查询客户端信息
-     *
-     * @param model modelToken
-     * @return 客户端信息
-     */
-    private List<PartnerProperty> getClientInfos(TrainInfo model) {
-        String taskId = model.getModelToken().split("-")[0];
-        final String taskIdKey = PRE + taskId;
-        final Object clientValue = ResourceManager.CACHE.getValue(taskIdKey);
-        if (!Objects.isNull(clientValue)) {
-            return (List<PartnerProperty>) clientValue;
-        }
-        // 查询数据库
-        List<PartnerProperty> propertyList = PartnerMapper.selectPartnerList(taskId);
-        logger.info("propertyList " + propertyList.get(0));
-        if (Objects.isNull(propertyList) || propertyList.size() == 0) {
-            throw new ForbiddenException("验证的clientList不能为空");
-        }
-        // 设置缓存
-        ResourceManager.CACHE.putValue(taskIdKey, propertyList);
-        return propertyList;
     }
 
     /**
@@ -306,7 +278,7 @@ public class ValidateService {
         Map<String, Object> finishParameters = finishParameterFields.stream().collect(Collectors.toMap(SingleParameter::getField, SingleParameter::getValue));
         SuperParameter parameter = CommonParameter.parseParameter(finishParameters, supportedAlgorithm);
         logger.info("parameter : " + parameter);
-        return CommonControl.dispatchConstruct(supportedAlgorithm, parameter);
+        return DispatcherFactory.getDispatcher(supportedAlgorithm, parameter);
     }
     
 
@@ -324,7 +296,9 @@ public class ValidateService {
     public Map<String, Double> doValidate(String[] existUidHasFiltered, TrainInfo model, AlgorithmType supportedAlgorithm, List<ClientInfo> clientList, Map<String, Object> percentMap, String inferenceId, Control algorithm, String labelName) {
         //正式的验证请求
 //        int p = -1;
-        List<CommonRequest> requests = algorithm.initInference(clientList, existUidHasFiltered);
+        // todo secureMode为false
+        Map<String,Object> others = new HashMap<>();
+        List<CommonRequest> requests = algorithm.initInference(clientList, existUidHasFiltered,others);
         logger.info("requests 's size is : " + requests.size());
         int phase = requests.get(0).getPhase();
         logger.info("phase : " + phase);

@@ -1,8 +1,5 @@
 package com.jdt.fedlearn.coordinator.service.prepare;
 
-import com.jdt.fedlearn.coordinator.dao.db.FeatureMapper;
-import com.jdt.fedlearn.coordinator.dao.db.PartnerMapper;
-import com.jdt.fedlearn.coordinator.entity.table.FeatureAnswer;
 import com.jdt.fedlearn.coordinator.entity.table.PartnerProperty;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.core.entity.feature.Features;
@@ -34,7 +31,6 @@ public class AlgorithmParameterImplTest {
     @BeforeClass
     public void init() {
         initClientInfo();
-        mockGetFeaturesFromDb(false);
         mockConfigInit();
     }
 
@@ -42,18 +38,10 @@ public class AlgorithmParameterImplTest {
     @Test
     public void testQueryAlgoParams() {
         AlgorithmParameterImpl algorithmParameterImpl = new AlgorithmParameterImpl();
-        List<ParameterField> parameterFields = algorithmParameterImpl.queryAlgoParams(AlgorithmType.FederatedGB, TaskID);
+        List<ParameterField> parameterFields = algorithmParameterImpl.queryAlgoParams(AlgorithmType.FederatedGB);
         Assert.assertEquals(parameterFields.size(), 23);
     }
 
-    @Test
-    public void testReadLabel() {
-        AlgorithmParameterImpl algorithmParameterImpl = new AlgorithmParameterImpl();
-        ParameterField parameterField = algorithmParameterImpl.readLabel(TaskID);
-        Assert.assertEquals(parameterField.getField(), "label");
-        Assert.assertEquals(parameterField.getName(), "预测标签");
-        System.out.println(parameterField);
-    }
 
     @Test
     public void testReadCrossValidation() {
@@ -71,26 +59,6 @@ public class AlgorithmParameterImplTest {
 
     }
 
-    private static void mockGetFeaturesFromDb(boolean y) {
-        new MockUp<FeatureMapper>() {
-            @Mock
-            public List<FeatureAnswer> selectFeatureListByTaskId(Integer taskId) {
-                List<FeatureAnswer> faList = new ArrayList<>();
-                FeatureAnswer fa1 = new FeatureAnswer(TaskID, C1.getUsername(), "1", "type",  "feature_describe");
-                FeatureAnswer fa2 = new FeatureAnswer(TaskID, C1.getUsername(), "2", "type",  "feature_describe");
-                FeatureAnswer fa3 = new FeatureAnswer(TaskID, C2.getUsername(), "1", "type",  "feature_describe");
-                FeatureAnswer fa4 = new FeatureAnswer(TaskID, C3.getUsername(), "y", "type",  "feature_describe");
-                faList.add(fa1);
-                faList.add(fa2);
-                faList.add(fa3);
-                if (!y) {
-                    return faList;
-                }
-                faList.add(fa4);
-                return faList;
-            }
-        };
-    }
 
     private void mockConfigInit() {
         new MockUp<ConfigUtil>() {

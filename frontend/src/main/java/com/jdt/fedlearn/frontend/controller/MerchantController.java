@@ -14,12 +14,12 @@ package com.jdt.fedlearn.frontend.controller;
 
 import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.frontend.constant.Constant;
-import com.jdt.fedlearn.frontend.jdchain.response.ResponseHandler;
-import com.jdt.fedlearn.frontend.mapper.entity.Account;
-import com.jdt.fedlearn.frontend.mapper.entity.Merchant;
-import com.jdt.fedlearn.frontend.mapper.entity.MerchantAdmin;
-import com.jdt.fedlearn.frontend.service.AccountService;
-import com.jdt.fedlearn.frontend.service.MerchantService;
+import com.jdt.fedlearn.frontend.constant.ResponseHandler;
+import com.jdt.fedlearn.frontend.entity.table.AccountDO;
+import com.jdt.fedlearn.frontend.entity.table.MerchantDO;
+import com.jdt.fedlearn.frontend.entity.MerchantAdmin;
+import com.jdt.fedlearn.frontend.service.IAccountService;
+import com.jdt.fedlearn.frontend.service.IMerchantService;
 import com.jdt.fedlearn.frontend.util.IdGenerateUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,13 +36,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 商户相关
+ */
 @Controller
 @RequestMapping("api")
 public class MerchantController {
     @Resource
-    MerchantService merchantService;
+    IMerchantService merchantService;
     @Resource
-    AccountService accountService;
+    IAccountService accountService;
     /***
      * @description: 创建商户
      * @param merchantAdmin
@@ -53,14 +56,14 @@ public class MerchantController {
     @RequestMapping(value = "merchant/create", method = RequestMethod.POST, produces = "application/json; charset=utf-8")
     @ResponseBody
     public ResponseEntity<ModelMap> createMerchantAdmin(@Validated @RequestBody MerchantAdmin merchantAdmin) {
-        Merchant merchant = merchantAdmin.getMerchant();
-        Merchant oldMerchant = merchantService.queryMerchantByCode(merchant.getMerCode());
+        MerchantDO merchant = merchantAdmin.getMerchant();
+        MerchantDO oldMerchant = merchantService.queryMerchantByCode(merchant.getMerCode());
         if(oldMerchant != null){
             return ResponseEntity.status(HttpStatus.OK).body(ResponseHandler.existResponse("企业编码已存在！"));
         }
-        Account account = merchantAdmin.getAccount();
-        Account oldAccount = accountService.queryAccount(account.getUsername());
-        if(oldAccount != null){
+        AccountDO accountDO = merchantAdmin.getAccount();
+        AccountDO oldAccountDO = accountService.queryAccount(accountDO.getUsername());
+        if(oldAccountDO != null){
             return ResponseEntity.status(HttpStatus.OK).body(ResponseHandler.existResponse("管理员账号已存在！"));
         }
         merchant.setId(IdGenerateUtil.getUUID());
@@ -69,14 +72,14 @@ public class MerchantController {
         merchant.setStatus(merchantAdmin.getStatus());
         merchantService.createMerchant(merchantAdmin.getMerchant());
 
-        account.setUserId(IdGenerateUtil.getUUID());
-        account.setRoles(Constant.ROLE_ADMIN);
-        account.setCreateTime(TimeUtil.getNowDateStr());
-        account.setModifiedTime(TimeUtil.getNowDateStr());
-        account.setStatus(merchantAdmin.getStatus());
-        account.setMerCode(merchant.getMerCode());
-        account.setCreateUser(merchantAdmin.getCurrentUser());
-        accountService.createAccount(account);
+        accountDO.setUserId(IdGenerateUtil.getUUID());
+        accountDO.setRoles(Constant.ROLE_ADMIN);
+        accountDO.setCreateTime(TimeUtil.getNowDateStr());
+        accountDO.setModifiedTime(TimeUtil.getNowDateStr());
+        accountDO.setStatus(merchantAdmin.getStatus());
+        accountDO.setMerCode(merchant.getMerCode());
+        accountDO.setCreateUser(merchantAdmin.getCurrentUser());
+        accountService.createAccount(accountDO);
         ModelMap res = ResponseHandler.successResponse();
         return ResponseEntity.status(HttpStatus.OK).body(res);
     }
@@ -90,9 +93,9 @@ public class MerchantController {
     */
     @RequestMapping(value = "merchant/update", method = RequestMethod.POST, produces = "application/json; charset=utf-8")
     @ResponseBody
-    public ResponseEntity<ModelMap> updateMerchant(@Validated @RequestBody Merchant merchant) {
+    public ResponseEntity<ModelMap> updateMerchant(@Validated @RequestBody MerchantDO merchant) {
         String merCode = merchant.getMerCode();
-        Merchant oldMerchant = merchantService.queryMerchantByCode(merCode);
+        MerchantDO oldMerchant = merchantService.queryMerchantByCode(merCode);
         oldMerchant.setName(merchant.getName());
         oldMerchant.setStatus(merchant.getStatus());
         oldMerchant.setModifiedTime(TimeUtil.getNowDateStr());
@@ -104,16 +107,15 @@ public class MerchantController {
     }
 
     private static final String MERCHANT_LIST = "merchantList";
-    /***
-     * @description: 查询所有商户列表
-     * @return: org.springframework.http.ResponseEntity<org.springframework.ui.ModelMap>
-     * @author: geyan29
-     * @date: 2021/3/5 11:13 上午
+    /**
+     * 查询所有商户列表
+     * @author geyan
+     * @return org.springframework.http.ResponseEntity<org.springframework.ui.ModelMap>
      */
     @RequestMapping(value = "merchant/list", produces = "application/json; charset=utf-8")
     @ResponseBody
     public ResponseEntity<ModelMap> queryMerchantList() {
-        List<Merchant> merchants = merchantService.queryAllMerchant();
+        List<MerchantDO> merchants = merchantService.queryAllMerchant();
         Map map = new HashMap();
         map.put(MERCHANT_LIST, merchants);
         ModelMap res = ResponseHandler.successResponse(map);

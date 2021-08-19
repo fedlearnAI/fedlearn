@@ -12,31 +12,25 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.runner.impl.fedLearning;
 
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.worker.cache.WorkerResultCache;
 import com.jdt.fedlearn.worker.runner.Runner;
+import com.jdt.fedlearn.worker.service.AlgorithmService;
 import com.jdt.fedlearn.worker.service.WorkerRunner;
-import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.Job;
 import com.jdt.fedlearn.common.entity.Task;
 import com.jdt.fedlearn.common.entity.TaskResultData;
-import com.jdt.fedlearn.worker.enums.AlgorithmEnum;
 import com.jdt.fedlearn.common.enums.BusinessTypeEnum;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
 import com.jdt.fedlearn.common.enums.TaskTypeEnum;
-import com.jdt.fedlearn.worker.service.WorkerRunnerImpl;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-
 import java.util.Map;
-
-import static java.lang.Thread.sleep;
 
 /**
  * 任务执行器
@@ -49,8 +43,6 @@ import static java.lang.Thread.sleep;
 public class MapRunnerImpl implements Runner {
 
     private final static Logger logger = LoggerFactory.getLogger(MapRunnerImpl.class);
-    public static final String DEMO_RESULT_DATA = "demo result data";
-    public static final String TASK_RESULT_DATA = "task result data";
 
     @Resource
     private WorkerResultCache workerResultCache;
@@ -76,18 +68,10 @@ public class MapRunnerImpl implements Runner {
         CommonResultStatus commonResultStatus = new CommonResultStatus();
         commonResultStatus.setStartTime(TimeUtil.getNowTime());
 
-        try {
-            sleep(100);
-        } catch (InterruptedException e) {
-            logger.error("map 执行异常", e);
-        }
-        final Job job = task.getJob();
-        final String algorithm = job.getJobReq().getSubRequest().getAlgorithm().getAlgorithm();
-        final AlgorithmEnum algorithmEnum = AlgorithmEnum.findEnum(algorithm);
-        // 执行算法，并且返回结果，暂且模拟
-        final Map<String, Object> result = algorithmEnum.getAlgorithmService().run(task);
+        AlgorithmService algorithmService = new AlgorithmService();
+        final Map<String, Object> result = algorithmService.run(task);
         // TODO 需要在考虑下，结果是否需要返回
-        commonResultStatus.getData().put(AppConstant.DATA, "success");
+        commonResultStatus.getData().put(ResponseConstant.DATA, ResponseConstant.SUCCESS);
         commonResultStatus.setEndTime(TimeUtil.getNowTime());
         commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
 
@@ -95,7 +79,7 @@ public class MapRunnerImpl implements Runner {
         TaskResultData taskResultData = new TaskResultData();
         taskResultData.setTaskId(task.getTaskId());
         taskResultData.setTaskResultStatus(commonResultStatus);
-        taskResultData.getModelMap().put(AppConstant.DATA, result);
+        taskResultData.getModelMap().put(ResponseConstant.DATA, result);
         logger.info("save the data");
         workerResultCache.put(taskResultData);
 

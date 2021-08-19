@@ -3,7 +3,7 @@ package com.jdt.fedlearn.core.entity.randomForest;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.feature.SingleFeature;
 import com.jdt.fedlearn.core.util.DataParseUtil;
-import com.jdt.fedlearn.core.loader.randomForest.DataFrame;
+import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -12,7 +12,7 @@ import java.util.List;
 
 public class TestDataFrame {
 
-    DataFrame df, df_test;
+    RFTrainData df, df_test;
     String[][] rawTable;
     String path;
     Features features;

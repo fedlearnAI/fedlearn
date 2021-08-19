@@ -31,7 +31,7 @@ public interface Constant {
     /**
      * 缓存保存时间
      */
-    public static final int MAX_CACHE_SECONDS = 30;
+    public static final int MAX_CACHE_SECONDS = 30000;
 
 
 

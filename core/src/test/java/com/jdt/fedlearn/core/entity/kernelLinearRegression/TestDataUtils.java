@@ -1,5 +1,6 @@
 package com.jdt.fedlearn.core.entity.kernelLinearRegression;
 
+import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.grpc.federatedlearning.InputMessage;
 import com.jdt.fedlearn.grpc.federatedlearning.Matrix;
 import com.jdt.fedlearn.grpc.federatedlearning.Vector;
@@ -11,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.testng.Assert.*;
 
 public class TestDataUtils {
 
@@ -89,12 +89,12 @@ public class TestDataUtils {
         double sacle = 2;
         Vector vector = DataUtils.alloneVector(length, sacle);
         SimpleMatrix res = DataUtils.toSmpMatrix(vector);
-        SimpleMatrix simpleMatrix = new SimpleMatrix(length,1);
-        simpleMatrix.set(0,0,2);
-        simpleMatrix.set(1,0,2);
-        Assert.assertEquals(res.numRows(),simpleMatrix.numRows());
-        Assert.assertEquals(res.numCols(),simpleMatrix.numCols());
-        Assert.assertEquals(res.get(0,0),simpleMatrix.get(0,0));
+        SimpleMatrix simpleMatrix = new SimpleMatrix(length, 1);
+        simpleMatrix.set(0, 0, 2);
+        simpleMatrix.set(1, 0, 2);
+        Assert.assertEquals(res.numRows(), simpleMatrix.numRows());
+        Assert.assertEquals(res.numCols(), simpleMatrix.numCols());
+        Assert.assertEquals(res.get(0, 0), simpleMatrix.get(0, 0));
     }
 
     @Test
@@ -103,60 +103,60 @@ public class TestDataUtils {
         int cols = 2;
         Matrix matrix = DataUtils.zeroMatrix(rows, cols);
         SimpleMatrix res = DataUtils.toSmpMatrix(matrix);
-        SimpleMatrix simpleMatrix = new SimpleMatrix(rows,cols);
-        for (int i=0;i<rows;i++){
-            for (int j=0;j<cols;j++){
-                simpleMatrix.set(i,j,0.0);
+        SimpleMatrix simpleMatrix = new SimpleMatrix(rows, cols);
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                simpleMatrix.set(i, j, 0.0);
             }
         }
-        Assert.assertEquals(res.numRows(),simpleMatrix.numRows());
-        Assert.assertEquals(res.numCols(),simpleMatrix.numCols());
-        Assert.assertEquals(res.get(0,0),simpleMatrix.get(0,0));
+        Assert.assertEquals(res.numRows(), simpleMatrix.numRows());
+        Assert.assertEquals(res.numCols(), simpleMatrix.numCols());
+        Assert.assertEquals(res.get(0, 0), simpleMatrix.get(0, 0));
     }
 
     @Test
     public void testToVector() {
         int rows = 2;
         int cols = 1;
-        SimpleMatrix simpleMatrix = new SimpleMatrix(rows,cols);
-        for (int i=0;i<rows;i++){
-            for (int j=0;j<cols;j++){
-                simpleMatrix.set(i,j,0d);
+        SimpleMatrix simpleMatrix = new SimpleMatrix(rows, cols);
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                simpleMatrix.set(i, j, 0d);
             }
         }
         Vector res = DataUtils.toVector(simpleMatrix);
         Vector vector = DataUtils.allzeroVector(rows);
-        Assert.assertEquals(res,vector);
+        Assert.assertEquals(res, vector);
     }
 
     @Test
     public void testToMatrix() {
         int rows = 2;
         int cols = 1;
-        SimpleMatrix simpleMatrix = new SimpleMatrix(rows,cols);
-        for (int i=0;i<rows;i++){
-            for (int j=0;j<cols;j++){
-                simpleMatrix.set(i,j,0d);
+        SimpleMatrix simpleMatrix = new SimpleMatrix(rows, cols);
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                simpleMatrix.set(i, j, 0d);
             }
         }
         Matrix res = DataUtils.toMatrix(simpleMatrix);
         Matrix matrix = DataUtils.zeroMatrix(rows, cols);
-        Assert.assertEquals(res,matrix);
+        Assert.assertEquals(res, matrix);
     }
 
     @Test
     public void testSmpmatrixToArray() {
         int rows = 2;
         int cols = 2;
-        SimpleMatrix simpleMatrix = new SimpleMatrix(rows,cols);
-        for (int i=0;i<rows;i++){
-            for (int j=0;j<cols;j++){
-                simpleMatrix.set(i,j,0d);
+        SimpleMatrix simpleMatrix = new SimpleMatrix(rows, cols);
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                simpleMatrix.set(i, j, 0d);
             }
         }
         double[][] res = DataUtils.smpmatrixToArray(simpleMatrix);
-        double[][] arrays = new double[][]{{0,0},{0,0}};
-        Assert.assertEquals(res,arrays);
+        double[][] arrays = new double[][]{{0, 0}, {0, 0}};
+        Assert.assertEquals(res, arrays);
     }
 
     @Test
@@ -171,13 +171,49 @@ public class TestDataUtils {
 
         int length = 2;
         double sacle = 2;
-        Vector vector = DataUtils.alloneVector(length, sacle) ;
-        Vector vector1 = DataUtils.allzeroVector(length) ;
-        Vector[] vectors = new Vector[]{vector,vector1};
+        Vector vector = DataUtils.alloneVector(length, sacle);
+        Vector vector1 = DataUtils.allzeroVector(length);
+        Vector[] vectors = new Vector[]{vector, vector1};
         Double[] doubles = new Double[]{0.2, 92.0};
-        InputMessage res = DataUtils.prepareInputMessage(matrices,vectors,doubles);
-        Assert.assertEquals(res.getMatrices(0),matrix);
-        Assert.assertEquals(res.getVectors(0),vector);
-        Assert.assertEquals(res.getValues(1),92);
+        InputMessage res = DataUtils.prepareInputMessage(matrices, vectors, doubles);
+        Assert.assertEquals(res.getMatrices(0), matrix);
+        Assert.assertEquals(res.getVectors(0), vector);
+        Assert.assertEquals(res.getValues(1), 92);
+    }
+
+    @Test
+    public void testArraysToSimpleMatrix() {
+        double[][] doubles = new double[][]{{1, 2}, {2, 32}};
+        SimpleMatrix simpleMatrix = DataUtils.arraysToSimpleMatrix(doubles);
+        SimpleMatrix simpleMatrix1 = new SimpleMatrix(2, 2);
+        simpleMatrix1.set(0, 0, 1);
+        simpleMatrix1.set(0, 1, 2);
+        simpleMatrix1.set(1, 0, 2);
+        simpleMatrix1.set(1, 1, 32);
+        Assert.assertEquals(simpleMatrix.get(0, 0), simpleMatrix1.get(0, 0));
+    }
+
+    @Test
+    public void testArraysToVectors() {
+        double[][] doubles = new double[][]{{1, 2}, {2, 32}};
+        double[][] transData = MathExt.transpose(doubles);
+        Vector[] vectors = new Vector[2];
+        for (int i = 0; i < transData.length; i++) {
+            Vector.Builder vector = Vector.newBuilder();
+            for (int j = 0; j < transData[0].length; j++) {
+                vector.addValues(transData[i][j]);
+            }
+            vectors[i]=vector.build();
+        }
+        Assert.assertEquals(vectors[0].getValuesList().get(0),doubles[0][0],0);
+    }
+
+    @Test
+    public void testVectorsToArrays(){
+        Vector[] vectors = new Vector[2];
+        vectors[0]=DataUtils.allzeroVector(2);
+        vectors[1]=DataUtils.alloneVector(2,1);
+        double[][] res =DataUtils.vectorsToArrays(vectors);
+        Assert.assertEquals(res[0][0],vectors[0].getValuesList().get(0),0);
     }
 }

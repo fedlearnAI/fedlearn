@@ -1,6 +1,5 @@
 package com.jdt.fedlearn.coordinator.service.system;
 
-import com.jdt.fedlearn.coordinator.dao.db.PartnerMapper;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import com.jdt.fedlearn.coordinator.entity.system.DeleteModelReq;
 import com.jdt.fedlearn.coordinator.entity.table.PartnerProperty;
@@ -29,7 +28,6 @@ public class ModelDeleteServiceImplTest {
     @BeforeClass
     public void init() {
         initClientInfo();
-        mockGetClientInfoFromDb(C1, C2, C3);
         mockDeleteModel();
     }
 
@@ -41,7 +39,7 @@ public class ModelDeleteServiceImplTest {
     }
     @Test
     public void testDeleteModel() {
-        DeleteModelReq deleteModelReq = new DeleteModelReq("1-FederatedGB-5522228", "lijingxi");
+        DeleteModelReq deleteModelReq = new DeleteModelReq("1-FederatedGB-5522228");
         mockSend(true);
         ModelDeleteServiceImpl modelDeleteService = new ModelDeleteServiceImpl();
         boolean b = modelDeleteService.deleteModel(deleteModelReq);
@@ -52,19 +50,6 @@ public class ModelDeleteServiceImplTest {
 
     }
 
-    private static void mockGetClientInfoFromDb(PartnerProperty c1, PartnerProperty c2, PartnerProperty c3) {
-        List<PartnerProperty> clientInfos = new ArrayList<>();
-        clientInfos.add(c1);
-        clientInfos.add(c2);
-        clientInfos.add(c3);
-        // 将PartnerMapper传入MockUp类
-        new MockUp<PartnerMapper>() {
-            @Mock
-            public List<PartnerProperty> selectPartnerList(String taskId, String username) {
-                return clientInfos;
-            }
-        };
-    }
 
     private static void mockDeleteModel() {
         new MockUp<TrainMapper>() {

@@ -12,15 +12,18 @@ limitations under the License.
 */
 package com.jdt.fedlearn.manager;
 
+import com.jdt.fedlearn.common.constant.CacheConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
+import com.jdt.fedlearn.common.enums.*;
+import com.jdt.fedlearn.common.network.INetWorkService;
 import com.jdt.fedlearn.common.util.*;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.*;
-import com.jdt.fedlearn.common.enums.BusinessTypeEnum;
-import com.jdt.fedlearn.common.enums.FedLearningReqEnum;
-import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
-import com.jdt.fedlearn.common.enums.ResultTypeEnum;
+import com.jdt.fedlearn.core.entity.randomForest.TreeNodeRF;
+import com.jdt.fedlearn.core.entity.randomForest.TypeRandomForest;
 import com.jdt.fedlearn.core.model.DistributedRandomForestModel;
+import com.jdt.fedlearn.core.model.Model;
+import com.jdt.fedlearn.core.model.common.CommonModel;
 import com.jdt.fedlearn.manager.service.CacheManager;
 import com.jdt.fedlearn.manager.spring.SpringBean;
 import com.jdt.fedlearn.manager.spring.SpringUtil;
@@ -33,6 +36,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
@@ -40,10 +44,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @Description: Jetty启动入口
@@ -55,7 +56,7 @@ public class ManagerHttpApp extends AbstractHandler {
     private Boolean isNewInterface = false;
     private ManagerLocalApp managerLocalApp;
     private CacheManager cacheManager;
-
+    private INetWorkService netWorkService = INetWorkService.getNetWorkService();
     public static void main(String[] args) {
         ManagerHttpApp managerHttpApp = new ManagerHttpApp();
         logger.info("初始化主核心逻辑");
@@ -144,17 +145,16 @@ public class ManagerHttpApp extends AbstractHandler {
             logger.error("任务处理异常: {} ", request, e);
 
             Map<String, Object> modelMap = new HashMap<>();
-            modelMap.put(AppConstant.MESSAGE, e.getMessage());
+            modelMap.put(ResponseConstant.MESSAGE, e.getMessage());
             jobResult.setData(modelMap);
             jobResult.setResultTypeEnum(ResultTypeEnum.OTHER_FAIL);
         } finally {
             jobResult.setEndTime(TimeUtil.getNowTime());
             logger.info("任务处理结束");
         }
-
         String res = jobResultConvert(jobResult, url);
         logger.info("返回url: {}", url);
-        writer.println(HttpClientUtil.compress(res));
+        writer.println(GZIPCompressUtil.compress(res));
         writer.flush();
         baseRequest.setHandled(true);
     }
@@ -163,7 +163,7 @@ public class ManagerHttpApp extends AbstractHandler {
     private JobResult dispatch(String requestCommand, HttpServletRequest request) throws InterruptedException, IOException, ClassNotFoundException {
         //返回结果
         JobResult jobResult = new JobResult();
-        String ipAddress = HttpClientUtil.getRemoteIP(request);
+        String ipAddress = IpAddressUtil.getRemoteIP(request);
         String userName = ipAddress + AppConstant.COLON + request.getRemotePort();
 
         logger.info("start to process request from {}", userName);
@@ -189,7 +189,7 @@ public class ManagerHttpApp extends AbstractHandler {
 
         if (managerCommandEnum == null) {
             logger.error("不符合条件的url: {} ", requestCommand);
-            modelMap.put(AppConstant.MESSAGE, "不符合条件的url: " + requestCommand);
+            modelMap.put(ResponseConstant.MESSAGE, "不符合条件的url: " + requestCommand);
             jobResult.setResultTypeEnum(ResultTypeEnum.OTHER_FAIL);
         } else {
             switch (managerCommandEnum) {
@@ -205,17 +205,17 @@ public class ManagerHttpApp extends AbstractHandler {
                         //需要特殊设置，如果整个过程是压缩的，最后要重新要压缩，交给分布式处理
                         if(trainRequest.isGzip()) {
                             String date = trainRequest.getData();
-                            trainRequest.setData(HttpClientUtil.compress(date));
+                            trainRequest.setData(GZIPCompressUtil.compress(date));
                         }
                         //判断返回结果是否分包以及具体分包方式，，此处只返回第一个包，后续包请求在 /split 接口
                         logger.info("train parameter is modelToken:" + trainRequest.getModelToken() + " phase:" + trainRequest.getPhase() + " algorithm:" + trainRequest.getAlgorithm());
                         JobReq jobReq = subRequestToJobReqConvert(trainRequest, null, managerCommandEnum, userName);
+                        mergeLocalModel(trainRequest, CacheManager.modelAddressCacheMap);
                         jobResult = managerLocalApp.process(jobReq);
-                        mergeLocalModel(trainRequest);
                     } else {
                         //设置pass, 继续接收分包
                         Map passMap = new HashMap<>();
-                        passMap.put(ResponseConstant.DATA, "pass");
+                        passMap.put(ResponseConstant.DATA, ResponseConstant.PASS);
                         passMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
                         jobResult.getData().put(ResponseConstant.DATA, passMap);
                     }
@@ -223,7 +223,7 @@ public class ManagerHttpApp extends AbstractHandler {
                 }
                 case DEMO: {
                     logger.info("demo验证数据, {}", request);
-                    modelMap.put(AppConstant.DATA, "DEMO");
+                    modelMap.put(ResponseConstant.DATA, "DEMO");
                     jobResult.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                     break;
                 }
@@ -231,15 +231,15 @@ public class ManagerHttpApp extends AbstractHandler {
                 case REGISTER: {
                     WorkerUnit workerUnit = JsonUtil.json2Object(content, WorkerUnit.class);
                     boolean added = managerLocalApp.getWorkerManager().addWorkerUnit(workerUnit);
-                    modelMap.put(AppConstant.DATA, added);
+                    modelMap.put(ResponseConstant.DATA, added);
                     jobResult.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                     break;
                 }
                 case ADD_TASKS: {
                     List<Task> taskList = JsonUtil.parseArray(content,Task.class);
                     if(taskList != null){
-                        List<Task> retTasks = managerLocalApp.getTaskManager().addTasks(taskList);
-                        modelMap.put(AppConstant.DATA, retTasks);
+                        managerLocalApp.getTaskManager().addTasks(taskList);
+                        modelMap.put(ResponseConstant.DATA, null);
                         jobResult.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                     }
                     break;
@@ -247,7 +247,7 @@ public class ManagerHttpApp extends AbstractHandler {
                 case UPDATE_TASK: {
                     Task task = JsonUtil.json2Object(content, Task.class);
                     Task updatedTask = managerLocalApp.getTaskManager().updateTaskRunStatus(task);
-                    modelMap.put(AppConstant.DATA, updatedTask);
+                    modelMap.put(ResponseConstant.DATA, updatedTask);
                     jobResult.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                     break;
                 }
@@ -283,8 +283,8 @@ public class ManagerHttpApp extends AbstractHandler {
                     String workerProperties = ConfigUtil.getWorkerProperties();
                     String[] workers = StringUtils.split(workerProperties, AppConstant.SPLIT);
                     for (String worker: workers) {
-                        String result = HttpClientUtil.doHttpPost("http://" + worker+"/"+managerCommandEnum.getCode(), param);
-                        CommonResultStatus commonResultStatus = JsonUtil.json2Object(HttpClientUtil.unCompress(result), CommonResultStatus.class);
+                        String result = netWorkService.sendAndRecv(AppConstant.HTTP_PREFIX + worker+AppConstant.SLASH+managerCommandEnum.getCode(), param);
+                        CommonResultStatus commonResultStatus = JsonUtil.json2Object(GZIPCompressUtil.unCompress(result), CommonResultStatus.class);
                         jobResult.setData(commonResultStatus.getData());
                         jobResult.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                     }
@@ -293,8 +293,8 @@ public class ManagerHttpApp extends AbstractHandler {
                 default: {
                     //无需处理的请求，直接转发给客户端
                     Map param = JsonUtil.json2Object(content, Map.class);
-                    final String result = HttpClientUtil.doHttpPost(ConfigUtil.getDefaultWorker()+"/"+managerCommandEnum.getCode(), param);
-                    final CommonResultStatus commonResultStatus = JsonUtil.json2Object(HttpClientUtil.unCompress(result), CommonResultStatus.class);
+                    final String result = netWorkService.sendAndRecv(ConfigUtil.getDefaultWorker()+"/"+managerCommandEnum.getCode(), param);
+                    final CommonResultStatus commonResultStatus = JsonUtil.json2Object(GZIPCompressUtil.unCompress(result), CommonResultStatus.class);
                     jobResult.setData(commonResultStatus.getData());
                     jobResult.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                 }
@@ -311,26 +311,34 @@ public class ManagerHttpApp extends AbstractHandler {
      * @throws IOException
      * @throws ClassNotFoundException
      */
-    private void mergeLocalModel(TrainRequest trainRequest) throws IOException, ClassNotFoundException {
-        List<DistributedRandomForestModel> models = new ArrayList<>();
+    private void mergeLocalModel(TrainRequest trainRequest, Map<String,String> modelCacheMap) throws IOException, ClassNotFoundException {
+        List<Model> models = new ArrayList<>();
         List<String> modelsKey = new ArrayList<>();
-        Map<String, Double> localTrees = new HashMap<>();
-        for (Map.Entry<String, String> modelCache : CacheManager.modelCacheMap.entrySet()) {
+        List<String> modelAddress = new ArrayList<>();
+        for (Map.Entry<String, String> modelCache : modelCacheMap.entrySet()) {
             if (modelCache.getKey().contains(trainRequest.getModelToken())) {
-                String modelResult = modelCache.getValue();
-                DistributedRandomForestModel model = (DistributedRandomForestModel) SerializationUtils.deserialize(modelResult);
-                localTrees.putAll(model.getLocalTree());
+                String remoteModelResult = netWorkService.sendAndRecv(AppConstant.HTTP_PREFIX + modelCache.getValue() + AppConstant.SLASH + WorkerCommandEnum.API_MODEL_QUERY.getCode(), modelCache.getKey());
+                String finalResult = GZIPCompressUtil.unCompress(remoteModelResult);
+                CommonResultStatus commonResultStatus = JsonUtil.json2Object(finalResult, CommonResultStatus.class);
+                String modelResult = (String) commonResultStatus.getData().get(ResponseConstant.DATA);
+                Model model = (Model) SerializationUtils.deserialize(modelResult);
                 models.add(model);
                 modelsKey.add(modelCache.getKey());
+                modelAddress.add(modelCache.getValue());
             }
         }
+        Model model = CommonModel.constructModel(trainRequest.getAlgorithm());
+        models =  model.mergeModel(models);
+
         for (int i = 0; i < models.size(); i++) {
-            DistributedRandomForestModel model = models.get(i);
-            model.setLocalTree(localTrees);
-            String modelString = SerializationUtils.serialize(model);
-            CacheManager.modelCacheMap.put(modelsKey.get(i), modelString);
+            String modelString = SerializationUtils.serialize(models.get(i));
+            Map<String, String> params = new HashMap<>(8);
+            params.put(AppConstant.MODEL_UPDATE_KEY, modelsKey.get(i));
+            params.put(AppConstant.MODEL_UPDATE_VALUE, modelString);
+            netWorkService.sendAndRecv(AppConstant.HTTP_PREFIX + modelAddress.get(i) + AppConstant.SLASH + WorkerCommandEnum.API_MODEL_UPDATE.getCode(), params);
         }
     }
+
 
     /**
      * 将当前结果转化为原有格式， 保持和原有格式一致，但是在将来记着采用最新的接口进行处理
@@ -344,7 +352,7 @@ public class ManagerHttpApp extends AbstractHandler {
         if (isNewInterface || fedLearningReqEnum == null) {
             return JsonUtil.object2json(jobResult);
         } else {
-            if(url.endsWith("start")) {
+            if(url.endsWith(ManagerCommandEnum.START.getCode())) {
                 return JsonUtil.object2json(jobResult.getData().get(ResponseConstant.DATA));
             }
             return JsonUtil.object2json(jobResult.getData());

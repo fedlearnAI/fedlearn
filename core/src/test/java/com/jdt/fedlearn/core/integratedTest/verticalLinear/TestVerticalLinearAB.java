@@ -4,7 +4,6 @@ import com.jdt.fedlearn.core.dispatch.VerticalLinearRegression;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.psi.MappingReport;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
@@ -60,10 +59,10 @@ public class TestVerticalLinearAB {
 
     public void testTrainAndTest() throws IOException {
         ////-----------id match and feature process-------------////////////////
-        Tuple2<MappingReport, String[]> mappingOutput = CommonRun.match(MappingType.VERTICAL_MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
+        Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(MappingType.MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
         String[] commonIds = mappingOutput._2();
 
-        MatchResult matchResult = new MatchResult(mappingOutput._1().getSize());
+        MatchResult matchResult = mappingOutput._1();
         Map<ClientInfo, Features> featuresMap = new HashMap<>();
         for (Map.Entry<ClientInfo, String[][]> entry : rawDataMap.entrySet()) {
             Features features = DataParseUtil.fetchFeatureFromData(entry.getValue());
@@ -108,7 +107,7 @@ public class TestVerticalLinearAB {
         System.out.println("predictUid.length " + predictUid.length);
         long start = System.currentTimeMillis();
 
-        List<CommonRequest> requests = regression.initInference(Arrays.asList(clientInfos.clone()), predictUid); //initial request
+        List<CommonRequest> requests = regression.initInference(Arrays.asList(clientInfos.clone()), predictUid,new HashMap<>()); //initial request
         double[][] result = CommonRun.inference(regression, requests, modelMap, inferenceRawData).getPredicts();
         System.out.println((System.currentTimeMillis() - start) + " ms");
 

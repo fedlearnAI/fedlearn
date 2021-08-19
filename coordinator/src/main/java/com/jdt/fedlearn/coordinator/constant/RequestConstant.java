@@ -13,6 +13,8 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.constant;
 
+import com.jdt.fedlearn.common.enums.UrlType;
+
 /**
  * 请求客户端和 解析前端请求
  */
@@ -21,7 +23,7 @@ public interface RequestConstant {
     /**
      * 训练
      */
-    String TRAIN_PATH = "/co/train/start";
+    String TRAIN_PATH = UrlType.START_TRAIN.getPath();
 
     /**
      * 验证
@@ -34,14 +36,13 @@ public interface RequestConstant {
     String INFERENCE_PATH = "/api/inference";
 
     /**
-     * 请求uid列表接口
+     * 请求uid列表接数据口
      */
-    String EXECUTE_INFERENCE_FETCH = "/api/inference/fetch";
-
+    String INFERENCE_FETCH = "/api/inference/fetch";
     /**
      * 推送结果
      */
-    String EXECUTE_INFERENCE_PUSH = "/api/inference/push";
+    String INFERENCE_PUSH = "/api/inference/push";
 
     /**
      * 训练交叉验证

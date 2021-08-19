@@ -7,10 +7,15 @@ import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierCiphertext;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
+import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.randomForest.DataUtils;
+import com.jdt.fedlearn.core.fake.StructureGenerate;
+import com.jdt.fedlearn.core.loader.kernelLinearRegression.KernelLinearRegressionTrainData;
 import com.jdt.fedlearn.core.model.KernelLinearRegressionJavaModel;
+import com.jdt.fedlearn.core.parameter.KernelLinearRegressionParameter;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
 import com.jdt.fedlearn.core.type.data.Tuple2;
+import com.jdt.fedlearn.core.type.data.Tuple3;
 import com.jdt.fedlearn.core.util.Tool;
 import com.jdt.fedlearn.grpc.federatedlearning.PaillierKeyPublic;
 import com.jdt.fedlearn.grpc.federatedlearning.PaillierVector;
@@ -28,6 +33,8 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.jdt.fedlearn.core.math.MathExt.generateNormal;
+import static com.jdt.fedlearn.core.math.MathExt.generateUniform;
 import static org.testng.Assert.assertEquals;
 
 public class TestMathExt {
@@ -614,7 +621,6 @@ public class TestMathExt {
         String privateKeyString;
         // 生成密钥
         PaillierPrivateKey privateKey = PaillierPrivateKey.create(parameter.getEncryptionCertainty());
-        keyPublic = DataUtils.paillierPublicKeyToRpcProto(privateKey.getPublicKey());
         // 待加密信息
         Vector.Builder vectorOrBuilder = Vector.newBuilder();
         double[] yLabel = {1.0, 0.0, 0.0, 1.0};
@@ -872,6 +878,13 @@ public class TestMathExt {
     }
 
     @Test
+    public void testBigMax() {
+        BigInteger[] b = new BigInteger[]{new BigInteger("-2"), new BigInteger("10"), new BigInteger("-30")};
+        BigInteger res = MathExt.max(b);
+        Assert.assertEquals(res, new BigInteger("10"));
+    }
+
+    @Test
     public void testMax1() {
         double[] a = {45.67, 34.56, 100.111};
         double res = MathExt.max(a);
@@ -1058,6 +1071,27 @@ public class TestMathExt {
         System.out.println("res : " + Arrays.toString(res));
         double[] array = new double[]{0.2,0.6,0.5,0.1};
         Assert.assertEquals(res,array);
+    }
+
+
+    @Test
+    public void testGenerateNormal(){
+        int m =3;
+        int n =2;
+        double scale=0.001;
+        double[][] res = generateNormal(m,n,scale);
+        System.out.println("res : " + Arrays.deepToString(res));
+        double[][] normal = new double[][]{{0.08452060657049848, 0.09128761787534406}, {-0.028707863647499533, 0.07518594314874759}, {0.1335473668231534, -0.09499789372646104}};
+        Assert.assertEquals(res.length,normal.length);
+    }
+
+    @Test
+    public void testGenerateUniform(){
+        int m = 3;
+        double[] res = generateUniform(m);
+        System.out.println("res: " + Arrays.toString(res));
+        double[] uniform = new double[]{4.591117485041855, 4.707171442994805, 2.188494408434079};
+        Assert.assertEquals(res.length,uniform.length);
     }
 }
 

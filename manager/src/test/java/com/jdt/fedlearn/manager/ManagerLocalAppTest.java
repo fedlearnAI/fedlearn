@@ -13,6 +13,7 @@ limitations under the License.
 package com.jdt.fedlearn.manager;
 
 import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.BusinessTypeEnum;
 import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
@@ -68,7 +69,7 @@ public class ManagerLocalAppTest extends PowerMockTestCase {
                 PowerMockito.mockStatic(WorkerCommandUtil.class);
                 CommonResultStatus commonResultStatus = new CommonResultStatus();
                 Map map = new HashMap();
-                map.put(AppConstant.DATA,"true");
+                map.put(ResponseConstant.DATA,"true");
                 commonResultStatus.setData(map);
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                 try {

@@ -23,7 +23,7 @@ public class EmptyReader implements DataReader {
     }
 
     @Override
-    public String[][] loadInference(String[] uid) {
+    public String[][] loadInference(DataSourceConfig config, String[] uid) {
         String[][] res = new String[uid.length + 1][1];
         res[0][0] = "uid";
         for (int i = 0; i < uid.length; i++) {
@@ -33,7 +33,7 @@ public class EmptyReader implements DataReader {
     }
 
     @Override
-    public String[][] loadValidate(String[] uid) {
+    public String[][] loadValidate(DataSourceConfig config, String[] uid) {
         String[][] res = new String[uid.length + 1][1];
         res[0][0] = "uid";
         for (int i = 0; i < uid.length; i++) {

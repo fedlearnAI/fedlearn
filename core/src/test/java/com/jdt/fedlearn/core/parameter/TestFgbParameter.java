@@ -3,7 +3,6 @@ package com.jdt.fedlearn.core.parameter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.core.type.BitLengthType;
-import com.jdt.fedlearn.core.type.FirstPredictType;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.ObjectiveType;
 import org.testng.Assert;
@@ -22,10 +21,10 @@ public class TestFgbParameter {
             p3r = mapper.readValue(content, FgbParameter.class);
             System.out.println("p3r: " + p3r);
         } catch (IOException e) {
-            System.out.println("ioexception:"+e);
+            System.out.println("ioexception:" + e);
         }
         MetricType[] metricTypes = new MetricType[]{MetricType.RMSE, MetricType.MAPE};
-        FgbParameter parameter = new FgbParameter(1, FirstPredictType.AVG, true, 1.0, 1.0, 10, 1.0, 10, 1.0, 0.0, 1.0, 33, metricTypes, 7, 0.3, ObjectiveType.regSquare, 1, BitLengthType.bit1024, new String[0], 0, 0);
+        FgbParameter parameter = new FgbParameter.Builder(1, metricTypes, ObjectiveType.regSquare).build();
         System.out.println("parameter: " + parameter.toString());
         Assert.assertEquals(parameter, p3r);
     }
@@ -44,7 +43,7 @@ public class TestFgbParameter {
         System.out.println("p3r: " + p3r);
 
         MetricType[] metricTypes = new MetricType[]{MetricType.RMSE, MetricType.MAPE};
-        FgbParameter parameter = new FgbParameter(1, FirstPredictType.AVG, true, 1.0, 1.0, 10, 1.0, 10, 1.0, 0.0, 1.0, 33, metricTypes, 7, 0.3, ObjectiveType.regSquare, 1, BitLengthType.bit512, new String[0], 0, 0);
+        FgbParameter parameter = new FgbParameter.Builder(1, metricTypes, ObjectiveType.regSquare).bitLength(BitLengthType.bit512).build();
         Assert.assertEquals(parameter, p3r);
     }
 }

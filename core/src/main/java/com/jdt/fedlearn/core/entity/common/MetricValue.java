@@ -13,15 +13,19 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.entity.common;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.exception.DeserializeException;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.data.Pair;
 
-import java.util.HashMap;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MetricValue implements Message {
     private static final long serialVersionUID = 3551840761275726582L;
     private Map<MetricType, List<Pair<Integer, Double>>> metrics;
@@ -30,6 +34,8 @@ public class MetricValue implements Message {
     private Map<MetricType, List<Pair<Integer, String>>> validateMetricsArr;
     private Map<String, Double> featureImportance;
     private int bestRound;
+
+    public MetricValue(){}
 
     public MetricValue(Map<MetricType, List<Pair<Integer, Double>>> metrics) {
         this.metrics = metrics;
@@ -98,6 +104,26 @@ public class MetricValue implements Message {
 
     public int getBestRound() {
         return bestRound;
+    }
+
+    public String toJson() {
+        String jsonStr;
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            jsonStr = objectMapper.writeValueAsString(this);
+        } catch (Exception e) {
+            jsonStr = null;
+        }
+        return jsonStr;
+    }
+
+    public static MetricValue parseJson(String jsonStr) {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            return mapper.readValue(jsonStr, MetricValue.class);
+        } catch (IOException e) {
+            throw new DeserializeException("metric value deserialize exception");
+        }
     }
 
     @Override

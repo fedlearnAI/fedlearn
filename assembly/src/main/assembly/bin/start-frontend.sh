@@ -34,7 +34,10 @@ echo ${CONFIG_FILE}
 SERVER_NAME=`grep -v '^\s*#' ${CONFIG_FILE} | sed '/app.name/!d;s/.*=//' | tr -d '\r'`
 SERVER_PORT=`grep -v '^\s*#' ${CONFIG_FILE} | sed '/app.port/!d;s/.*=//' | tr -d '\r'`
 LOG_FILE=`grep -v '^\s*#' ${CONFIG_FILE} | sed '/log.settings/!d;s/.*=//' | tr -d '\r'`
-
+APPLICATION_DIR=`grep -v '^\s*#' ${CONFIG_FILE} | sed '/application.dir/!d;s/.*=//' | tr -d '\r'`
+echo $APPLICATION_DIR
+PROFILE_ACTIVE=`grep -v '^\s*#' ${CONFIG_FILE} | sed '/profiles.active/!d;s/.*=//' | tr -d '\r'`
+echo "PROFILE_ACTIVE " $PROFILE_ACTIVE
 APP=`sed '/"APP"/!d;s/.*value="\(.*\)".*/\1/' ${LOG_FILE}`
 eval LOGS_DIR=`sed '/"LOG_HOME"/!d;s/.*value="\(.*\)".*/\1/' ${LOG_FILE}`
 
@@ -131,15 +134,10 @@ fi
 #fi
 #$SGM_OPTS -jar
 echo "Starting the $SERVER_NAME ..."
-MAIN_CLASS="com.jdt.fedlearn.frontend.FederatedApplication"
-APP_CONFIG=""
-if [[ -n "${CONFIG}" ]];then
-   APP_CONFIG=" -c "${CONFIG}
-else
-    APP_CONFIG=" -c "${DEFAULT_CONFIG}
-fi
-
-nohup ${JAVA_EXE} $SGM_OPTS  $JAVA_OPTS $JAVA_MEM_OPTS $JAVA_DEBUG_OPTS $JAVA_JMX_OPTS -jar ${DEPLOY_DIR_REAL}/lib/${APPLICATION_JAR} > $STDOUT_FILE 2>&1 &
+APP_CONFIG=" --spring.config.location="
+echo "APPLICATION_DIR  $APPLICATION_DIR"
+echo "APP_CONFIG $APP_CONFIG "
+nohup ${JAVA_EXE} $SGM_OPTS  $JAVA_OPTS $JAVA_MEM_OPTS $JAVA_DEBUG_OPTS $JAVA_JMX_OPTS -jar ${DEPLOY_DIR_REAL}/lib/${APPLICATION_JAR} $APP_CONFIG$APPLICATION_DIR --spring.profiles.active=$PROFILE_ACTIVE > $STDOUT_FILE 2>&1 &
 COUNT=0
 while [[ ${COUNT} -lt 1 ]]; do
     sleep 1

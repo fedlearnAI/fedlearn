@@ -15,10 +15,13 @@ package com.jdt.fedlearn.core.encryption.distributedPaillier;
 
 import com.jdt.fedlearn.core.entity.Message;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 /**
  * Java interface for native code
  */
-public class DistributedPaillierNative  {
+public class DistributedPaillierNative {
     /*
      * ===============================
      *  JAVA-side data structures
@@ -27,29 +30,29 @@ public class DistributedPaillierNative  {
 
     /**
      * 密文数据存储单元，一个 signedByteArray 是 一个数
-     *
+     * <p>
      * Params:
-     *  byteArr: 无符号的 byte array (虽然Java的byte为带符号类型，此处将符号位也看做数据位的一部分)
-     *  isNeg: 这个数据的符号
+     * byteArr: 无符号的 byte array (虽然Java的byte为带符号类型，此处将符号位也看做数据位的一部分)
+     * isNeg: 这个数据的符号
      */
-    public static class signedByteArray implements Message{
+    public static class signedByteArray implements Message {
         public byte[] byteArr;
         public boolean isNeg;
         public long scale;
 
-        signedByteArray() {
+        public signedByteArray() {
             this.byteArr = null;
             this.isNeg = false;
             this.scale = 1;
         }
 
-        signedByteArray(byte[] in, boolean isNeg) {
+        public signedByteArray(byte[] in, boolean isNeg) {
             this.byteArr = in;
             this.isNeg = isNeg;
             this.scale = 1;
         }
 
-        signedByteArray(byte[] in, boolean isNeg, long scale) {
+        public signedByteArray(byte[] in, boolean isNeg, long scale) {
             this.byteArr = in;
             this.isNeg = isNeg;
             this.scale = scale;
@@ -57,10 +60,36 @@ public class DistributedPaillierNative  {
 
         /**
          * 生成当前对象的深拷贝
+         *
          * @return signed_byteArray[]
          */
         public signedByteArray deep_copy() {
             return new signedByteArray(byteArr.clone(), isNeg, scale);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            signedByteArray that = (signedByteArray) o;
+            return isNeg == that.isNeg &&
+                    scale == that.scale &&
+                    Arrays.equals(byteArr, that.byteArr);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(isNeg, scale);
+            result = 31 * result + Arrays.hashCode(byteArr);
+            return result;
+        }
+
+        public boolean byteArrayIsEmpty() {
+            return this.byteArr==null;
         }
     }
 
@@ -71,23 +100,13 @@ public class DistributedPaillierNative  {
      */
 
     /**
-     * 秘钥生成时进行的秘密分享(secret sharing), 生成各方的shares
-     *
-     * @param out:
-     * @param secret secret for sharing
-     * @param t : 2*t+1 是解密最少需要的参与方数量
-     * @param n : 参与解密的party数量
-     */
-    public static native void __create_share__(signedByteArray[] out, byte[] secret, int t, int n);
-
-    /**
      * 生成各方秘钥
      * debug version: 模拟没有trust dealer的情况。假设p,q,N由trust dealer获得。
      * hi = (lambda * beta)_(2t+1) evaluated at point i, i.e.
      * sum(pi_share)*sum(qi_share)*beta
      *
      * @param len: 秘钥长度 i.e. 1024
-     * @param t: 参与解密的party数量
+     * @param t:   参与解密的party数量
      * @param out: 各方秘钥
      */
     public static native void __generate_privpub_key__(signedByteArray[] out,
@@ -99,11 +118,11 @@ public class DistributedPaillierNative  {
     /**
      * paillier enc
      *
-     * @param pubkey: signed_byteArray, n;
+     * @param pubkey:  signed_byteArray, n;
      * @param bit_len: 秘钥长度
-     *
-     * 注意: 当前仅支持 JAVA long, 即数据范围为 -+2^63
-     * FIXME: 加入BigInteger支持
+     *                 <p>
+     *                 注意: 当前仅支持 JAVA long, 即数据范围为 -+2^63
+     *                 FIXME: 加入BigInteger支持
      */
     public static native void __enc__(signedByteArray out,
                                       long in,
@@ -120,9 +139,9 @@ public class DistributedPaillierNative  {
      *
      * @param privkey: 长度为3的signed_byteArray[], 分别是hi, n, theta_InvMod
      * @param bit_len: 秘钥长度
-     *
-     * 注意: 当前仅支持 JAVA long, 即数据范围为 -+2^63
-     * FIXME: 加入BigInteger支持
+     *                 <p>
+     *                 注意: 当前仅支持 JAVA long, 即数据范围为 -+2^63
+     *                 FIXME: 加入BigInteger支持
      */
     public static native void __partial_dec__(signedByteArray out,
                                               signedByteArray in,
@@ -143,10 +162,9 @@ public class DistributedPaillierNative  {
     /**
      * paillier final decryption
      *
-     * @param im_res: 各方的中间解密结果.
-     * @param max_neg_abs:
-     * 注意: 当前仅支持 JAVA long, 即数据范围为 -+2^63
-     * FIXME: 加入BigInteger支持
+     * @param im_res:      各方的中间解密结果.
+     * @param max_neg_abs: 注意: 当前仅支持 JAVA long, 即数据范围为 -+2^63
+     *                     FIXME: 加入BigInteger支持
      */
     public static native long __final_dec__(signedByteArray[] im_res,
                                             signedByteArray cypher_text,
@@ -207,18 +225,127 @@ public class DistributedPaillierNative  {
                                                   signedByteArray pubkey);
 
     /**
-     * only for debug and test
+     * generating pi and qi shares
      */
-    public static native void test_generate_priv_key(signedByteArray out,
-                                                     int len,
-                                                     int t,
-                                                     int n,
-                                                     int plain_text_num);
+    public static native void genePiQiShares(signedByteArray[] piShareOut,
+                                             signedByteArray pi,
+                                             signedByteArray[] qiShareOut,
+                                             signedByteArray qi,
+                                             int len,
+                                             int t,
+                                             int n,
+                                             int partyID,
+                                             signedByteArray primeIn);
 
-    public static native void test_IO(signedByteArray out,
-                                      signedByteArray in);
+    public static native void geneNShares(signedByteArray[] pSumShares,
+                                          signedByteArray[] qSumShares,
+                                          signedByteArray N_share_out,
+                                          int len,
+                                          int t,
+                                          int n,
+                                          signedByteArray primeIn);
 
-    public static native void test_IO(signedByteArray[] out,
-                                      signedByteArray[] in);
+    public static native long revealN(signedByteArray[] allNShares,
+                                      signedByteArray N_out,
+                                      int len,
+                                      int t,
+                                      int n,
+                                      signedByteArray primeIn);
 
+    /**
+     * bi-prime test stage 1
+     */
+    public static native void biPrimeTestStage1(signedByteArray N,
+                                                signedByteArray pi,
+                                                signedByteArray qi,
+                                                signedByteArray g,
+                                                signedByteArray v,
+                                                int partyId);
+
+    /**
+     * bi-prime test stage 2
+     * only one party is needed for this step.
+     *
+     * @return 1 means is bi-prime, 0 means is not bi-prime, other values are illegal
+     */
+    public static native long biPrimeTestStage2(signedByteArray[] otherV,
+                                                signedByteArray v,
+                                                signedByteArray N,
+                                                long n);
+
+    public static native void geneLambdaBetaShares(signedByteArray[] lambdaiOut,
+                                                   signedByteArray[] betaiOut,
+                                                   signedByteArray N,
+                                                   signedByteArray pi,
+                                                   signedByteArray qi,
+                                                   int partyID,
+                                                   int len,
+                                                   int t,
+                                                   int n,
+                                                   signedByteArray primeIn);
+
+    public static native void geneLambdaTimesBetaShares(signedByteArray[] lambdaSumShares,
+                                                        int[] lambdaA,
+                                                        signedByteArray[] betaSumShares,
+                                                        int[] betaA,
+                                                        signedByteArray N,
+                                                        signedByteArray lambdaTimesBetaShareOut,
+                                                        signedByteArray thetaOut,
+                                                        int n);
+
+    public static native void revealThetaGeneKeys(signedByteArray[] allThetaShares,
+                                                  int[] theta_a,
+                                                  signedByteArray thetaOut,
+                                                  signedByteArray N_char,
+                                                  int t,
+                                                  int n);
+
+    public static native void getLargePrime(signedByteArray pOut,
+                                            int bitLen);
+
+    public static native void getLargeComposite(signedByteArray out,
+                                                int bitLen);
+
+    public static native void getRand4Biprimetest(signedByteArray out,
+                                                  signedByteArray N);
+
+    /**
+     * The following functions are only used for debugging and testing !
+     */
+    public static native void testIO(signedByteArray out,
+                                     signedByteArray in);
+
+    public static native void testIOVec(signedByteArray[] out,
+                                        signedByteArray[] in);
+
+    public static native void geneNFromPQProduct(int n,
+                                                 signedByteArray nOut,
+                                                 signedByteArray[] piOut,
+                                                 signedByteArray[] qiOut,
+                                                 signedByteArray pIn,
+                                                 signedByteArray qIn);
+
+    public static native boolean checkCorrectness(signedByteArray pIn,
+                                                  signedByteArray qIn,
+                                                  signedByteArray N,
+                                                  signedByteArray[] lambdaTimesBetaShare,
+                                                  signedByteArray theta,
+                                                  int n,
+                                                  int t);
+
+    public static native void getLargePrime4Test(signedByteArray pOut,
+                                                 signedByteArray[] piOut,
+                                                 int bitLen,
+                                                 int numParty);
+
+    public static native void getLargeComposite4Test(signedByteArray pOut,
+                                                 signedByteArray[] piOut,
+                                                 int bitLen,
+                                                 int numParty);
+
+    public static native void zzaTimeszzb(signedByteArray a,
+                                          signedByteArray b,
+                                          signedByteArray out);
+
+    public static native long checkPiSumPrime(signedByteArray[] listIn);
 }

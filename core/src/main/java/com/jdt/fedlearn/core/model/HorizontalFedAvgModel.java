@@ -20,7 +20,6 @@ import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.horizontalZoo.HorizontalZooMsgStream;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.HorizontalZooMsgType;
 import com.jdt.fedlearn.core.entity.horizontalZoo.HorizontalZooDataUtils;
 
@@ -34,7 +33,7 @@ import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.loader.horizontalZoo.HorizontalDataFrame;
 
-import com.jdt.fedlearn.core.loader.randomForest.DataFrame;
+import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.parameter.SuperParameter;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -49,7 +48,6 @@ import com.jdt.fedlearn.core.type.*;
 
 public class HorizontalFedAvgModel implements Model {
     private static final Logger logger = LoggerFactory.getLogger(HorizontalFedAvgModel.class);
-
     private CalculateGrpc.CalculateBlockingStub stub = null;
 
     private boolean isInitTrain = false;
@@ -116,7 +114,7 @@ public class HorizontalFedAvgModel implements Model {
 
         this.datasetSize = X_train.getRowsCount();
 
-        DataFrame trainData2 = new DataFrame(rawData, uids, features);
+        RFTrainData trainData2 = new RFTrainData(rawData, uids, features);
 
         return trainData2;
     }
@@ -136,18 +134,18 @@ public class HorizontalFedAvgModel implements Model {
             return null;
         } else if (HorModelPhaseType.valueOf(phase) == HorModelPhaseType.loadTrainUpdate) {
             return loadTrainUpdate(
-                    (DataFrame) trainDataOld,
+                    (RFTrainData) trainDataOld,
                     jsonData,
                     HorizontalZooMsgType.SynGlobalModelParaAndInit.getMsgType(),
                     HorizontalZooMsgType.TransferLocalModelPara);
         } else if (HorModelPhaseType.valueOf(phase) == HorModelPhaseType.loadTrainUpdate_1) {
             HorizontalZooMsgStream req = (HorizontalZooMsgStream) jsonData;
             if (req.getMsgType() == HorizontalZooMsgType.TransferGlobalModelPara) {
-                return loadTrainUpdate((DataFrame) trainDataOld, jsonData,
+                return loadTrainUpdate((RFTrainData) trainDataOld, jsonData,
                         HorizontalZooMsgType.SynGlobalModelPara.getMsgType(),
                         HorizontalZooMsgType.TransferLocalModelPara);
             } else if (req.getMsgType() == HorizontalZooMsgType.TransferGlobalModelParaAndEnd) {
-                return loadTrainUpdate((DataFrame) trainDataOld, jsonData,
+                return loadTrainUpdate((RFTrainData) trainDataOld, jsonData,
                         HorizontalZooMsgType.SynGlobalModelParaAndEnd.getMsgType(),
                         HorizontalZooMsgType.SaveGlobalModel2LocalFinish);
             }
@@ -157,7 +155,7 @@ public class HorizontalFedAvgModel implements Model {
         return null;
     }
 
-    private Message loadTrainUpdate(DataFrame trainData, Message jsonData,
+    private Message loadTrainUpdate(RFTrainData trainData, Message jsonData,
                                     String cmdMsg, HorizontalZooMsgType toMasterCmdMsg) {
         logger.debug("Init train in clients");
         HorizontalZooMsgStream req = (HorizontalZooMsgStream) jsonData;
@@ -337,4 +335,5 @@ public class HorizontalFedAvgModel implements Model {
     public AlgorithmType getModelType() {
         return AlgorithmType.HorizontalFedAvg;
     }
+
 }

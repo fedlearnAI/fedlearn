@@ -14,12 +14,12 @@ package com.jdt.fedlearn.frontend.mapper.account;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.jdt.fedlearn.frontend.jdchain.config.JdChainFalseCondition;
-import com.jdt.fedlearn.frontend.mapper.entity.Account;
+import com.jdt.fedlearn.frontend.entity.table.AccountDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.context.annotation.Conditional;
 
 @Conditional(JdChainFalseCondition.class)
 @Mapper
-public interface AccountDbMapper extends BaseMapper<Account>{
+public interface AccountDbMapper extends BaseMapper<AccountDO>{
 
 }

@@ -22,14 +22,12 @@ import com.jdt.fedlearn.core.model.mixLinear.LinearRegressionModel;
 import com.jdt.fedlearn.core.optimizer.bfgs.WeightedLinRegLossNonprivClient;
 import com.jdt.fedlearn.core.optimizer.bfgs.WeightedLinRegLossPriv;
 import com.jdt.fedlearn.core.parameter.LinearParameter;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.data.Tuple3;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.math.BigInteger;
 import java.util.*;
 
 import static com.jdt.fedlearn.core.util.TypeConvUtils.parse1dDouble;
@@ -99,7 +97,7 @@ public class TestLinearRegressionModel {
 
     @BeforeMethod
     public void setUp() {
-        key.generateKeys();
+        key.generateKeyStandalone();
         key.getSkAll()[0].setRank(1);
         key.getSkAll()[1].setRank(2);
         key.getSkAll()[2].setRank(3);
@@ -148,10 +146,10 @@ public class TestLinearRegressionModel {
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
         Map<String, Object> others = new HashMap<>();
-        others.put("pkStr", key.getSk().toJson());
-        others.put("skStr", key.getSkAll()[0].toJson());
         others.put("clientList", clientInfos.stream().map(x -> x.getIp() + x.getPort()).toArray(String[]::new));
         others.put("selfPort", clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
+        others.put("pubKeyStr" , key.getPk().toJson());
+        others.put("privKeyStr", key.getSkAll()[0].toJson());
         LinearTrainData data = (LinearTrainData) model.trainInit(raw, result, new int[0], new LinearParameter(), features, others);
 
         Assert.assertEquals(data.getDatasetSize(), 4);
@@ -170,8 +168,8 @@ public class TestLinearRegressionModel {
     private LinearRegressionModel mockTrainInit() {
         LinearRegressionModel model = new LinearRegressionModel();
         Map<String, Object> others = new HashMap<>();
-        others.put("pkStr", key.getPk().toJson());
-        others.put("skStr", key.getSkAll()[0].toJson());
+        others.put("pubKeyStr" , key.getPk().toJson());
+        others.put("privKeyStr", key.getSkAll()[0].toJson());
         others.put("clientList", clientInfos.stream().map(x -> x.getIp() + x.getPort()).toArray(String[]::new));
         others.put("selfPort", clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
         model.trainInit(rawTable, null, null, new LinearParameter(), features, others);
@@ -180,9 +178,10 @@ public class TestLinearRegressionModel {
 
     private LinearRegressionModel mockTrainInit(int skStrIdx, String selfPort) {
         LinearRegressionModel model = new LinearRegressionModel();
+
         Map<String, Object> others = new HashMap<>();
-        others.put("pkStr", key.getPk().toJson());
-        others.put("skStr", key.getSkAll()[skStrIdx].toJson());
+        others.put("pubKeyStr" , key.getPk().toJson());
+        others.put("privKeyStr", key.getSkAll()[0].toJson());
         others.put("clientList", clientInfos.stream().map(x -> x.getIp() + x.getPort()).toArray(String[]::new));
         others.put("selfPort", selfPort);
         model.trainInit(rawTable, null, null, new LinearParameter(), features, others);
@@ -191,11 +190,12 @@ public class TestLinearRegressionModel {
 
     private LinearRegressionModel mockInferInit() {
         LinearRegressionModel model = new LinearRegressionModel();
+
         Map<String, Object> others = new HashMap<>();
         others.put("encBits", key.getLength());
         others.put("numP", 3);
-        others.put("pkStr", key.getPk().toJson());
-        others.put("skStr", key.getSkAll()[0].toJson());
+        others.put("pubKeyStr" , key.getPk().toJson());
+        others.put("privKeyStr", key.getSkAll()[0].toJson());
         others.put("clientList", clientInfos.stream().map(x -> x.getIp() + x.getPort()).toArray(String[]::new));
         others.put("selfPort", clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
         model.inferenceInit(new String[]{"u1", "u2", "u3"}, rawTableInfer, others);
@@ -204,11 +204,12 @@ public class TestLinearRegressionModel {
 
     private LinearRegressionModel mockInferInit(int skStrIdx, String selfPort) {
         LinearRegressionModel model = new LinearRegressionModel();
+
         Map<String, Object> others = new HashMap<>();
         others.put("encBits", key.getLength());
         others.put("numP", 3);
-        others.put("pkStr", key.getSk().toJson());
-        others.put("skStr", key.getSkAll()[skStrIdx].toJson());
+        others.put("pubKeyStr" , key.getPk().toJson());
+        others.put("privKeyStr", key.getSkAll()[0].toJson());
         others.put("clientList", clientInfos.stream().map(x -> x.getIp() + x.getPort()).toArray(String[]::new));
         others.put("selfPort", selfPort);
         model.inferenceInit(new String[]{"u1", "u2", "u3"}, rawTableInfer, others);
@@ -370,16 +371,16 @@ public class TestLinearRegressionModel {
         model0.privLoss = new WeightedLinRegLossPriv(true);
         model0.nonPrivLoss = new WeightedLinRegLossNonprivClient(mockPhi,
                 new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, mockY,
-                0.1, BigInteger.ONE, 0.1);
+                0.1, 0.1);
 
         model1.privLoss = new WeightedLinRegLossPriv(true);
         model1.nonPrivLoss = new WeightedLinRegLossNonprivClient(mockPhi,
                 new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, mockY,
-                0.1, BigInteger.ONE, 0.1);
+                0.1, 0.1);
         model2.privLoss = new WeightedLinRegLossPriv(true);
         model2.nonPrivLoss = new WeightedLinRegLossNonprivClient(mockPhi,
                 new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, mockY,
-                0.1, BigInteger.ONE, 0.1);
+                0.1, 0.1);
 
         // calling target func
         model0.train(7, masterMsg, clientTrainData);
@@ -412,9 +413,10 @@ public class TestLinearRegressionModel {
     @Test
     public void testInferenceInit() {
         LinearRegressionModel model = new LinearRegressionModel();
+
         Map<String, Object> others = new HashMap<>();
-        others.put("pkStr", key.getSk().toJson());
-        others.put("skStr", key.getSkAll()[0].toJson());
+        others.put("pubKeyStr" , key.getPk().toJson());
+        others.put("privKeyStr", key.getSkAll()[0].toJson());
         others.put("clientList", clientInfos.stream().map(x -> x.getIp() + x.getPort()).toArray(String[]::new));
         others.put("selfPort", clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
         others.put("encBits", 1024);
@@ -430,6 +432,7 @@ public class TestLinearRegressionModel {
     public void testInferIdMatchingPhase1() {
         int phase = -2;
         LinearRegressionModel model = new LinearRegressionModel();
+
         model.deserialize(inferModel);
 
         MatchResourceLinReg ret = (MatchResourceLinReg) model.inference(phase, null, clientInferData);
@@ -441,6 +444,7 @@ public class TestLinearRegressionModel {
     public void testInferIdMatchingPhase2() {
         int phase = -3;
         LinearRegressionModel model = new LinearRegressionModel();
+
         model.deserialize(inferModel);
         model.inference(-2, mockInferMatchingRes(), clientInferData);
 
@@ -456,7 +460,7 @@ public class TestLinearRegressionModel {
         // 1+2+3+8; 3+4+5+8; 5+6+7+8
         model.nonPrivLoss = new WeightedLinRegLossNonprivClient(mockPhi,
                 new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, mockY,
-                0.1, BigInteger.ONE, 0.1);
+                0.1, 0.1);
 
         Message ret = model.inference(phase, mockInferMatchingRes(), clientInferData);
         Assert.assertEquals(
@@ -488,16 +492,16 @@ public class TestLinearRegressionModel {
         model0.privLoss = new WeightedLinRegLossPriv(mockPhi, new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0});
         model0.nonPrivLoss = new WeightedLinRegLossNonprivClient(mockPhi,
                 new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, mockY,
-                0.1, BigInteger.ONE, 0.1);
+                0.1, 0.1);
 
         model1.privLoss = new WeightedLinRegLossPriv(mockPhi, new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0});
         model1.nonPrivLoss = new WeightedLinRegLossNonprivClient(mockPhi,
                 new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, mockY,
-                0.1, BigInteger.ONE, 0.1);
+                0.1, 0.1);
         model2.privLoss = new WeightedLinRegLossPriv(true);
         model2.nonPrivLoss = new WeightedLinRegLossNonprivClient(mockPhi,
                 new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, mockY,
-                0.1, BigInteger.ONE, 0.1);
+                0.1, 0.1);
 
         // calling target func
         model0.inference(-5, masterMsg, clientInferData);
@@ -574,7 +578,9 @@ public class TestLinearRegressionModel {
                 "numP=3\n" +
                 "M_priv=4\n" +
                 "weight_priv=[25.37,31.10,58.09,84.21]\n";
+
         LinearRegressionModel model = new LinearRegressionModel();
+
         model.deserialize(content);
         Assert.assertEquals(model.weight, new double[]{25.37, 31.10, 58.09, 23.40, 62.35, 25.48, 35.10, 84.21});
         Assert.assertEquals(model.numP, 3);
@@ -596,7 +602,9 @@ public class TestLinearRegressionModel {
                 "numP=3\n" +
                 "M_priv=0\n" +
                 "weight_priv=[25.37,31.1,58.09,84.21]\n";
+
         LinearRegressionModel model = new LinearRegressionModel();
+
         model.deserialize(content);
         String after = model.serialize();
         Assert.assertEquals(after, afterContent);
@@ -605,6 +613,7 @@ public class TestLinearRegressionModel {
     @Test
     public void testGetModelType() {
         LinearRegressionModel model = new LinearRegressionModel();
+
         Assert.assertEquals(model.getModelType(), AlgorithmType.LinearRegression);
     }
 

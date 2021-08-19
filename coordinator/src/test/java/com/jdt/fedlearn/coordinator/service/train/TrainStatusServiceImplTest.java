@@ -1,5 +1,7 @@
 package com.jdt.fedlearn.coordinator.service.train;
 
+import com.jdt.fedlearn.common.entity.SingleParameter;
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import com.jdt.fedlearn.coordinator.entity.metric.ArrayMetric;
@@ -8,7 +10,6 @@ import com.jdt.fedlearn.coordinator.entity.metric.Metric;
 import com.jdt.fedlearn.coordinator.entity.metric.SingleMetric;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.*;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.core.dispatch.FederatedGB;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.parameter.FgbParameter;
@@ -85,9 +86,8 @@ public class TrainStatusServiceImplTest {
     @Test
     public void testGetTrainProgress1() {
         // 缓存
-        CommonTrainQuery stateChangeSignal = new CommonTrainQuery("username", "1-FederatedGB-100000");
+        CommonTrainQuery stateChangeSignal = new CommonTrainQuery("1-FederatedGB-100000");
         System.out.println(stateChangeSignal.getModelToken());
-        System.out.println(stateChangeSignal.getUsername());
         String s = JsonUtil.object2json(stateChangeSignal);
         System.out.println(new StateChangeSignal(s));
         Map<String, TrainContext> map = new HashMap<>();

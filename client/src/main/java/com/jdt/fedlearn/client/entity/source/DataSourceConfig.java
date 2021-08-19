@@ -15,7 +15,10 @@ package com.jdt.fedlearn.client.entity.source;
 
 import com.jdt.fedlearn.client.type.SourceType;
 
-
+/**
+ * 数据源抽象类，每个数据源都必须有sourceType 和 dataset
+ * 其中，sourceType表示源数据类型，dataset用来唯一标识一份数据
+ */
 public abstract class DataSourceConfig {
     private SourceType sourceType;
     private String dataName;

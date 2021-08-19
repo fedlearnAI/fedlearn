@@ -17,38 +17,44 @@ import com.jdt.fedlearn.core.entity.Message;
 
 
 /**
- * Master端ID对齐结果client端储存后在master端缓存的实体类；记录任务ID，对齐Token，对齐结果report
+ * Coordinator端ID对齐结果client端储存后在master端缓存的实体类；记录任务ID，对齐Token，对齐结果report;
+ * matchID由coordinator端传入
  */
 public class MatchResult implements Message {
     private String matchId;
     private int length;
-    private MappingReport mappingReport;
+    private String report;
 
     public MatchResult() {
+    }
+
+    public MatchResult(int length, String report) {
+        this.length = length;
+        this.report = report;
+    }
+    public MatchResult(String matchId, int length, String report) {
+        this.matchId = matchId;
+        this.length = length;
+        this.report = report;
     }
 
     public MatchResult(int length) {
         this.length = length;
     }
 
-    public MatchResult(String matchId, int length, MappingReport mappingReport) {
-        this.matchId = matchId;
-        this.length = length;
-        this.mappingReport = mappingReport;
+    public String getReport() {
+        return report;
     }
 
-    public MappingReport getMappingReport() {
-        return mappingReport;
-    }
-
-    public void setMappingReport(MappingReport mappingReport) {
-        this.mappingReport = mappingReport;
+    public void setReport(String report) {
+        this.report = report;
     }
 
     public String getMatchId() {
         return matchId;
     }
 
+    // 由coordinator端传入matchID
     public void setMatchId(String matchId) {
         this.matchId = matchId;
     }

@@ -18,7 +18,7 @@ public class TestTrainRes {
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
         TrainRes trainRes = (TrainRes) message;
-        ClientInfo clientInfo = new ClientInfo();
+        ClientInfo clientInfo = new ClientInfo(null,0,null,null,"0");
         boolean isActive = false;
         String body = "";
 //        ArrayList<Double> vector = new ArrayList<>();
@@ -35,7 +35,7 @@ public class TestTrainRes {
 
     @Test
     public void jsonSerialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainRes\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"isActive\":false,\"vector\":[],\"paraNorm\":0.0,\"trainingloss\":0.0,\"numClassRound\":0,\"round\":0}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainRes\",\"DATA\":{\"client\":{\"port\":0},\"isActive\":false,\"vector\":[],\"paraNorm\":0.0,\"trainingloss\":0.0,\"numClassRound\":0,\"round\":0,\"clientInd\":0}}";
         Serializer serializer = new JsonSerializer();
         ClientInfo clientInfo = new ClientInfo();
         boolean isActive = false;

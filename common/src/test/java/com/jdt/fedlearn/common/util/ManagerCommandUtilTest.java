@@ -12,7 +12,7 @@ limitations under the License.
 */
 package com.jdt.fedlearn.common.util;
 
-import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.JobResult;
 import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
@@ -50,7 +50,7 @@ public class ManagerCommandUtilTest {
         String jsonStr = JsonUtil.object2json(jobResult);
 
         MockServerClient mockClient = new MockServerClient(ip, port);
-        String expected = HttpClientUtil.compress(jsonStr);
+        String expected = GZIPCompressUtil.compress(jsonStr);
         /* 现在返回的编码不是utf-8的 后期建议统一*/
         String body = new String(expected.getBytes("UTF-8"),"ISO-8859-1");
         mockClient.when(
@@ -68,12 +68,12 @@ public class ManagerCommandUtilTest {
         JobResult jobResult = new JobResult();
         jobResult.setResultTypeEnum(ResultTypeEnum.BUS_FAIL);
         Map<String,Object> map = new HashMap<>();
-        map.put(AppConstant.MESSAGE,"error");
+        map.put(ResponseConstant.MESSAGE,"error");
         jobResult.setData(map);
         String jsonStr = JsonUtil.object2json(jobResult);
 
         MockServerClient mockClient = new MockServerClient(ip, port);
-        String expected = HttpClientUtil.compress(jsonStr);
+        String expected = GZIPCompressUtil.compress(jsonStr);
         /* 现在返回的编码不是utf-8的 后期建议统一*/
         String body = new String(expected.getBytes("UTF-8"),"ISO-8859-1");
         mockClient.when(

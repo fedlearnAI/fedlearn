@@ -5,11 +5,10 @@ import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.example.CommonRun;
-import com.jdt.fedlearn.core.loader.randomForest.DataFrame;
+import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.model.Model;
 import com.jdt.fedlearn.core.model.VerticalFDNNModel;
 import com.jdt.fedlearn.core.parameter.VerticalFDNNParameter;
-import com.jdt.fedlearn.core.psi.MappingReport;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.MappingType;
 import com.jdt.fedlearn.core.type.MetricType;
@@ -41,28 +40,28 @@ public class TestVerticalFDNN {
     private static final String labelName = "Outcome";
 
     //客户端维护
-    private static Map<ClientInfo, DataFrame> dataMap = new HashMap<>();
+    private static Map<ClientInfo, RFTrainData> dataMap = new HashMap<>();
     private static Map<ClientInfo, String[][]> rawDataMap = new HashMap<>();
 
     public void setUp() {
         //---------------------------下面不需要手动设置-------------------------------------
         this.clientInfos = new ClientInfo[partnerSize];
         for (int i = 0; i < partnerSize; i++) {
-            this.clientInfos[i] = new ClientInfo("127.0.0.1", 8891 + i, "http", i);
+            this.clientInfos[i] = new ClientInfo("127.0.0.1", 8891 + i, "http", "", String.valueOf(i));
             String fileName = "train" + i + ".csv";
             String[][] data = DataParseUtil.loadTrainFromFile(baseDir + fileName);
             rawDataMap.put(clientInfos[i], data);
-            dataMap.put(clientInfos[i], new DataFrame(data));
+            dataMap.put(clientInfos[i], new RFTrainData(data));
         }
     }
 
     public void testTrainAndTest() throws IOException {
         System.out.println("FDNN test start:");
         ////---------------id match  and feature extract---------------------////
-        Tuple2<MappingReport, String[]> mappingOutput = CommonRun.match(MappingType.VERTICAL_MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
+        Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(MappingType.MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
         String[] commonIds = mappingOutput._2();
 
-        MatchResult matchResult = new MatchResult(mappingOutput._1().getSize());
+        MatchResult matchResult = mappingOutput._1();
         Map<ClientInfo, Features> featuresMap = new HashMap<>();
         for (Map.Entry<ClientInfo, String[][]> entry : rawDataMap.entrySet()) {
             Features features1 = DataParseUtil.fetchFeatureFromData(entry.getValue());
@@ -112,7 +111,7 @@ public class TestVerticalFDNN {
 //        String[] predictUid = new String[]{"591B", "592B", "593A", "594B"};
 //        String[] predictUid = new String[]{"2891", "16484"};
         String[] predictUid = new String[]{"591B", "592B", "593A", "594B"};
-        List<CommonRequest> requests = algo.initInference(Arrays.asList(clientInfos.clone()), predictUid);
+        List<CommonRequest> requests = algo.initInference(Arrays.asList(clientInfos.clone()), predictUid,new HashMap<>());
         double[][] result = CommonRun.inference(algo, requests, modelMap, inferenceDataMap).getPredicts();
         System.out.println("inference result is " + Arrays.toString(result));
     }

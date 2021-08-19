@@ -39,7 +39,6 @@ public class RandomForestParameter implements SuperParameter {
     private double maxSampledRatio;     // 最大采样特征 ratio
     private int numPercentiles;         // 分位点采样个数
     private double boostRatio = 1.;          // loss 降低比率
-    private int nJobs;                  // 并行数
     private int minSamplesSplit;        // minSamplesSplit
     private String localModel = "Null";          // localModel
 
@@ -66,8 +65,7 @@ public class RandomForestParameter implements SuperParameter {
         this.loss = "Regression:MSE";
         this.cat_features = "";
         this.boostRatio = 0.;
-        this.nJobs = 10;
-        this.encryptionType = EncryptionType.Paillier;
+        this.encryptionType = EncryptionType.IterativeAffine;
         this.encryptionKeyPath = "/export/Data/paillier/";
         this.encryptionCertainty = 1024;
     }
@@ -97,7 +95,6 @@ public class RandomForestParameter implements SuperParameter {
         this.cat_features = "";
         this.boostRatio = 0.;
 //        this.nJobs = nJobs;
-        this.nJobs = 10;
         this.encryptionType = encryptionType;
         this.encryptionKeyPath = "/export/Data/paillier/";
         this.encryptionCertainty = 1024;
@@ -129,7 +126,6 @@ public class RandomForestParameter implements SuperParameter {
         this.cat_features = "";
         this.boostRatio = 0.;
 //        this.nJobs = nJobs;
-        this.nJobs = 10;
         this.encryptionType = encryptionType;
         this.encryptionKeyPath = "/export/Data/paillier/";
         this.encryptionCertainty = 1024;
@@ -138,9 +134,9 @@ public class RandomForestParameter implements SuperParameter {
 
     public List<ParameterField> obtainPara() {
         List<ParameterField> res = new ArrayList<>();
-        res.add(new NumberParameter("numTrees", "树的个数", 10, new String[]{"1", "100"}, ParameterType.NUMS));
-        res.add(new NumberParameter("maxDepth", "maxDepth", 15, new String[]{"3", "100"}, ParameterType.NUMS));
-        res.add(new NumberParameter("maxTreeSamples", "一棵树最多sample样本数，使用全部样本请输入-1", 10000, new String[]{"-1", "100000"}, ParameterType.NUMS));
+        res.add(new NumberParameter("numTrees", "树的个数", 2, new String[]{"1", "100"}, ParameterType.NUMS));
+        res.add(new NumberParameter("maxDepth", "maxDepth", 3, new String[]{"3", "100"}, ParameterType.NUMS));
+        res.add(new NumberParameter("maxTreeSamples", "一棵树最多sample样本数，使用全部样本请输入-1", 300, new String[]{"-1", "100000"}, ParameterType.NUMS));
         res.add(new NumberParameter("maxSampledFeatures", "最多sample特征数", 25, new String[]{"0", "100"}, ParameterType.NUMS));
         res.add(new NumberParameter("maxSampledRatio", "最多sample比例", 0.6, new String[]{"0", "1"}, ParameterType.NUMS));
         res.add(new NumberParameter("numPercentiles", "numPercentiles", 30, new String[]{"3", "100"}, ParameterType.NUMS));
@@ -210,10 +206,6 @@ public class RandomForestParameter implements SuperParameter {
 
     public String getLoss() {
         return loss;
-    }
-
-    public int getnJobs() {
-        return nJobs;
     }
 
     public String getCat_features() {

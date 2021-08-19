@@ -12,8 +12,7 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.util;
 
-import com.jdt.fedlearn.common.util.HttpClientUtil;
-
+import com.jdt.fedlearn.common.network.INetWorkService;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.mockserver.MockServer;
 import org.testng.Assert;
@@ -50,7 +49,7 @@ public class HttpClientUtilTest {
                         .withStatusCode(200)
                         .withBody(expected)
         );
-        String result = HttpClientUtil.doHttpPost(baseUrl + path , null);
+        String result = INetWorkService.getNetWorkService().sendAndRecv(baseUrl + path , null);
         Assert.assertEquals(expected,result);
     }
 

@@ -23,22 +23,14 @@ public class ExceptionUtil {
     private static final Logger logger = LoggerFactory.getLogger(ExceptionUtil.class);
 
     public static String getExInfo(Exception ex) {
-        ByteArrayOutputStream out;
-        PrintStream pout = null;
         String ret;
-        try {
-            out = new ByteArrayOutputStream();
-            pout = new PrintStream(out, false, StandardCharsets.UTF_8.name());
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+             PrintStream pout = new PrintStream(out, false, StandardCharsets.UTF_8.name())){
             ex.printStackTrace(pout);
             ret = new String(out.toByteArray(), StandardCharsets.UTF_8);
-            out.close();
         } catch (Exception e) {
             logger.error("Exception message " + e.getMessage());
             return ex.getMessage();
-        } finally {
-            if (pout != null) {
-                pout.close();
-            }
         }
         return ret;
     }

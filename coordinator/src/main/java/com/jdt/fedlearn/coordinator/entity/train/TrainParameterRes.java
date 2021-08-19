@@ -13,8 +13,9 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.entity.train;
 
-import com.jdt.fedlearn.coordinator.type.RunningType;
 
+import com.jdt.fedlearn.common.entity.SingleParameter;
+import com.jdt.fedlearn.common.enums.RunningType;
 
 import java.util.HashMap;
 import java.util.List;

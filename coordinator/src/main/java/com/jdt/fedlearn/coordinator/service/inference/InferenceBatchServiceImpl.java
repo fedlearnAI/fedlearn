@@ -15,40 +15,77 @@ package com.jdt.fedlearn.coordinator.service.inference;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
+import com.jdt.fedlearn.common.util.LogUtil;
 import com.jdt.fedlearn.coordinator.entity.inference.InferenceRequest;
+import com.jdt.fedlearn.coordinator.entity.inference.InferenceRes;
+import com.jdt.fedlearn.coordinator.entity.inference.SingleInferenceRes;
 import com.jdt.fedlearn.coordinator.service.AbstractDispatchService;
 import com.jdt.fedlearn.coordinator.service.CommonService;
-import com.jdt.fedlearn.coordinator.service.InferenceService;
+import com.jdt.fedlearn.coordinator.service.IDispatchService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
- * @Name: InferenceBatchService
+ * InferenceBatchService
+ *
+ * @author wangpeiqi
  */
-public class InferenceBatchServiceImpl implements InferenceService {
+public class InferenceBatchServiceImpl implements IDispatchService {
     private static final Logger logger = LoggerFactory.getLogger(InferenceBatchServiceImpl.class);
-    public static final String PREDICT = "predict";
+    private static final String PREDICT = "predict";
+    private static final String UID = "uid";
+    private static final String SCORE = "score";
+    private static final String HEADER = "header";
 
     @Override
-    public Map<String, Object> service(String content) throws JsonProcessingException {
+    public Map<String, Object> service(String content){
         Map<String, Object> modelMap = Maps.newHashMap();
         try {
-            logger.info("predict content len:" + content.length());
             InferenceRequest query = new InferenceRequest(content);
-            Map<String, Object> data = InferenceCommonServiceImpl.INFERENCE_SERVICE.batchInference(query);
+            Map<String, Object> data = batchInference(query);
             return new AbstractDispatchService() {
                 @Override
-                public Map dealService() {
+                public Map<String, Object> dealService() {
                     return data;
                 }
             }.doProcess(true);
         } catch (Exception ex) {
-            if (CommonService.exceptionProcess(ex, modelMap) == null) {
-                throw ex;
-            }
+            logger.error("InferenceBatchServiceImpl Exception :",ex);
+            CommonService.exceptionProcess(ex, modelMap);
         }
         return modelMap;
+    }
+
+    /**
+     * @param request 用户端发起的推理请求
+     * @return 推理结果
+     */
+    public Map<String, Object> batchInference(InferenceRequest request) {
+        // 调用推理
+        InferenceRes predict = InferenceCommonService.commonInference(request.getModelToken(), request.getUid(), request.getClientList(), request.isSecureMode());
+
+        //组装返回结果
+        List<Map<String, Object>> res = new ArrayList<>();
+        Map<String, Object> header = new HashMap<>();
+        header.put(UID, HEADER);
+        header.put(SCORE, predict.getScoreNameList());
+        res.add(header);
+        for (SingleInferenceRes inferenceRes : predict.getInferenceResList()) {
+            Map<String, Object> row = new HashMap<>();
+            row.put(UID, inferenceRes.getUid());
+            row.put(SCORE, inferenceRes.getScore());
+            res.add(row);
+        }
+
+        //将推理结果插入数据库
+//        insertInferenceLog(request, inferenceId, startTime, "success");
+        Map<String, Object> data = new HashMap<>();
+        data.put(PREDICT, res);
+        return data;
     }
 }

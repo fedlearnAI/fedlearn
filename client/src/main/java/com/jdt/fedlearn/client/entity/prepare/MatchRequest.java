@@ -22,6 +22,7 @@ public class MatchRequest {
     private String matchToken;
     private String matchType;
     private String dataset;
+    private String index;
     private int phase;
     private String body;
 
@@ -72,6 +73,14 @@ public class MatchRequest {
         this.body = body;
     }
 
+    public String getIndex() {
+        return index;
+    }
+
+    public void setIndex(String index) {
+        this.index = index;
+    }
+
     public void parseJson(String jsonStr) {
         ObjectMapper mapper = new ObjectMapper();
         MatchRequest p1r;
@@ -82,6 +91,7 @@ public class MatchRequest {
             this.matchType = p1r.matchType;
             this.phase = p1r.phase;
             this.body = p1r.body;
+            this.index = p1r.index;
         } catch (IOException e) {
             throw new DeserializeException(this.getClass().getName());
         }

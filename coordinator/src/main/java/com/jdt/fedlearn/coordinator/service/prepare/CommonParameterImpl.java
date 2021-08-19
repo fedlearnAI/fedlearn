@@ -13,7 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.service.prepare;
 
-import com.google.common.collect.Maps;
+import com.jdt.fedlearn.coordinator.entity.prepare.CommonParameterRes;
 import com.jdt.fedlearn.coordinator.service.AbstractDispatchService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
@@ -29,22 +29,23 @@ import java.util.Map;
 
 /**
  * <p>查询训练算法支持的通用参数</p>
- * 包含{@code getCommonParams}方法可以返回预处理阶段通用参数
+ * 返回预处理阶段通用参数
  *
  * @author lijingxi
+ * @author wangpeiqi
  */
 public class CommonParameterImpl implements TrainService {
-    public static final String MODEL = "model";
-    public static final String ENCRYPTION_ALGORITHM = "encryptionAlgorithm";
-    public static final String RSA = "RSA";
-    public static final String DES = "DES";
+    private static final String MODEL = "model";
+    private static final String ENCRYPTION_ALGORITHM = "encryptionAlgorithm";
+    private static final String RSA = "RSA";
+    private static final String DES = "DES";
 
 
     @Override
     public Map<String, Object> service(String content) {
         return new AbstractDispatchService() {
             @Override
-            public Map<String, Object> dealService() {
+            public CommonParameterRes dealService() {
                 return fetchCommonParameter();
             }
         }.doProcess(true);
@@ -56,22 +57,25 @@ public class CommonParameterImpl implements TrainService {
     public List<ParameterField> getCommonParams() {
         List<ParameterField> res = new ArrayList<>();
         String[] matchOption = MappingType.getMappings();
-        CategoryParameter cp = new CategoryParameter("matchAlgorithm", "数据预处理", MappingType.VERTICAL_MD5.name(), matchOption, ParameterType.STRING);
+        CategoryParameter cp = new CategoryParameter("matchAlgorithm", "数据预处理", MappingType.MD5.name(), matchOption, ParameterType.STRING);
         res.add(cp);
         return res;
     }
 
-    public Map<String, Object> fetchCommonParameter() {
+    public CommonParameterRes fetchCommonParameter() {
         //用于系统超参数，比如支持哪些模型，加密算法选项等
         String[] alg = AlgorithmType.getAlgorithms();
-        if (ConfigUtil.getJdChainAvailable()){
-            alg = new String[]{AlgorithmType.FederatedGB.getAlgorithm()};
+        if (ConfigUtil.getJdChainAvailable()) {
+            alg = new String[]{AlgorithmType.FederatedGB.getAlgorithm(), AlgorithmType.KernelBinaryClassificationJava.getAlgorithm()};
         }
-        Map<String, Object> data = Maps.newHashMap();
-        data.put(MODEL, alg);
-        data.put(ENCRYPTION_ALGORITHM, new String[]{RSA, DES});
+//        Map<String, Object> data = Maps.newHashMap();
+//        data.put(MODEL, alg);
+//        data.put(ENCRYPTION_ALGORITHM, new String[]{RSA, DES});
+        String[] encryption = new String[]{RSA, DES};
+        String[] matchOption = MappingType.getMappings();
+//        data.put("match", matchOption);
         List<ParameterField> res = getCommonParams();
-        data.put("commonParams", res);
-        return data;
+//        data.put("commonParams", res);
+        return new CommonParameterRes(alg, matchOption, res);
     }
 }

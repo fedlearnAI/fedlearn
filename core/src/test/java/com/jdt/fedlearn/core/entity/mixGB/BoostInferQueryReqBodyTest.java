@@ -1,5 +1,6 @@
 package com.jdt.fedlearn.core.entity.mixGB;
 
+import com.jdt.fedlearn.core.entity.mixGBoost.BoostInferQueryReqBody;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

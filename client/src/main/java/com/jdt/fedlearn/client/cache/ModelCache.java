@@ -63,7 +63,7 @@ public class ModelCache {
      *
      */
     private void init() {
-        String modelDir = ConfigUtil.getModelDir();
+        String modelDir = ConfigUtil.getClientConfig().getModelDir();
         List<String> fileList = FileUtil.scanDir(modelDir);
         for (String name : fileList) {
             if (name.contains(".model")) {

@@ -19,7 +19,7 @@ import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.psi.MatchInit;
 import com.jdt.fedlearn.core.entity.psi.MatchInitRes;
 import com.jdt.fedlearn.core.entity.psi.MatchTransit;
-import com.jdt.fedlearn.core.psi.MappingReport;
+import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.psi.Prepare;
 import com.jdt.fedlearn.core.type.MappingType;
 
@@ -40,9 +40,9 @@ public class Md5Match implements Prepare {
     public List<CommonRequest> masterInit(List<ClientInfo> clientInfos) {
         List<CommonRequest> requests = new ArrayList<>();
         this.clientInfos = clientInfos;
-        p = 0;
+        this.p = 0;
         for (ClientInfo client : clientInfos) {
-            MatchInit init = new MatchInit(MappingType.VERTICAL_MD5, "uid", null);
+            MatchInit init = new MatchInit(MappingType.MD5, "uid", null);
             CommonRequest request = new CommonRequest(client, init, p);
             requests.add(request);
         }
@@ -86,7 +86,6 @@ public class Md5Match implements Prepare {
 
 
     private static Map<Long, String> dataAlignment(List<MatchInitRes> clientIdList) {
-//        Map<ClientInfo, Map<Long, String>> resMap = new HashMap<>();
         //公共id
         String[] intersection2 = clientIdList.stream().map(MatchInitRes::getIds).reduce(Md5Match::mix).get();
 
@@ -148,9 +147,9 @@ public class Md5Match implements Prepare {
     }
 
 
-    public MappingReport postMaster(List<CommonResponse> responses1) {
+    public MatchResult postMaster(List<CommonResponse> responses1) {
         String report = "IdMatch is complete!! \n Match num is " + matchRes.size();
-        return new MappingReport(report, matchRes.size());
+        return new MatchResult(matchRes.size(), report);
     }
 
     public boolean isContinue() {

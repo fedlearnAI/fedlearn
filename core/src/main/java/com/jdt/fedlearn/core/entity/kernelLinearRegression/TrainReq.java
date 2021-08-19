@@ -29,28 +29,24 @@ public class TrainReq implements Message {
     private int numClassRound;
     private PredictRes predictRes;
     private int bestRound;
+    private int clientInd;
 
     public TrainReq(ClientInfo clientInfo, List<Integer> sampleIndex) {
         this.client = clientInfo;
         this.sampleIndex = sampleIndex;
     }
-    public TrainReq(ClientInfo clientInfo, List<Integer> sampleIndex,int numClassRound) {
-        this.client = clientInfo;
-        this.sampleIndex = sampleIndex;
-        this.numClassRound=numClassRound;
-        this.bestRound = 0;
-    }
 
-    public TrainReq(ClientInfo clientInfo, List<Integer> sampleIndex,int numClassRound,int bestRound) {
+    public TrainReq(ClientInfo clientInfo, int numClassRound, int bestRound) {
         this.client = clientInfo;
-        this.sampleIndex = sampleIndex;
-        this.numClassRound=numClassRound;
+        this.numClassRound = numClassRound;
         this.bestRound = bestRound;
     }
+
     public TrainReq(ClientInfo clientInfo, PredictRes predictRes) {
         this.client = clientInfo;
         this.predictRes = predictRes;
     }
+
     public TrainReq(ClientInfo clientInfo, double[] valuelist, List<Integer> sampleIndex, boolean isUpdate) {
         this.client = clientInfo;
         this.valuelist = valuelist;
@@ -58,10 +54,9 @@ public class TrainReq implements Message {
         this.isUpdate = isUpdate;
     }
 
-    public TrainReq(ClientInfo clientInfo, double[][] valuelists, List<Integer> sampleIndex, boolean isUpdate) {
+    public TrainReq(ClientInfo clientInfo, double[][] valuelists, boolean isUpdate) {
         this.client = clientInfo;
         this.valuelists = valuelists;
-        this.sampleIndex = sampleIndex;
         this.isUpdate = isUpdate;
     }
 
@@ -96,5 +91,13 @@ public class TrainReq implements Message {
 
     public int getBestRound() {
         return bestRound;
+    }
+
+    public int getClientInd() {
+        return clientInd;
+    }
+
+    public void setClientInd(int clientInd) {
+        this.clientInd = clientInd;
     }
 }

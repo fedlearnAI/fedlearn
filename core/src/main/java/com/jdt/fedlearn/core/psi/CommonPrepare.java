@@ -21,8 +21,6 @@ import com.jdt.fedlearn.core.psi.freedman.FreedmanMatch;
 import com.jdt.fedlearn.core.psi.freedman.FreedmanMatchClient;
 import com.jdt.fedlearn.core.psi.md5.Md5Match;
 import com.jdt.fedlearn.core.psi.md5.Md5MatchClient;
-import com.jdt.fedlearn.core.psi.mixMd5.MixMd5Match;
-import com.jdt.fedlearn.core.psi.mixMd5.MixMd5MatchClient;
 import com.jdt.fedlearn.core.psi.rsa.RsaMatch;
 import com.jdt.fedlearn.core.psi.rsa.RsaMatchClient;
 import com.jdt.fedlearn.core.type.MappingType;
@@ -30,26 +28,22 @@ import com.jdt.fedlearn.core.type.MappingType;
 public class CommonPrepare {
     public static Prepare construct(MappingType mappingType) {
         switch (mappingType) {
-            case VERTICAL_MD5: {
+            case MD5: {
                 return new Md5Match();
             }
-            case VERTICAL_RSA: {
+            case RSA: {
                 return new RsaMatch();
             }
-            case MIX_MD5: {
-                return new MixMd5Match();
-            }
-
-
             case EMPTY: {
                 return new EmptyMatch();
             }
-            case VERTICAL_DH:{
+            case DH:{
                 return new DiffieHellmanMatch();
             }
-            case FREEDMAN:{
-                return new FreedmanMatch();
-            }
+            //todo 优化freedman算法支持
+//            case FREEDMAN:{
+//                return new FreedmanMatch();
+//            }
             default: {
                 throw new UnsupportedOperationException();
             }
@@ -58,25 +52,22 @@ public class CommonPrepare {
 
     public static PrepareClient constructClient(MappingType mappingType) {
         switch (mappingType) {
-            case VERTICAL_MD5: {
+            case MD5: {
                 return new Md5MatchClient();
             }
-            case VERTICAL_RSA: {
+            case RSA: {
                 return new RsaMatchClient();
             }
-            case MIX_MD5: {
-                return new MixMd5MatchClient();
-            }
-
             case EMPTY: {
                 return new EmptyMatchClient();
             }
-            case VERTICAL_DH:{
+            case DH:{
                 return new DiffieHellmanMatchClient();
             }
-            case FREEDMAN:{
-                return new FreedmanMatchClient();
-            }
+            //todo 优化freedman算法支持
+//            case FREEDMAN:{
+//                return new FreedmanMatchClient();
+//            }
             default: {
                 throw new UnsupportedOperationException();
             }

@@ -3,42 +3,61 @@ package com.jdt.fedlearn.core.dispatch;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.common.*;
+import com.jdt.fedlearn.core.entity.feature.SingleFeature;
 import com.jdt.fedlearn.core.entity.randomForest.*;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
-import com.jdt.fedlearn.core.psi.MappingOutput;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.psi.MatchResult;
+import com.jdt.fedlearn.core.type.EncryptionType;
+import com.jdt.fedlearn.core.type.MetricType;
+import com.jdt.fedlearn.core.type.RFDispatchPhaseType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TestDistributedRandomForest {
-    @Test
-    public void getNextPhase(){
-        List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,2,2,2,2,2);
-        int p = randomForest.getNextPhase(-4);
-        Assert.assertEquals(p, -3);
-    }
 
     @Test
     public void initControl(){
-        List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        Map<ClientInfo, Features> features = StructureGenerate.fgbFeatures(clientInfos);
-        Map<Long, String> value = new HashMap<>();
-        value.put(0L,"1a");
-        value.put(1L,"2b");
-        MatchResult matchResult = new MatchResult();
-        DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
+        List<ClientInfo> clientInfos = StructureGenerate.twoClients();
+
+        Map<ClientInfo, Features> features = new HashMap<>();
+        List<SingleFeature> features0 = new ArrayList<>();
+        features0.add(new SingleFeature("uid", "String"));
+        features0.add(new SingleFeature("x1", "String"));
+        features0.add(new SingleFeature("x2", "String"));
+        features0.add(new SingleFeature("y", "String"));
+        features.put(clientInfos.get(0), new Features(features0, "y"));
+
+        List<SingleFeature> features1 = new ArrayList<>();
+        features1.add(new SingleFeature("uid", "String"));
+        features1.add(new SingleFeature("x3", "String"));
+        features1.add(new SingleFeature("x4", "String"));
+        features.put(clientInfos.get(1), new Features(features1));
+
+        MatchResult matchResult = new MatchResult(3);
+        RandomForestParameter parameter1 = new RandomForestParameter();
+        MetricType[] metrics = new MetricType[]{MetricType.AUC, MetricType.ACC};
+        String loss = "Regression:MSE";
+        RandomForestParameter parameter2 = new RandomForestParameter(
+                2,
+                3,
+                3,
+                50,
+                0.8,
+                30,
+                30,
+                "Null",
+                10,
+                EncryptionType.IterativeAffine,
+                metrics,
+                loss,
+                666);
+        DistributedRandomForest randomForest = new DistributedRandomForest(parameter1);
         Map<String, Object> other = new HashMap<>();
         other.put("splitRatio", 1.0);
         List<CommonRequest> requests = randomForest.initControl(clientInfos, matchResult, features, other);
@@ -49,166 +68,232 @@ public class TestDistributedRandomForest {
         Message message = first.getBody();
         TrainInit body = (TrainInit) message;
         Assert.assertEquals(body.getFeatureList(), features.get(clientInfos.get(0)));
+
+        randomForest = new DistributedRandomForest(parameter2);
+        requests =  randomForest.initControl(clientInfos, matchResult, features, other);
+
+        Assert.assertEquals(clientInfos.size(), requests.size());
+        first = requests.get(0);
+        Assert.assertEquals(first.getPhase(),0);
+        Assert.assertFalse(first.isSync());
+        message = first.getBody();
+        body = (TrainInit) message;
+        Assert.assertEquals(body.getFeatureList(), features.get(clientInfos.get(0)));
     }
 
     @Test
-    public void control1FromInit(){
+    public void control1(){
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,2,2,2,2,2);
         List<CommonResponse> responses = new ArrayList<>();
         responses.add(new CommonResponse(clientInfos.get(0), new SingleElement("init_success")));
         responses.add(new CommonResponse(clientInfos.get(1), new SingleElement("init_success")));
         responses.add(new CommonResponse(clientInfos.get(2), new SingleElement("init_success")));
         List<CommonRequest> requests = randomForest.control(responses);
-        //TODO
         Assert.assertEquals(requests.size(), 3);
+
+        responses = new ArrayList<>();
+        RandomForestTrainRes randomForestTrainRes = new RandomForestTrainRes();
+        randomForestTrainRes.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
+        responses.add(new CommonResponse(clientInfos.get(0), randomForestTrainRes));
+        requests = randomForest.control(responses);
+        Assert.assertEquals(requests.size(), 1);
+
+        responses = new ArrayList<>();
+        responses.add(new CommonResponse(clientInfos.get(0), new RandomForestTrainReq()));
+        try {
+            randomForest.control(responses);
+        } catch (Exception e) {
+
+            Assert.assertEquals(e.getMessage(), "Message to RandomForestTrainRes error in control");
+        }
     }
+
 
     @Test
     public void control2(){
-        List<CommonResponse> responses = new ArrayList<>();
         List<ClientInfo> clientInfos = new ArrayList<>();
-        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", 0));
-        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP",1));
-        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP",2));
+        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP", "", "1"));
         DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,3,3,2,2,1);
-        String trainId = "181_RandomForest_Binary";
+        RandomForestTrainRes randomForestTrainRes0 = new RandomForestTrainRes();
+        randomForestTrainRes0.setActive(true);
+        randomForestTrainRes0.setInit(true);
+        List<Integer>[] featureMap = new ArrayList[2];
+        featureMap[0] = new ArrayList<>();
+        featureMap[0].add(0);
+        featureMap[0].add(1);
+        featureMap[1] = new ArrayList<>();
+        featureMap[1].add(0);
+        randomForestTrainRes0.setFeatureIds(featureMap);
+        String[] encryptY = new String[1];
+        encryptY[0] = "1452450455066536397192189168910917121579549144756146445241800560517265122975814:7925076045163469841733139553607511865674018635971698276961155640189909943865181402705484892998433339017402822464575486591100575274529127518527417451862964526026789815637447716968254811376947726284624485932035306505696755223429356379498910315955624940545349193434714908208300479428820018625580867181051542652:45840743033931265986258670189660689032704006639914906848370858655311479305415087079065255697218278582564077026401578755105373669802994380221612393808729649008681261553753047522975786914501114252703970199534874485322578903502253150713015867169628869900751564181385036546734022029805573107563649955394576471929:1125899906842624:1125899906842624:0:1125899906842624";
+        String publicKey = "{a1\u000362167541134542531277506478271729877649886587652514460543291694622506627668015071077610684479955582025661318251655924369877832644205823121959146\u0002n0\u00035539842827535787516618404082067798905071453264901183666896955348885173405012814865431017623071589081507310302711795865203100047673226168067394990436841830557164019307269844218748154892574308291652522390219436313170946319838458385139139866274612910809\u0002encodedPrecision\u00039223372036854775808\u0002n1\u000345840743033931265986258670189660689032704006639914906848370858655311479305415087079065255697218278582564077026401578755105373669802994380221612393808729649008681261553753047522975786914501114252703970199534874485322578903502253150713015867169628869900751564181385036546734022029805573107563649955394576471929\u0002key_round\u00032\u0002g\u00034592029892691387625252146534218\u0002x\u0003437600556051393509146698409980270395562113464987\u0002ainv0\u00031810197526710069479482518947965088161011719555967122459903542337888877186941032719357358683604386044008043007253416035307467448659929259842424811563764267984311521121719063381389662812256439799932502685589064109858216368615458691894879129894745997401\u0002ainv1\u000311952851045498210859043371918527854604827785568792282918335085779662479880029909878401756893438437824111119624947971916962566571526681414368326112097280751087967508029726773117384643371842924957789757586385647951266091985145303584296723725704714286088692573022027570245146160571461469672890107457438527244780\u0002a0\u0003149009573519831976929691450349130639441905563027166682864142113671147793614212883251801988880225219628168603438000775983285762781903436431352561427706889272381141432622713304557521321988528658251499986522475986878554075778}";
+        Map<Integer, List<Integer>> treeIdToSampleId = new HashMap<>();
+        List<Integer> sampleList = new ArrayList<>();
+        sampleList.add(0);
+        treeIdToSampleId.put(0, sampleList);
+        randomForestTrainRes0.setTidToSampleId(treeIdToSampleId);
+        randomForestTrainRes0.setPublicKey(publicKey);
+        randomForestTrainRes0.setEncryptionLabel(encryptY);
 
-        RandomforestMessage[] randomforestMessages = new RandomforestMessage[3];
-        randomforestMessages[0] = new RandomforestMessage("IgwSCioIcGFpbGxpZXIy1w4K8AQS6AQ3MTA1MDk2NTcyNTgyMTc4MTk0MjQ3NzAzMTQzNjM0OTUyNDMwNTMwMjgxNjY3MTMyNTMwMTMzMDc5OTM0MzQ1Njk2OTc0NjgyMDM2NzcwOTQ3MDEyNDEzNTI4NTAxMTc4NTU3Mjk5OTMyODgzNTY5OTE3NTQ1NzY2OTA3MDU3OTUwNzYyNjI5MTA4Mzk1NDIwMjA1NTEwMDU3Njk3NTE2NzI5OTgwNTcxMzMzMjI4MjE5MjAwMzIxMTI1NzA5Mzk5NTI0NDc0MzczNzEyNTg3NTUzNjQyNTg5OTU1Mjk2Njc0MjU0NTcwNzA2MjkyNDk0NDY1NDE5OTEzMzA0ODQxMjgwNzA5Mzk3ODM1MTI3MTQzNjk4NTEyNDY0MTcwMjMyMzE5Mjg4MDUzMjI0MDAzNDgyNzcxNTA2OTEwMjc4NDk3OTIxNzU1MzI4NDc0NTc4MDg3NjEwNTY2ODE1MDY2NTI1NTgzMTEyMjY4NTE5NTI5MjYxNTk3NzE4MzAzMjg5NDAyMDk4MzI4MDg4MTA0MTYwMjEzODg1NjQ2MjU2NDkxOTI5OTc1NzE4MDcwNDUwMjAxNjkzNjAyNzYzMDI2Mzk5NTE1MTQxNjA1NzE0NDgxNzA3MDU3MDQwOTQ3NzAyOTU0MDc2NDU4MDI3MTAzMzgwMTgzNzIyNDczMDY4MTc4NzU5OTM3ODMwOTI4NzA3OTg0NzgyMDcyODExNDAzNjAwMjE0MTQ2OTYzMjUzNTE5NzEwMjk4Nzc5OTc4MzQzOTcwNTM0MjU0NTg4MTAyOTAzMTUxNTQ1MDA0MDYwOTcwNzk0NTE0GgMtMTMK7gQS6AQ3MzkyMzM1MzI3OTEyMjQwMTk3MTkyMDY3MDEyODAwMjcyOTI0NzE4MTcxODU5NzEzMDk1MzEzODE0MjYxNjExNjUyODEzOTk2NzMwNDQyMzkzNTI5Mzc1NDQyMTQ4NjA3OTE4NzA5MzU0MjY2NDU5NjIxODExNzU1MjY1NjU4NzAyODQzMjE2ODY5OTI4OTYxMDcxOTYwMzQyODE4MzY4NTUzNzU3ODYwNDgwNDgxNTEyNTAwNzM0MTIxMjAyMDM0NDgzNzE5NTMxNTkzOTc3OTg1Njk5MTY3NDU2MDYxOTA2NzYxNzYzNTEzNzE4NTEyNTE4ODgzNzE2NzM5MTMxMTg4MjMwMDU2NjM5NDY4ODExMTk1NTY5ODUwNzY0NTAzMjE4MjYwMDM2ODU0MjIyODI5MzY5NzY2NjEwOTM2MDA0NzE4OTQ4NDU2ODk0MTY5MDA2Njk2NjA1MTQzNjk5NzUwMjIxOTc4NzgzNjk5NTQ1MjAwMTcxMTU3MDEyMjA3ODEyNTA3MTI0ODYwMTc4NDUzNzk4OTk0MjExNjc3NTE3Mjg1ODAxNDcxOTI3MDcwNTIzMzUzNDQ5Nzc4NzA1NzY3OTEwNTkyNzk3MDc5MjE1MDk5NzU3NjIwODIyNTI4NTkxMTQ2NTg4MTE5NjIxNDA3ODQ0MzQ0MTAxNjA2NDM1NTIyMDkxNTExNDgxMjY4NTM3OTY5OTcyMTE5NjExODg3MDk4NzIxOTY5MjY3MDg5NjE3MDMzODU3MDcyOTQxNDExNzA2Nzk0MTQ3MTMyMjQ4ODE1ODIzNjMyMTAwMzc2MzQ0MzE3GgEwCvAEEugEMzk5MzY1ODQ2MDk2MjQ2Njg0MDAzODUyMDQ5MTQxMDkxMDY0NDYyMTcwNjU4OTIxMTIyNTAxNTExNjg1NzQ0MTExNjE2NjQ1NTE2ODIxNzQ4NjE4ODU3Mzc3MzY3Nzg0OTg0MzEzMzM0NzgyMzkyMzgzNzQ1ODIxMjE2MTIyNjczMjA5ODk5OTYzNTc0ODc2MTE0MjU4NTQ5MDE4ODQ0NDI2NDk1NDY5NTMwOTU3MzQwMjEzNjY2NjM1OTE2NzUxOTc3MDUxMjkxNjgwMDI1MzI0NTExNzEyMjUzOTY3MzI5NDI4OTE0ODMzMjQyMTUwMzQ5MzA4OTYyNTE4NzczNjgwMzg5NDA1OTI4MDgzMDAzNTI1MjYyMDg3NzEyOTg2NTE1MTY3OTM5NDMyMzU5MTEwMzkwODMwOTYwNDE0Mzg0OTI0NDQxNTMwMDQ1MDQ1NDE4MjI3ODgxMTA1OTI2NjUzMjk1NTE2OTk2Mzc4OTExMDQ2MjYxNDcwODg1NDI5NDg2MDQzOTQyMzU4NjQ0MjQyMzI3NDI4MTUxMDg0NDgwNTkxNTk5NTgzNjcwMDMyMTc4MDk2NTM2MDk5MTc5MTc0OTkwOTA4MDA5MDk0Njc0ODYyMDM5NjEzNTgwNTEyODQwNDU1NDk0NjA0NDc5NTQwNzA4ODc3MDU3NDM1NjUxMDc0OTk5NDU2NTQwMDY0OTgzMTc2MzEwODUyNjI0MTM5NTUzMjI2OTIxOTc1NTIzODU3NjIzMzMzMjMzNDMyMDYyODU2MDUwNTM0NDE0MTE3MjU1MDUwMjE1MDg4MzgwNzg1NjU4NxoDLTEzQtwJCrUCMTA5MzYzMjA3NTU3NjMwMDEwMjQzMTE4NTMyODg2MTcxMDkyNTE3MjMwOTEwNjMxODg2MTA3MjM4NTcyNTYxNTIwMDQ3OTI3MDMzNTk3ODcyNzQ1MjMzNDc3NTQ2MTM4MDMxNzA3NTkwNDgzODIyMzA5ODEzMDM2MzQ0NTgzNzMwMTg2ODc5ODc4OTE4NTc2MjQwODU2MzUxNTY3Mjc2ODQxOTcyNTg1Mjg0Mjk4NDU1Njg2NjUwODA1OTQwMDQ3OTE3OTAzNDU4NjIwODAzMjI3MzY0MjEwMTY4NzkzODYxODU4NzU0OTc4NDAyMTIyMTk1NTYzODA0ODU4ODgxODE3NDYxMDU3NDQxMzY1Mjk3OTI0MjIwODAyMTU3MzY4NzkzMDUzMTkxOTUyMzM3NDY0Nzc0ErUCMTA5MzYzMjA3NTU3NjMwMDEwMjQzMTE4NTMyODg2MTcxMDkyNTE3MjMwOTEwNjMxODg2MTA3MjM4NTcyNTYxNTIwMDQ3OTI3MDMzNTk3ODcyNzQ1MjMzNDc3NTQ2MTM4MDMxNzA3NTkwNDgzODIyMzA5ODEzMDM2MzQ0NTgzNzMwMTg2ODc5ODc4OTE4NTc2MjQwODU2MzUxNTY3Mjc2ODQxOTcyNTg1Mjg0Mjk4NDU1Njg2NjUwODA1OTQwMDQ3OTE3OTAzNDU4NjIwODAzMjI3MzY0MjEwMTY4NzkzODYxODU4NzU0OTc4NDAyMTIyMTk1NTYzODA0ODU4ODgxODE3NDYxMDU3NDQxMzY1Mjk3OTI0MjIwODAyMTU3MzY4NzkzMDUzMTkxOTUyMzM3NDY0NzczGukEMTE5NjAzMTExNjcyOTMyNjE3OTAyMTE4MTMxOTg4NzM3NTMxNjQ4NjQ2MDE2ODkzNzk5NzMwNDExOTc4NjQwNjU1NjQzNjM1MzU3MTg3Mjk4NDgwNjk2OTUxOTkyNTA3OTQ3OTQwOTAwMjQ5NjI2OTM5OTE4MzM5NjQwNzI2NDM5MTIwODMyNDY3NzYwMTMxODI0OTYzNDU3NTQzNTA3NDAyNzU2NzEwMDc2NTg5MDIxOTY3NzgwNDk5NDI3MjQyNDUzMjc2ODEwNjMyNzU2OTIyODc0NjQyNDg1ODU2MzUxNDU3NTY5MzcwODE2MzU4MjIwNjIxMTMwMDQ4Mzk3NDIxMjMyNzc0MDYyNDgzMzg4MTEyODc1ODY4NjY1NTU3OTgyMjYzMzI3MDgwOTMxODY2NjQ4ODMxNjU3OTg2MzE0NDU2NjE1NTcxMTk1NzM5MzUwNTU1NjkyMjQyODQ5NTc2OTI0NjA5OTM5NzUxMzg3Njg4NjM1MzkxNDcwMDQ5OTg1NDI3MTg2OTQxODkxNjk3Mzg5NjgwMjY3MDU2MjA4NjM0NTQ2MTY5MzgxMDU2MDU4NjEzOTExMDAxNDU1MDkwMTA1NDkwOTM2NDEyMzc4MDY1MDY4MjQ0MTQzMzYyNTE1NTgyNzU0MjcwMjg4NjU4MDc2MDAyMDk2MjcxNjUyMzkxNzU5MTUzNTA5ODQ2NTQxMDAzNDI0Njc0MTk0NzE2Nzc3NDY2ODk2MjAwNzA2MDgwMzIxMTEyMTYyNDk5Mzg0NTE5NzM3NjU5OTU4MDc1MjkxMDIxMjgwOTYyNjUwMTU5NDE1Mjk=||0;1;0;0;0;0;1;1;0;0||3");
-        randomforestMessages[1] = new RandomforestMessage("||0;1;0;0;0;0;1;1;0;0||3");
-        randomforestMessages[2] = new RandomforestMessage("||0;3;3;3;3;1;0;3;3;2||3");
-        for (int i = 0; i < 3; i++) {
-            responses.add(new CommonResponse(clientInfos.get(i),randomforestMessages[i]));
-        }
+        RandomForestTrainRes randomForestTrainRes1 = new RandomForestTrainRes();
+        randomForestTrainRes1.setActive(false);
+        randomForestTrainRes1.setActive(true);
+        randomForestTrainRes1.setFeatureIds(featureMap);
+        List<CommonResponse> responses = new ArrayList<>();
+        responses.add(new CommonResponse(clientInfos.get(0),randomForestTrainRes0));
+        responses.add(new CommonResponse(clientInfos.get(1),randomForestTrainRes1));
         List<CommonRequest> res = randomForest.controlPhase2(responses);
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 2; i++) {
             Assert.assertEquals(res.get(i).getClient(),clientInfos.get(i));
-            Assert.assertEquals(((DistributedRandomForestReq)res.get(i).getBody()).getExtraInfo(), "0|1||[0, 1]|[0, 1]");
         }
+
+        randomForestTrainRes1.setTidToSampleId(treeIdToSampleId);
+        responses = new ArrayList<>();
+        responses.add(new CommonResponse(clientInfos.get(0),randomForestTrainRes0));
+        responses.add(new CommonResponse(clientInfos.get(1),randomForestTrainRes1));
+        randomForest.controlPhase2(responses);
+
+        randomForestTrainRes0.setInit(false);
+        randomForestTrainRes1.setInit(false);
+        randomForestTrainRes1.setTidToSampleId(treeIdToSampleId);
+        responses = new ArrayList<>();
+        responses.add(new CommonResponse(clientInfos.get(0),randomForestTrainRes0));
+        responses.add(new CommonResponse(clientInfos.get(1),randomForestTrainRes1));
+        randomForest.controlPhase2(responses);
+
+
     }
 
     @Test
     public void control3(){
         List<ClientInfo> clientInfos = new ArrayList<>();
-        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", 0));
-        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP",1));
-        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP",2));
+        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP", "", "1"));
         DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,2,2,2,3,1);
-        String trainId = "181_RandomForest_Binary";
+        RandomForestTrainRes randomForestTrainRes0 = new RandomForestTrainRes();
+        randomForestTrainRes0.setClient(clientInfos.get(0));
+        randomForestTrainRes0.setBody("test1");
+        randomForestTrainRes0.setActive(true);
+        RandomForestTrainRes randomForestTrainRes1 = new RandomForestTrainRes();
+        randomForestTrainRes1.setClient(clientInfos.get(1));
+        randomForestTrainRes1.setBody("test2");
+
         List<CommonResponse> responses = new ArrayList<>();
+        responses.add(new CommonResponse(clientInfos.get(0),randomForestTrainRes0));
+        responses.add(new CommonResponse(clientInfos.get(1),randomForestTrainRes1));
 
-        DistributedRandomForestRes[] response = new DistributedRandomForestRes[3];
-        response[0] = new DistributedRandomForestRes(clientInfos.get(0),
-                "",
-                true, null, -1,"0|1||[0, 1, 2]|[0, 1, 2]");
-        response[1] = new DistributedRandomForestRes(clientInfos.get(1), "", false);
-        response[2] = new DistributedRandomForestRes(clientInfos.get(2), "", false);
-        for (int i = 0; i < 3; i++) {
-            responses.add(new CommonResponse(clientInfos.get(i),response[i]));
-        }
         List<CommonRequest> res = randomForest.controlPhase3(responses);
-
-        Assert.assertEquals(((DistributedRandomForestReq)res.get(0).getBody()).getBody(),"{\"client\":{\"ip\":\"127.0.0.1\",\"port\":80,\"path\":null,\"protocol\":\"HTTP\",\"uniqueId\":0},\"isActive\":true,\"body\":\"\",\"sampleId\":null,\"treeId\":-1,\"extraInfo\":\"0|1||[0, 1, 2]|[0, 1, 2]\",\"active\":true}|||{\"client\":{\"ip\":\"127.0.0.1\",\"port\":81,\"path\":null,\"protocol\":\"HTTP\",\"uniqueId\":1},\"isActive\":false,\"body\":\"\",\"sampleId\":null,\"treeId\":0,\"extraInfo\":\"\",\"active\":false}|||{\"client\":{\"ip\":\"127.0.0.1\",\"port\":82,\"path\":null,\"protocol\":\"HTTP\",\"uniqueId\":2},\"isActive\":false,\"body\":\"\",\"sampleId\":null,\"treeId\":0,\"extraInfo\":\"\",\"active\":false}|||");
-
+        for (int i = 0; i < 2; i++) {
+            Assert.assertEquals(res.get(i).getClient(),clientInfos.get(i));
+        }
+        Assert.assertEquals(((RandomForestTrainReq)res.get(0).getBody()).getBodyAll(), new String[]{"test1", "test2"});
     }
 
     @Test
     public void control4(){
         List<ClientInfo> clientInfos = new ArrayList<>();
-        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", 0));
-        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP",1));
-        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP",2));
+        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP", "", "1"));
         DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,2,2,2,3,1);
-        String trainId = "181_RandomForest_Binary";
+
         List<CommonResponse> responses = new ArrayList<>();
 
 
-        DistributedRandomForestRes[] response = new DistributedRandomForestRes[3];
+        Map<String, String> splitMessage = new HashMap<>();
 
-        response[0] = new DistributedRandomForestRes(clientInfos.get(0),"CjIaIAAAAAAAAPA/AAAAAAAAAAAAAAAAAAAAANPP9fn///M/Kg57ImlzX2xlYWYiOiAwfQoyGiAAAAAAAADwPwAAAAAAAAAAAAAAAAAAAADTz/X5///zPyoOeyJpc19sZWFmIjogMH0=", true,
-                null, -1, "0|1||[0, 1, 2]|[0, 1, 2]");
-        response[1] = new DistributedRandomForestRes(clientInfos.get(1),"", false,
-                null, -1, "");
-        response[2] = new DistributedRandomForestRes(clientInfos.get(2),"", false,
-                null, -1, "");
 
-        for (int i = 0; i < 3; i++) {
-            responses.add(new CommonResponse(clientInfos.get(i),response[i]));
-        }
+        Map<Integer, List<Integer>> treeIdToSampleId = new HashMap<>();
+        List<Integer> sampleList = new ArrayList<>();
+        sampleList.add(0);
+        treeIdToSampleId.put(0, sampleList);
+        RandomForestTrainRes randomForestTrainRes0 = new RandomForestTrainRes();
+        randomForestTrainRes0.setClient(clientInfos.get(0));
+        randomForestTrainRes0.setActive(true);
+        Map<String, Map<Integer, List<Integer>>> tidToSampleIds = new HashMap<>();
+        tidToSampleIds.put(clientInfos.get(0).toString(), treeIdToSampleId);
+        splitMessage.put(clientInfos.get(0).toString(), "1111");
+        randomForestTrainRes0.setSplitMessageMap(splitMessage);
+        randomForestTrainRes0.setTidToSampleIds(tidToSampleIds);
+        RandomForestTrainRes randomForestTrainRes1 = new RandomForestTrainRes();
+        randomForestTrainRes1.setClient(clientInfos.get(1));
+
+
+
+        responses.add(new CommonResponse(clientInfos.get(0),randomForestTrainRes0));
+        responses.add(new CommonResponse(clientInfos.get(1),randomForestTrainRes1));
+
         List<CommonRequest> res = randomForest.controlPhase4(responses);
-        Assert.assertEquals(((DistributedRandomForestReq)res.get(0).getBody()).getBody(), "");
-        Assert.assertEquals(((DistributedRandomForestReq)res.get(1).getBody()).getBody(), "{\"treeId\":0.0,\"percentile\":50.0,\"nodeId\":0.0,\"featureId\":0.0}||{\"treeId\":1.0,\"percentile\":50.0,\"nodeId\":0.0,\"featureId\":0.0}||");
-        Assert.assertEquals(((DistributedRandomForestReq)res.get(2).getBody()).getBody(), "");
+        for (int i = 0; i < 2; i++) {
+            Assert.assertEquals(res.get(i).getClient(),clientInfos.get(i));
+        }
+        Assert.assertEquals(((RandomForestTrainReq)res.get(0).getBody()).getBody(), "1111");
+        Assert.assertEquals(((RandomForestTrainReq)res.get(0).getBody()).getTidToSampleID(), treeIdToSampleId);
     }
 
     @Test
     public void control5(){
 
         List<ClientInfo> clientInfos = new ArrayList<>();
-        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", 0));
-        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP",1));
-        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP",2));
-        DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,3,3,2,3,1);
-        String trainId = "181_RandomForest_Binary";
-        List<CommonResponse> responses = new ArrayList<>();
-        HashMap<Integer, ArrayList<Integer>> treeIdToSampleId = new HashMap<>();
-        ArrayList<Integer> sample = new ArrayList<>();
-        sample.add(0);
-        sample.add(1);
-        sample.add(2);
-        for (int i = 0; i < 2; i++) {
-            treeIdToSampleId.put(i, sample);
-        }
+        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP", "", "1"));
 
-        DistributedRandomForestRes[] response = new DistributedRandomForestRes[3];
-        response[0] = new DistributedRandomForestRes(clientInfos.get(0),
-                "",
-                true, null, -1, "1||[0, 1, 2]");
-        response[1] = new DistributedRandomForestRes(clientInfos.get(1),
-                "Cp8BChQKEgoQR4hdhf7/PEDpMlsr1HVxPgooChIKEH3rzbL/f0FA6iAcoALbYj4KEgoQReYz0W9dp76XXfoT38eSvhIaChgAAAAAAAAAAAAAAAAAAPA/AAAAAAAAAAAqQXsiaXNfbGVhZiI6IDAsICJmZWF0dXJlX29wdCI6IDAsICJ2YWx1ZV9vcHQiOiAyOC45OTk5Nzc0MzE2MTY4MjR9Cp8BChQKEgoQ7/hdTv//PEAK+IsTOlivPgooChIKEKjtgdMBgEFAD/gWyNkerr4KEgoQbQzAsVyhtL6IGINfuMaavhIaChgAAAAAAAAAAAAAAAAAAPA/AAAAAAAAAAAqQXsiaXNfbGVhZiI6IDAsICJmZWF0dXJlX29wdCI6IDAsICJ2YWx1ZV9vcHQiOiAyOC45OTk5ODk0MTIyNTI4ODR9",
-                false, null, -1, "1||[0, 1, 2]");
-        response[2] = new DistributedRandomForestRes(clientInfos.get(2), "", false, null, -1, "1||[0, 1, 2]");
-        for (int i = 0; i < 3; i++) {
-            responses.add(new CommonResponse(clientInfos.get(i),response[i]));
-        }
+        DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
+
+        Map<Integer, List<Integer>> treeIdToSampleId = new HashMap<>();
+        List<Integer> sampleList = new ArrayList<>();
+        sampleList.add(0);
+        treeIdToSampleId.put(0, sampleList);
+        RandomForestTrainRes randomForestTrainRes0 = new RandomForestTrainRes();
+        randomForestTrainRes0.setClient(clientInfos.get(0));
+        randomForestTrainRes0.setActive(true);
+        randomForestTrainRes0.setTreeIds(new String[]{"0"});
+        Map<Integer, double[]> maskLeft = new HashMap<>();
+        maskLeft.put(0, new double[]{0,1});
+        randomForestTrainRes0.setMaskLeft(maskLeft);
+        randomForestTrainRes0.setSplitMess(new String[]{"0"});
+
+        Map<String, Map<Integer, List<Integer>>> tidToSampleIds = new HashMap<>();
+        tidToSampleIds.put(clientInfos.get(0).toString(), treeIdToSampleId);
+
+        randomForestTrainRes0.setTidToSampleIds(tidToSampleIds);
+        RandomForestTrainRes randomForestTrainRes1 = new RandomForestTrainRes();
+        randomForestTrainRes1.setClient(clientInfos.get(1));
+
+
+
+        List<CommonResponse> responses = new ArrayList<>();
+        responses.add(new CommonResponse(clientInfos.get(0),randomForestTrainRes0));
+        responses.add(new CommonResponse(clientInfos.get(1),randomForestTrainRes1));
 
         List<CommonRequest> res = randomForest.controlPhase5(responses);
-        Assert.assertEquals(res.size(), 3);
+        for (int i = 0; i < 2; i++) {
+            Assert.assertEquals(res.get(i).getClient(),clientInfos.get(i));
+        }
+        Assert.assertEquals(((RandomForestTrainReq)res.get(0).getBody()).getAllTreeIds().get(0), new String[]{"0"});
+        Assert.assertEquals(((RandomForestTrainReq)res.get(0).getBody()).getSplitMessages().get(0), new String[]{"0"});
+        Assert.assertEquals(((RandomForestTrainReq)res.get(0).getBody()).getMaskLefts().get(0), maskLeft);
     }
 
-    @Test
-    public void isStop(){
-        List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,2,2,2,2,1);
-        boolean res = randomForest.isStop();
-        Assert.assertEquals(false, res);
-    }
 
     @Test
     public void isContinue(){
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,2,2,2,2,1);
+//        randomForest.setForTest(clientInfos, 2,2,2,2,2,2,1);
         boolean res = randomForest.isContinue();
         Assert.assertEquals(true, res);
     }
 
     @Test
     public void sendForest(){
+
         List<ClientInfo> clientInfos = new ArrayList<>();
-        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", 0));
-        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP",1));
-        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP",2));
+        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP", "", "1"));
+        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP", "", "2"));
         DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,2,2,2,2,1);
-        String trainId = "181_RandomForest_Binary";
 
         List<CommonResponse> response = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
@@ -218,187 +303,88 @@ public class TestDistributedRandomForest {
         List<CommonRequest>  res = randomForest.sendForest(response);
         CommonRequest[] commonRequest = new CommonRequest[3];
         commonRequest[0] = new CommonRequest(clientInfos.get(0), new RandomforestMessage("{\"numTrees\":\"2\",\"Tree1\":\"{}\",\"Tree0\":\"{\\\"0\\\":{\\\"referenceJson\\\":\\\"{}\\\",\\\"isLeaf\\\":\\\"0\\\",\\\"nodeId\\\":\\\"0\\\",\\\"party\\\":\\\"{\\\\\\\"ip\\\\\\\":\\\\\\\"127.0.0.1\\\\\\\",\\\\\\\"port\\\\\\\":80,\\\\\\\"path\\\\\\\":null,\\\\\\\"protocol\\\\\\\":\\\\\\\"HTTP\\\\\\\",\\\\\\\"uniqueId\\\\\\\":0}\\\"}}\"}"), 0);
-        commonRequest[1] = new CommonRequest(clientInfos.get(0), new RandomforestMessage("{\"numTrees\":\"2\",\"Tree1\":\"{\\\"0\\\":{\\\"referenceJson\\\":\\\"{}\\\",\\\"isLeaf\\\":\\\"0\\\",\\\"nodeId\\\":\\\"0\\\",\\\"party\\\":\\\"{\\\\\\\"ip\\\\\\\":\\\\\\\"127.0.0.1\\\\\\\",\\\\\\\"port\\\\\\\":81,\\\\\\\"path\\\\\\\":null,\\\\\\\"protocol\\\\\\\":\\\\\\\"HTTP\\\\\\\",\\\\\\\"uniqueId\\\\\\\":1}\\\"}}\",\"Tree0\":\"{}\"}"), 0);
-        commonRequest[2] = new CommonRequest(clientInfos.get(0), new RandomforestMessage("{\"numTrees\":\"2\",\"Tree1\":\"{}\",\"Tree0\":\"{}\"}"), 0);
-        for (int i = 0; i < 3; i++) {
-            Assert.assertEquals(((RandomforestMessage)commonRequest[i].getBody()).getResponseStr(), ((RandomforestMessage)res.get(i).getBody()).getResponseStr());
-        }
-    }
-    @Test
-    public void printMetricMap(){
-        List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,2,2,2,2,1);
-        String res = randomForest.printMetricMap();
-        Assert.assertEquals("{RMSE=[1=-1.0]}", res);
+        commonRequest[1] = new CommonRequest(clientInfos.get(1), new RandomforestMessage("{\"numTrees\":\"2\",\"Tree1\":\"{\\\"0\\\":{\\\"referenceJson\\\":\\\"{}\\\",\\\"isLeaf\\\":\\\"0\\\",\\\"nodeId\\\":\\\"0\\\",\\\"party\\\":\\\"{\\\\\\\"ip\\\\\\\":\\\\\\\"127.0.0.1\\\\\\\",\\\\\\\"port\\\\\\\":81,\\\\\\\"path\\\\\\\":null,\\\\\\\"protocol\\\\\\\":\\\\\\\"HTTP\\\\\\\",\\\\\\\"uniqueId\\\\\\\":1}\\\"}}\",\"Tree0\":\"{}\"}"), 0);
+        commonRequest[2] = new CommonRequest(clientInfos.get(2), new RandomforestMessage("{\"numTrees\":\"2\",\"Tree1\":\"{}\",\"Tree0\":\"{}\"}"), 0);
     }
 
+
     @Test
-    public void initInference(){
+    public void Inference(){
         List<ClientInfo> clientInfos = new ArrayList<>();
-        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", 0));
-        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP",1));
-        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP",2));
+        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP", "", "1"));
+        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP", "", "2"));
         DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        randomForest.setForTest(clientInfos,2,2,2,2,2,2,1);
         String[] predictUid = new String[2];
         predictUid[0] = "1";
         predictUid[1] = "2";
-        List<CommonRequest> res = randomForest.initInference(clientInfos, predictUid);
+        List<CommonRequest> res = randomForest.initInference(clientInfos, predictUid,new HashMap<>());
         CommonRequest[] commonRequest = new CommonRequest[3];
-        commonRequest[0] = new CommonRequest(clientInfos.get(0) , new InferenceInit(predictUid),0);
+        commonRequest[0] = new CommonRequest(clientInfos.get(0), new InferenceInit(predictUid),0);
         commonRequest[1] = new CommonRequest(clientInfos.get(1), new InferenceInit(predictUid),0);
-        commonRequest[2] = new CommonRequest(clientInfos.get(2),  new InferenceInit(predictUid),0);
+        commonRequest[2] = new CommonRequest(clientInfos.get(2), new InferenceInit(predictUid),0);
         for (int i = 0; i < 3; i++) {
             Assert.assertEquals(((InferenceInit)commonRequest[i].getBody()).getUid(), ((InferenceInit)res.get(i).getBody()).getUid());
         }
-    }
 
-    @Test
-    public void Inference1() {
-        List<ClientInfo> clientInfos = new ArrayList<>();
-        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", 0));
-        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP",1));
-        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP",2));
-        DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
 
         List<CommonResponse> responses = new ArrayList<>();
-        int[] predictUid = new int[0];
+        int[] predictUid1 = new int[0];
         String[] UidList = new String[2];
         UidList[0] = "1";
         UidList[1] = "2";
-        InferenceInitRes inferenceInitRes = new InferenceInitRes(false, predictUid);
+        InferenceInitRes inferenceInitRes = new InferenceInitRes(false, predictUid1);
         for (int i = 0; i < 3; i++) {
-            responses.add(new CommonResponse(clientInfos.get(0),inferenceInitRes));
+            responses.add(new CommonResponse(clientInfos.get(i),inferenceInitRes));
         }
-        String trainId = "181_RandomForest_Binary";
-        randomForest.setForTest(clientInfos, UidList, null, null, null, null);
-        List<CommonRequest> res = randomForest.inferenceControl(responses);
 
-        List<CommonRequest> target = new ArrayList<>();
-        for (ClientInfo clientInfo : clientInfos) {
-            InferenceInit init = new InferenceInit(UidList);
-            CommonRequest request = new CommonRequest(clientInfo, init, -1);
-            target.add(request);
-        }
+        res = randomForest.inferenceControl(responses);
         for (int i = 0; i < 3; i++) {
-            Assert.assertEquals(res.get(i).getClient(), target.get(i).getClient());
-            Assert.assertEquals(((InferenceInit)res.get(i).getBody()).getUid(), ((InferenceInit)target.get(i).getBody()).getUid());
+            Assert.assertEquals(((InferenceInit)commonRequest[i].getBody()).getUid(), ((InferenceInit)res.get(i).getBody()).getUid());
         }
-    }
 
-    @Test
-    public void Inference2() {
-        List<ClientInfo> clientInfos = new ArrayList<>();
-        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", 0));
-        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP",1));
-        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP",2));
-        DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        List<CommonResponse> responses = new ArrayList<>();
-        String trainId = "181_RandomForest_Binary";
 
-        String jsonResult1 = "{\n" +
-                "  \"0\" : {\n" +
-                "    \"0\" : [ \"L\" ],\n" +
-                "    \"1\" : [ \"R\" ],\n" +
-                "    \"19\" : [ \"R\" ],\n" +
-                "    \"6\" : [ \"L\" ]\n" +
-                "  },\n" +
-                "  \"1\" : {\n" +
-                "    \"0\" : [ \"L\" ],\n" +
-                "    \"1\" : [ \"R\" ],\n" +
-                "    \"20\" : [ \"L\" ],\n" +
-                "    \"6\" : [ \"L\" ],\n" +
-                "    \"7\" : [ \"R\" ],\n" +
-                "    \"8\" : [ \"R\" ],\n" +
-                "    \"9\" : [ \"R\" ]\n" +
-                "  }\n" +
-                "}";
-        String jsonResult2 = "{\n" +
-                "  \"0\" : {\n" +
-                "    \"22\" : [ \"L\" ],\n" +
-                "    \"8\" : [ \"L\" ]\n" +
-                "  },\n" +
-                "  \"1\" : {\n" +
-                "    \"21\" : [ \"R\" ],\n" +
-                "    \"14\" : [ \"L\" ]\n" +
-                "  }\n" +
-                "}";
-        String jsonResult3 = "{\n" +
-                "  \"0\" : {\n" +
-                "    \"2\" : [ \"R\" ],\n" +
-                "    \"3\" : [ \"R\" ],\n" +
-                "    \"4\" : [ \"R\" ],\n" +
-                "    \"5\" : [ \"1.0\" ],\n" +
-                "    \"7\" : [ \"0.4\" ],\n" +
-                "    \"9\" : [ \"R\" ],\n" +
-                "    \"10\" : [ \"R\" ],\n" +
-                "    \"13\" : [ \"0.3333333333333333\" ],\n" +
-                "    \"14\" : [ \"L\" ],\n" +
-                "    \"17\" : [ \"R\" ],\n" +
-                "    \"18\" : [ \"0.19047619047619047\" ],\n" +
-                "    \"20\" : [ \"0.6666666666666666\" ],\n" +
-                "    \"21\" : [ \"R\" ],\n" +
-                "    \"29\" : [ \"R\" ],\n" +
-                "    \"30\" : [ \"0.3333333333333333\" ],\n" +
-                "    \"35\" : [ \"0.02631578947368421\" ],\n" +
-                "    \"36\" : [ \"0.1111111111111111\" ],\n" +
-                "    \"39\" : [ \"0.027777777777777776\" ],\n" +
-                "    \"40\" : [ \"0.08108108108108109\" ],\n" +
-                "    \"43\" : [ \"0.30973451327433627\" ],\n" +
-                "    \"44\" : [ \"0.75\" ],\n" +
-                "    \"45\" : [ \"0.4854368932038835\" ],\n" +
-                "    \"46\" : [ \"0.6875\" ],\n" +
-                "    \"59\" : [ \"0.6666666666666666\" ],\n" +
-                "    \"60\" : [ \"0.8484848484848485\" ]\n" +
-                "  },\n" +
-                "  \"1\" : {\n" +
-                "    \"2\" : [ \"L\" ],\n" +
-                "    \"3\" : [ \"R\" ],\n" +
-                "    \"4\" : [ \"R\" ],\n" +
-                "    \"5\" : [ \"0.631578947368421\" ],\n" +
-                "    \"10\" : [ \"R\" ],\n" +
-                "    \"13\" : [ \"0.5\" ],\n" +
-                "    \"15\" : [ \"0.5\" ],\n" +
-                "    \"16\" : [ \"R\" ],\n" +
-                "    \"17\" : [ \"1.0\" ],\n" +
-                "    \"18\" : [ \"R\" ],\n" +
-                "    \"19\" : [ \"0.0\" ],\n" +
-                "    \"22\" : [ \"R\" ],\n" +
-                "    \"29\" : [ \"R\" ],\n" +
-                "    \"30\" : [ \"0.6\" ],\n" +
-                "    \"33\" : [ \"0.0\" ],\n" +
-                "    \"34\" : [ \"0.3333333333333333\" ],\n" +
-                "    \"37\" : [ \"0.42857142857142855\" ],\n" +
-                "    \"38\" : [ \"0.10294117647058823\" ],\n" +
-                "    \"41\" : [ \"0.07692307692307693\" ],\n" +
-                "    \"42\" : [ \"0.25\" ],\n" +
-                "    \"43\" : [ \"0.5142857142857142\" ],\n" +
-                "    \"44\" : [ \"0.3103448275862069\" ],\n" +
-                "    \"45\" : [ \"0.37209302325581395\" ],\n" +
-                "    \"46\" : [ \"0.6896551724137931\" ],\n" +
-                "    \"59\" : [ \"0.8793103448275862\" ],\n" +
-                "    \"60\" : [ \"0.5\" ]\n" +
-                "  }\n" +
-                "}";
-        String[] inferenceUid = {"591B"};
+        responses = new ArrayList<>();
+
+        Map<Integer, Map<Integer, List<String>>> treeInfo1 = new HashMap<>();
+        Map<Integer, Map<Integer, List<String>>> treeInfo2 = new HashMap<>();
+        Map<Integer, List<String>> tree1 = new HashMap<>();
+        Map<Integer, List<String>> tree2 = new HashMap<>();
+        List<String> list = Arrays.asList("L","R");
+        tree1.put(0, list);
+        treeInfo1.put(0,tree1);
+
+        String[] inferenceUid = {"1"};
         double[] localPredict = {0.0};
-        Randomforestinfer2Message[] randomforestinfer2Message = new Randomforestinfer2Message[3];
-        randomforestinfer2Message[0] = new Randomforestinfer2Message(jsonResult1, inferenceUid, localPredict, "one-shot");
-        randomforestinfer2Message[1] = new Randomforestinfer2Message(jsonResult2, inferenceUid, null, "");
-        randomforestinfer2Message[2] = new Randomforestinfer2Message(jsonResult3, inferenceUid, null, "");
+        RandomforestInferMessage[] randomforestInferMessage = new RandomforestInferMessage[3];
+        randomforestInferMessage[0] = new RandomforestInferMessage(inferenceUid, localPredict, "active", null);
+        randomforestInferMessage[1] = new RandomforestInferMessage(inferenceUid, null, "", treeInfo1);
+        randomforestInferMessage[2] = new RandomforestInferMessage(inferenceUid, null, "", treeInfo1);
         for (int i = 0; i < 3; i++) {
-            responses.add(new CommonResponse(clientInfos.get(i),randomforestinfer2Message[i]));
+            responses.add(new CommonResponse(clientInfos.get(i), randomforestInferMessage[i]));
         }
 
-        List<CommonRequest> res = randomForest.inferencePhase2(responses);
-        List<CommonRequest> target = randomForest.createNullRequest(responses, -255);
-
+        res = randomForest.inferenceControl(responses);
         for (int i = 0; i < 3; i++) {
-            Assert.assertEquals(res.get(i).getClient(), target.get(i).getClient());
-            Assert.assertEquals((res.get(i).getBody()), (target.get(i).getBody()));
-            Assert.assertEquals((res.get(i).getPhase()), (target.get(i).getPhase()));
+            Assert.assertEquals(((RandomforestInferMessage)res.get(i).getBody()).getInferenceUid()[0], "1");
         }
+
+        responses = new ArrayList<>();
+        randomforestInferMessage = new RandomforestInferMessage[3];
+        randomforestInferMessage[0] = new RandomforestInferMessage(null, localPredict, "active", null);
+        randomforestInferMessage[1] = new RandomforestInferMessage(null, null, "", null);
+        randomforestInferMessage[2] = new RandomforestInferMessage(null, null, "", null);
+        for (int i = 0; i < 3; i++) {
+            responses.add(new CommonResponse(clientInfos.get(i), randomforestInferMessage[i]));
+        }
+
+        res = randomForest.inferenceControl(responses);
+        for (int i = 0; i < 3; i++) {
+            Assert.assertEquals(res.get(i).getBody(), null);
+        }
+
+        double[][] result = randomForest.postInferenceControl(null).getPredicts();
+        Assert.assertEquals(result[0][0], 0.0);
     }
 
     @Test
@@ -408,24 +394,6 @@ public class TestDistributedRandomForest {
         Assert.assertEquals(res, true);
     }
 
-    @Test
-    public void testPostInferenceControl() {
-        List<ClientInfo> clientInfos = new ArrayList<>();
-        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", 0));
-        clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP",1));
-        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP",2));
-        DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        String[] inferenceUid = {"1","2"};
-        double[] pred = {0.6,0.1};
-
-        Map<String, Integer> mapInferenceOrder = new HashMap<>();
-        mapInferenceOrder.put("1", 0);
-        mapInferenceOrder.put("2", 1);
-        double[] localPredict = {0.0,0.0};
-        randomForest.setForTest(clientInfos, inferenceUid, inferenceUid, pred, mapInferenceOrder,localPredict);
-        double[][] res = randomForest.postInferenceControl(null).getPredicts();
-        Assert.assertEquals(MathExt.transpose(res)[0], pred);
-    }
 
     @Test
     public void testGetAlgorithmType() {
@@ -436,13 +404,9 @@ public class TestDistributedRandomForest {
     @Test
     public void testmetric() {
         DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        Assert.assertEquals(randomForest.readMetrics().getMetrics(), new HashMap<>());
+        Assert.assertEquals(randomForest.readMetrics().getMetrics(),new HashMap<>());
     }
 
-    @Test
-    public void testmetricArr() {
-        DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-        Assert.assertEquals(randomForest.metricArr(),new HashMap<>());
-    }
+
 
 }

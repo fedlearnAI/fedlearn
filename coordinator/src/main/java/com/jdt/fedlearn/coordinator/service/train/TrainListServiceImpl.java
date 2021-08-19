@@ -13,18 +13,16 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.service.train;
 
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTrainMapper;
+import com.jdt.fedlearn.coordinator.entity.common.CommonQuery;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdchainTrainInfo;
-import com.jdt.fedlearn.coordinator.entity.table.TaskAnswer;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
-import com.jdt.fedlearn.coordinator.entity.train.TrainListReq;
 import com.jdt.fedlearn.coordinator.entity.train.TrainListRes;
 import com.jdt.fedlearn.coordinator.entity.train.TrainStatus;
 import com.jdt.fedlearn.coordinator.service.AbstractDispatchService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
-import com.jdt.fedlearn.coordinator.service.task.TaskListImpl;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import scala.Tuple2;
 
@@ -35,18 +33,16 @@ import java.util.stream.Collectors;
  * 训练列表包括正在训练和训练完成的，失败的和主动停止的
  */
 public class TrainListServiceImpl implements TrainService {
-    public static final String TASK_LIST = "taskList";
+    public static final String TRAIN_LIST = "trainList";
 
     @Override
     public Map<String, Object> service(String content) {
         Map<String, Object> resultMap = new HashMap<>();
-        TrainListReq query = new TrainListReq(content);
-        if (query.getTaskId() != null) {
-            resultMap.put(TASK_LIST, queryOneTaskTrainList(query));
-        } else {
-            List<TrainListRes> taskInfos = queryBothTrainList(query);
-            resultMap.put(TASK_LIST, taskInfos);
-        }
+        CommonQuery query = new CommonQuery(content);
+
+        List<TrainListRes> taskInfos = queryBothTrainList(query);
+        resultMap.put(TRAIN_LIST, taskInfos);
+
         return new AbstractDispatchService() {
             @Override
             public Map dealService() {
@@ -55,20 +51,10 @@ public class TrainListServiceImpl implements TrainService {
         }.doProcess(true);
     }
 
-    /**
-     * 之查询某个任务的训练列表
-     *
-     * @param query 　用户名和任务id
-     * @return
-     */
-    private List<TrainListRes> queryOneTaskTrainList(TrainListReq query) {
-        return new ArrayList<>();
-    }
-
-    private List<TrainListRes> queryBothTrainList(TrainListReq query) {
-        if (ConfigUtil.getJdChainAvailable()){
-            return getTrainList(query);
-        }else {
+    private List<TrainListRes> queryBothTrainList(CommonQuery query) {
+        if (ConfigUtil.getJdChainAvailable()) {
+            return getChainTrainList(query);
+        } else {
             return queryTrainList(query);
         }
     }
@@ -76,21 +62,20 @@ public class TrainListServiceImpl implements TrainService {
 
     /**
      * @param query 请求
-     * 获取训练列表，包含当前用户创建的和当前用户加入的
-     * @return  List<TrainListRes>
+     *              获取训练列表，包含当前用户创建的和当前用户加入的
+     * @return List<TrainListRes>
      * @author geyan29
      */
-    private List<TrainListRes> getTrainList(TrainListReq query) {
-        String username = query.getUsername();
-        List<JdchainTrainInfo> allJdchainTrainInfos = ChainTrainMapper.queryAllTrain();
+    private List<TrainListRes> getChainTrainList(CommonQuery query) {
+        //TODO 请求需要删掉username
+        List<JdchainTrainInfo> allJdchainTrainInfos = ChainTrainMapper.queryAllTrainByTaskList(query.getTaskList());
         List<JdchainTrainInfo> collect = allJdchainTrainInfos.parallelStream()
-                .filter(trainInfo -> username.equals(trainInfo.getUsername()) || (trainInfo.getPartners() != null && trainInfo.getPartners().contains(username)))
                 .sorted(Comparator.comparing(JdchainTrainInfo::getTrainEndTime, Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
 
         List<TrainListRes> list = collect.stream()
                 .filter(x -> x.getRunningType() != null)
-                .map(c -> new TrainListRes(c.getTaskId(), c.getTaskName(), c.getRunningType(), c.getModelToken()))
+                .map(c -> new TrainListRes(c.getTaskId(), c.getRunningType(), c.getModelToken()))
                 .collect(Collectors.toList());
 
         return list;
@@ -102,12 +87,10 @@ public class TrainListServiceImpl implements TrainService {
      * @param query 用户名
      * @return
      */
-    public List<TrainListRes> queryTrainList(TrainListReq query) {
+    public List<TrainListRes> queryTrainList(CommonQuery query) {
         //查询该用户的全部任务
-        List<TaskAnswer> createdTask = queryMyTask(query.getUsername());
-
+        List<String> taskIdList = query.getTaskList();
         Map<String, List<TrainStatus>> globalMpa = new HashMap<>();
-        //
         Set<Map.Entry<String, TrainContext>> entries = TrainCommonServiceImpl.trainContextMap.entrySet();
         for (Map.Entry<String, TrainContext> next : entries) {
             String entry = next.getKey();
@@ -127,14 +110,12 @@ public class TrainListServiceImpl implements TrainService {
         List<TrainListRes> runningRes = new ArrayList<>();
         List<TrainListRes> competePes = new ArrayList<>();
         Set<String> modelSet = TrainCommonServiceImpl.trainContextMap.keySet();
-        for (TaskAnswer m : createdTask) {
+        for (String taskId : taskIdList) {
             // 查询内存运行中的数据
-            Integer taskId = m.getTaskId();
-            String taskName = m.getTaskName();
             List<TrainStatus> trainProgressList;
-            if ((trainProgressList = globalMpa.get(String.valueOf(taskId))) != null) {
+            if ((trainProgressList = globalMpa.get(taskId)) != null) {
                 for (TrainStatus trainProgress : trainProgressList) {
-                    TrainListRes map = new TrainListRes(String.valueOf(taskId), taskName, trainProgress.getRunningType(), trainProgress.getToken());
+                    TrainListRes map = new TrainListRes(taskId, trainProgress.getRunningType(), trainProgress.getToken());
                     runningRes.add(map);
                 }
             }
@@ -143,7 +124,7 @@ public class TrainListServiceImpl implements TrainService {
             if (modelList.size() > 0) {
                 for (Tuple2<String, RunningType> model : modelList) {
                     if (!modelSet.contains(model._1)) {
-                        TrainListRes map = new TrainListRes(String.valueOf(taskId), taskName, model._2, model._1);
+                        TrainListRes map = new TrainListRes(taskId, model._2, model._1);
                         competePes.add(map);
                     }
                 }
@@ -151,20 +132,12 @@ public class TrainListServiceImpl implements TrainService {
         }
         // 保存running，在前边
         runningRes.addAll(competePes);
+        if (query.getType() != null) {
+            runningRes = runningRes.stream().
+                    filter(res -> query.getType().equals(res.getRunningStatus().toString())).
+                    collect(Collectors.toList());
+        }
         return runningRes;
     }
 
-    /**
-     * 查询用户创建和加入的任务
-     *
-     * @param username 用户名
-     * @return 任务列表
-     */
-    public List<TaskAnswer> queryMyTask(String username) {
-        TaskListImpl taskList = new TaskListImpl();
-        List<TaskAnswer> createdTask = taskList.selectCreatedTask(username);
-        List<TaskAnswer> joinedTask = taskList.selectJoinedTask(username);
-        createdTask.addAll(joinedTask);
-        return createdTask;
-    }
 }

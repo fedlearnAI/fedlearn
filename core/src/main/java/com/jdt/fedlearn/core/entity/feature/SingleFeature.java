@@ -19,7 +19,7 @@ import java.util.Objects;
 public class SingleFeature implements Message {
     //特征名
     private final String name;
-    //特征类型, 目前支持i int/float/boolean/string
+    //特征类型, 目前支持i int/float/bool/string
     private final String type;
     //该特征在所有客户端中出现次数
     private final int frequency;

@@ -1,7 +1,8 @@
 package com.jdt.fedlearn.coordinator.entity.train;
 
+import com.jdt.fedlearn.common.entity.SingleParameter;
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.coordinator.service.prepare.AlgorithmParameterImpl;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.core.dispatch.common.Control;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
@@ -47,14 +48,14 @@ public class TrainContext implements Message {
         this.dispatcher = dispatcher;
     }
 
-    public TrainContext(StartValues values, RunningType runningType, String trainStartTime, List<SingleParameter> parameterFieldList, List<SingleParameter> commonParams) {
+    public TrainContext(StartValues values, RunningType runningType, String trainStartTime, List<SingleParameter> parameterFieldList) {
         this.values = values;
         this.runningType = runningType;
         this.requests = null;
         this.dispatcher = null;
         this.trainStartTime = trainStartTime;
         this.parameterFieldList = parameterFieldList;
-        this.splitRatio = extractSplitRatio(commonParams);
+        this.splitRatio = extractSplitRatio(parameterFieldList);
     }
 
     public TrainContext(RunningType runningType, String trainStartTime, int percent ,MetricValue metricValue,List<SingleParameter> parameterFieldList) {

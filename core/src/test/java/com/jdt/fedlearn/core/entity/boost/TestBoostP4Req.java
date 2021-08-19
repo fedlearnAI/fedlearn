@@ -29,18 +29,19 @@ public class TestBoostP4Req {
     @Test
     public void jsonSerialize(){
         Serializer serializer = new JsonSerializer();
-        BoostP4Req boostP4Req = new BoostP4Req(new ClientInfo(), 1,3 ,true);
+        BoostP4Req boostP4Req = new BoostP4Req(new ClientInfo(null,0,null,null,null), 1,3 ,true);
         String str = serializer.serialize(boostP4Req);
         System.out.println(str);
 
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"kOpt\":1,\"vOpt\":3,\"accept\":true}}";
+//        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"kOpt\":1,\"vOpt\":3,\"accept\":true}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{\"port\":0},\"kOpt\":1,\"vOpt\":3,\"accept\":true}}";
         Assert.assertEquals(str, content);
     }
 
     @Test
     public void javaSerializeDeserialize(){
         Serializer serializer = new JavaSerializer();
-        ClientInfo clientInfo = new ClientInfo();
+        ClientInfo clientInfo = new ClientInfo(null,0,null,null);
 
         BoostP4Req boostP4Req = new BoostP4Req(clientInfo, 1, 4, true);
         String str = serializer.serialize(boostP4Req);

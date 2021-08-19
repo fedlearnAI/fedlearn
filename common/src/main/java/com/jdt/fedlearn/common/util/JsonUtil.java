@@ -18,9 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ui.ModelMap;
-
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -28,28 +25,20 @@ public class JsonUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(JsonUtil.class);
 
-    public static ModelMap parseJson(String jsonStr) {
-        ObjectMapper mapper = new ObjectMapper();
-        ModelMap p1r = null;
-        try {
-            p1r = mapper.readValue(jsonStr, ModelMap.class);
-        } catch (IOException e) {
-            logger.error("parse json error");
-        }
-        return p1r;
-    }
-
     public static <T> T json2Object(String jsonStr,Class<T> clazz){
         ObjectMapper mapper = new ObjectMapper();
         try {
             return mapper.readValue(jsonStr, clazz);
         } catch (JsonProcessingException e) {
-            logger.error("JsonUtil.json2Object JsonProcessingException: " + e);
+            logger.error("JsonUtil.json2Object JsonProcessingException: {}",e);
         }
         return null;
     }
 
     public static String object2json(Object object) {
+        if(object instanceof String){
+            return (String) object;
+        }
         if (object == null) {
             return null;
         }
@@ -58,7 +47,7 @@ public class JsonUtil {
         try {
             jsonStr = objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
-            logger.error("JsonUtil.object2json JsonProcessingException: " + e);
+            logger.error("JsonUtil.object2json JsonProcessingException: {}" ,e);
         }
         return jsonStr;
     }
@@ -70,7 +59,7 @@ public class JsonUtil {
             list = objectMapper.readValue(text, TypeFactory.defaultInstance().constructCollectionType(List.class, clazz));
         } catch (JsonProcessingException e) {
             e.printStackTrace();
-            logger.error("JsonUtil.parseArray JsonProcessingException: " + e);
+            logger.error("JsonUtil.parseArray JsonProcessingException: {}",e);
         }
         return list;
     }
@@ -84,7 +73,8 @@ public class JsonUtil {
      */
     public static Map<String, Object> object2map(Object object) {
         String jsonStr = object2json(object);
-        Map<String,Object> map = parseJson(jsonStr);
+        Map<String,Object> map = json2Object(jsonStr,Map.class);
         return map;
     }
+
 }

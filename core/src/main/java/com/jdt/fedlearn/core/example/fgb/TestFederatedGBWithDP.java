@@ -156,7 +156,7 @@
 //        }
 //        long start = System.currentTimeMillis();
 //
-//        List<CommonRequest> requests = boost.initInference(Arrays.asList(clientInfos.clone()), predictUid);
+//        List<CommonRequest> requests = boost.initInference(Arrays.asList(clientInfos.clone()), predictUid,false);
 //
 //        double[] result = CommonRun.inference(boost, requests, modelMap, dataMap);
 //        String[][] d = dataMap.get(clientInfos[0]);

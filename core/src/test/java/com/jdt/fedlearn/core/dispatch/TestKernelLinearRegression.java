@@ -7,8 +7,6 @@ import com.jdt.fedlearn.core.entity.common.*;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.parameter.KernelLinearRegressionParameter;
-import com.jdt.fedlearn.core.psi.MappingOutput;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.data.Pair;
@@ -127,7 +125,7 @@ public class TestKernelLinearRegression {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         KernelLinearRegression kernelLinearRegression = new KernelLinearRegression(new KernelLinearRegressionParameter());
         String[] predUid = new String[]{"0A", "1B", "2C"};
-        List<CommonRequest> requests = kernelLinearRegression.initInference(clientInfos, predUid);
+        List<CommonRequest> requests = kernelLinearRegression.initInference(clientInfos, predUid,new HashMap<>());
         Assert.assertEquals(clientInfos.size(), requests.size());
         CommonRequest commonRequest = requests.get(0);
         Message message = commonRequest.getBody();

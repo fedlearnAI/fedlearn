@@ -13,8 +13,8 @@ limitations under the License.
 package com.jdt.fedlearn.worker.service;
 
 
+import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.worker.entity.system.Metadata;
-import com.jdt.fedlearn.worker.util.ConfigUtil;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;

@@ -3,7 +3,6 @@ package com.jdt.fedlearn.core.encryption;
 import com.jdt.fedlearn.core.encryption.IterativeAffine.IterativeAffineCiphertext;
 import com.jdt.fedlearn.core.encryption.IterativeAffine.IterativeAffineKey;
 import com.jdt.fedlearn.core.encryption.IterativeAffine.IterativeAffineTool;
-import com.jdt.fedlearn.core.model.RandomForestModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeMethod;
@@ -13,7 +12,7 @@ import java.io.*;
 import java.util.*;
 
 public class TestIterativeAffine {
-    private static final Logger logger = LoggerFactory.getLogger(RandomForestModel.class);
+    private static final Logger logger = LoggerFactory.getLogger(TestIterativeAffine.class);
 
     double[] a;
     int n;

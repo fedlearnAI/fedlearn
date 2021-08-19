@@ -14,6 +14,8 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.entity.train;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jdt.fedlearn.common.entity.SingleParameter;
+import com.jdt.fedlearn.common.entity.project.PartnerInfoNew;
 import com.jdt.fedlearn.core.exception.DeserializeException;
 
 import java.io.IOException;
@@ -28,13 +30,11 @@ import java.util.List;
  */
 
 public class StartTrain {
-    private String username;
     private String taskId;
     private String model;
-    //
+    private String matchId;
     private List<SingleParameter> algorithmParams;
-    //id对齐选项和 交叉验证参数
-    private List<SingleParameter> commonParams;
+    private List<PartnerInfoNew> clientList;
 
     public StartTrain() {
     }
@@ -48,11 +48,11 @@ public class StartTrain {
         StartTrain p3r;
         try {
             p3r = mapper.readValue(jsonStr, StartTrain.class);
-            this.username = p3r.username;
             this.taskId = p3r.taskId;
             this.model = p3r.model;
+            this.matchId = p3r.matchId;
             this.algorithmParams = p3r.algorithmParams;
-            this.commonParams = p3r.commonParams;
+            this.clientList = p3r.clientList;
         } catch (IOException e) {
             throw new DeserializeException(e.getMessage());
         }
@@ -70,11 +70,11 @@ public class StartTrain {
         return this.algorithmParams;
     }
 
-    public List<SingleParameter> getCommonParams() {
-        return this.commonParams;
+    public List<PartnerInfoNew> getClientList() {
+        return clientList;
     }
 
-    public String getUsername() {
-        return this.username;
+    public String getMatchId() {
+        return matchId;
     }
 }

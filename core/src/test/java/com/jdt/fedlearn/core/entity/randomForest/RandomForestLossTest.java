@@ -14,6 +14,11 @@ public class RandomForestLossTest {
         SimpleMatrix label = new SimpleMatrix(y);
         double res = loss.bagging(label);
         assertEquals(res, 0.5);
+        try {
+            new RandomForestLoss("");
+        } catch (Exception e) {
+            assertEquals(e.getMessage(), "Unsupported loss type!");
+        }
     }
 
     @Test

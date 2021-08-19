@@ -12,12 +12,11 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.service;
 
-import com.jdt.fedlearn.worker.cache.ModelCache;
-import com.jdt.fedlearn.worker.cache.TrainDataCache;
-import com.jdt.fedlearn.worker.entity.Feature;
+import com.jdt.fedlearn.client.cache.ModelCache;
+import com.jdt.fedlearn.client.cache.TrainDataCache;
+import com.jdt.fedlearn.client.entity.Feature;
+import com.jdt.fedlearn.client.entity.source.DataSourceConfig;
 import com.jdt.fedlearn.worker.entity.system.Metadata;
-import com.jdt.fedlearn.worker.entity.source.DataSourceConfig;
-import com.jdt.fedlearn.worker.util.ConfigUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,8 @@ public class SystemService {
     public Map<String, Object> fetchMetadata() {
         List<Metadata> dataList = new ArrayList<>();
         try {
-            List<DataSourceConfig> trainConfigs = ConfigUtil.trainConfigList();
+//            List<DataSourceConfig> trainConfigs = ConfigUtil.trainConfigList();
+            List<DataSourceConfig> trainConfigs = TrainDataCache.dataSourceMap.get(TrainDataCache.TRAIN_DATA_SOURCE);
             for (DataSourceConfig x : trainConfigs) {
                 List<Feature> header = TrainDataCache.loadHeader(x);
                 Metadata metadata = new Metadata(x.getDataName(), header);

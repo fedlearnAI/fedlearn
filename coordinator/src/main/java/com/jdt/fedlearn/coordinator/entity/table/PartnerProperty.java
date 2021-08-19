@@ -22,6 +22,7 @@ import java.util.Random;
  * 客户端属性, 包括这个客户端属于哪个用户，哪个任务，地址，唯一标识码，该客户的该任务对应的客户端绑定的数据集名称等信息
  * @since 0.6.6
  */
+@Deprecated
 public class PartnerProperty {
     private String id;
     private int taskId;
@@ -133,7 +134,7 @@ public class PartnerProperty {
     }
 
     public ClientInfo toClientInfo() {
-        return new ClientInfo(clientIp, port, protocol, token);
+        return new ClientInfo(clientIp, port, protocol, "");
     }
 
     public void setProtocol(String protocol) {

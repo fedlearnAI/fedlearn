@@ -16,8 +16,6 @@ package com.jdt.fedlearn.core.entity.common;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.parameter.SuperParameter;
-import com.jdt.fedlearn.core.psi.MappingResult;
-import com.jdt.fedlearn.core.psi.MatchResult;
 
 import java.util.Map;
 

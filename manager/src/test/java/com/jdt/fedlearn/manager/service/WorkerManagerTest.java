@@ -13,6 +13,7 @@ limitations under the License.
 package com.jdt.fedlearn.manager.service;
 
 import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.WorkerUnit;
 import com.jdt.fedlearn.common.entity.Task;
@@ -81,7 +82,7 @@ public class WorkerManagerTest extends PowerMockTestCase {
         PowerMockito.mockStatic(WorkerCommandUtil.class);
         CommonResultStatus commonResultStatus = new CommonResultStatus();
         Map map = new HashMap();
-        map.put(AppConstant.DATA,"true");
+        map.put(ResponseConstant.DATA,"true");
         commonResultStatus.setData(map);
         PowerMockito.when(WorkerCommandUtil.request(anyString(),any(WorkerCommandEnum.class),any())).thenReturn(commonResultStatus);
     }

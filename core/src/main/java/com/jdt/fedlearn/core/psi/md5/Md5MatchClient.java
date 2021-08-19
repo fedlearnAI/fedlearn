@@ -18,7 +18,10 @@ import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.psi.MatchInitRes;
 import com.jdt.fedlearn.core.entity.psi.MatchTransit;
 import com.jdt.fedlearn.core.psi.PrepareClient;
+import com.jdt.fedlearn.core.util.HashUtil;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -26,27 +29,34 @@ import java.util.Map;
  */
 public class Md5MatchClient implements PrepareClient {
     private String[] commonIds = null;
-    @Override
-    public String[] getCommonIds() {
-        return commonIds;
-    }
-
+    private Map<String, String> tmpMap = new HashMap<>();
 
     @Override
-    public Message init(String[] uid, Map<String,Object> others) {
-        // TODO uid加密传输
-        return new MatchInitRes(null, uid);
+    public Message init(String[] uid, Map<String, Object> others) {
+        String[] hashUid = Arrays.stream(uid).map(HashUtil::sha1).toArray(String[]::new);
+        for (int i = 0; i < hashUid.length; i++) {
+            tmpMap.put(hashUid[i], uid[i]);
+        }
+        return new MatchInitRes(null, hashUid);
     }
 
+    @Override
     public Message client(int phase, Message parameterData, String[] data) {
         if (phase == 1) {
             if (!(parameterData instanceof MatchTransit)) {
                 throw new UnsupportedOperationException("Vertical-MD5 Phase 1 should be instance of MatchTransit");
             }
             // 结束了之后收取由master发过来的commonIds并赋值全局变量
-            commonIds = ((MatchTransit)parameterData).getIds().values().toArray(new String[0]);
+            String[] hashCommonId = ((MatchTransit) parameterData).getIds().values().toArray(new String[0]);
+            commonIds = Arrays.stream(hashCommonId).map(x -> tmpMap.get(x)).toArray(String[]::new);
+            tmpMap = null;
         }
         return EmptyMessage.message();
+    }
+
+    @Override
+    public String[] getCommonIds() {
+        return commonIds;
     }
 
 }

@@ -5,13 +5,12 @@ import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.example.CommonRun;
-import com.jdt.fedlearn.core.psi.MappingReport;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.EncryptionType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.DataParseUtil;
 import com.jdt.fedlearn.core.util.FileUtil;
-import com.jdt.fedlearn.core.loader.randomForest.DataFrame;
+import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.model.DistributedRandomForestModel;
 import com.jdt.fedlearn.core.model.Model;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
@@ -33,19 +32,19 @@ public class TestDisRandomForestReg {
     // 参数
     private static final String loss = "Regression:MSE"; // 回归问题
     private static final RandomForestParameter parameter = new RandomForestParameter(
-            2,
             5,
-            200,
+            5,
+            300,
             25,
             .8,
             30,
             30,
             "Null",
             10,
-            EncryptionType.Paillier,
+            EncryptionType.IterativeAffine,
             metrics,
             loss,
-            1024);
+            666);
     private static final DistributedRandomForest algo = new DistributedRandomForest(parameter);
     private ClientInfo[] clientInfos;
     //此处为需要手动配置的四个选项，分别是数据文件夹目录，参与方个数，有label的参与方id，label的名字。
@@ -55,7 +54,7 @@ public class TestDisRandomForestReg {
     private static final String labelName = "y";
 
     //客户端维护
-    private static Map<ClientInfo, DataFrame> dataMap = new HashMap<>();
+    private static Map<ClientInfo, RFTrainData> dataMap = new HashMap<>();
     private static Map<ClientInfo, String[][]> rawDataMap = new HashMap<>();
 
     public void setUp() {
@@ -63,19 +62,19 @@ public class TestDisRandomForestReg {
         List<String> categorical_features = new ArrayList<>(Arrays.asList(parameter.getCat_features().split(",")));
         this.clientInfos = new ClientInfo[partnerSize];
         for (int i = 0; i < partnerSize; i++) {
-            this.clientInfos[i] = new ClientInfo("127.0.0.1", 8891 + i, "http", i);
+            this.clientInfos[i] = new ClientInfo("127.0.0.1", 8891 + i, "http", "", String.valueOf(i));
             String fileName = "train" + i + ".csv";
             String[][] data = DataParseUtil.loadTrainFromFile(baseDir + fileName);
             rawDataMap.put(clientInfos[i], data);
-            dataMap.put(clientInfos[i], new DataFrame(data, categorical_features));
+            dataMap.put(clientInfos[i], new RFTrainData(data, categorical_features));
         }
     }
 
     public void testTrainAndTest() throws IOException {
         System.out.println("Random forest test start:");
         ////---------------id match  and feature extract---------------------////
-        Tuple2<MappingReport, String[]> mappingOutput = CommonRun.match(MappingType.VERTICAL_MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
-        MatchResult matchResult = new MatchResult(mappingOutput._1().getSize());
+        Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(MappingType.MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
+        MatchResult matchResult = mappingOutput._1();
         Map<ClientInfo, Features> featuresMap = new HashMap<>();
         for (Map.Entry<ClientInfo, String[][]> entry : rawDataMap.entrySet()) {
             Features features1 = DataParseUtil.fetchFeatureFromData(entry.getValue());
@@ -126,9 +125,9 @@ public class TestDisRandomForestReg {
 //        String[] predictUid = new String[]{"591B", "592B", "593A", "594B"};
 //        String[] predictUid = new String[]{"2891", "16484"};
         String[] predictUid = new String[]{"291B", "292A"};
-        List<CommonRequest> requests = algo.initInference(Arrays.asList(clientInfos.clone()), predictUid);
+        List<CommonRequest> requests = algo.initInference(Arrays.asList(clientInfos.clone()), predictUid,new HashMap<>());
         double[][] result = CommonRun.inference(algo, requests, modelMap, inferenceDataMap).getPredicts();
-        System.out.println("inference result is " + Arrays.toString(result));
+        System.out.println("inference result is " + Arrays.deepToString(result));
     }
 
     public static void main(String[] args) throws IOException {

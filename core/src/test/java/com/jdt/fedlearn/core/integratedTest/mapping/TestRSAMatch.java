@@ -2,10 +2,9 @@ package com.jdt.fedlearn.core.integratedTest.mapping;
 
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.example.CommonRun;
-import com.jdt.fedlearn.core.psi.MappingReport;
+import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.DataParseUtil;
-import com.jdt.fedlearn.core.psi.MappingOutput;
 import com.jdt.fedlearn.core.type.MappingType;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -51,7 +50,7 @@ public class TestRSAMatch {
     @Test
     public void RSAMatchTest() {
         //构造请求
-        Tuple2<MappingReport, String[]> mappingOutput = CommonRun.match(MappingType.VERTICAL_RSA, Arrays.asList(clientInfos.clone()), trainDataMap);
+        Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(MappingType.RSA, Arrays.asList(clientInfos.clone()), trainDataMap);
         System.out.println("mapping report is: " + mappingOutput._1().getReport());
         System.out.println("mapping result is: " + Arrays.toString(mappingOutput._2()));
     }

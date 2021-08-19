@@ -14,12 +14,17 @@ limitations under the License.
 package com.jdt.fedlearn.core.dispatch;
 
 import com.jdt.fedlearn.core.dispatch.common.Control;
+import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillier;
+import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierNative;
+import com.jdt.fedlearn.core.encryption.distributedPaillier.HomoEncryptionUtil;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
 import com.jdt.fedlearn.core.entity.common.*;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.*;
+import com.jdt.fedlearn.core.entity.mixedLinearRegression.CypherMessage2D;
+import com.jdt.fedlearn.core.entity.mixedLinearRegression.CypherMessage2DList;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.model.KernelLinearRegressionJavaModel;
 import com.jdt.fedlearn.core.parameter.KernelLinearRegressionParameter;
@@ -39,80 +44,71 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class KernelLinearRegressionJava implements Control {
+    private static final Logger logger = LoggerFactory.getLogger(KernelLinearRegressionJava.class);
 
     private static final AlgorithmType algorithmType = AlgorithmType.KernelBinaryClassificationJava;
-    public List<ClientInfo> clientInfoList;
-    private KernelLinearRegressionParameter parameter;
-    private static final Logger logger = LoggerFactory.getLogger(KernelLinearRegressionJava.class);
-    private Map<String, Integer> mapInferenceOrder = new HashMap<>();
-    private String[] originIdArray;
-    private int numSamples = -1;
-    private int round = 0;
-    private int numClient = 0;
-    private int clientInd = 0;
-    private String modelToken;
-    private String splitLine = "========================================================";
+    private final KernelLinearRegressionParameter parameter;
+    private int numClass;
+    private int bestRound = 0;
 
-    private boolean isInitTrain = false;
-    private boolean inferenceFinish = false;
-    private boolean isminiBatch = false;
+    private List<Double> multiClassUniqueLabelList;
+    private int round = 0;
     private Map<MetricType, List<Pair<Integer, Double>>> metricMap = new HashMap<>();
     private Map<MetricType, List<Pair<Integer, String>>> metricMapArr = new HashMap<>();
     private Map<MetricType, List<Pair<Integer, Double>>> metricMapVali = new HashMap<>();
     private Map<MetricType, List<Pair<Integer, String>>> metricMapArrVali = new HashMap<>();
-    private List<Integer> sampleIndex;
+
     private int phase = 0;
     private int[] idIndexArray;
-    private double[] predict;
+    private String[] originIdArray;
     private double[][] predicts;
-    private int numClass;
-    private int numClassRound = 0;
-    private List<Integer> testUId = new ArrayList<>();  // TODO 是否需要改回String待确定
-    private int bestRound = 0;
-    private MetricValue metricValue;
-    List<String> headerList = new ArrayList<>();
-    List<Double> multiClassUniqueLabelList;
-    private int earlyStoppingRounds;
+    private DistributedPaillierNative.signedByteArray[][] partialSum;
+    private boolean inferenceFinish = false;
+    private List<String> headerList = new ArrayList<>();
+
+    private HomoEncryptionUtil pheKeys;
+    private boolean useDistributedPailler = false;
+    private final boolean useFakeDec = false;
+    private static final int ENC_BITS = 1024;
 
     public KernelLinearRegressionJava(KernelLinearRegressionParameter parameter) {
         this.parameter = parameter;
     }
 
-
-    public KernelLinearRegressionJava() {
-        logger.info("Parameter loading ..." + splitLine);
-        this.parameter = new KernelLinearRegressionParameter();
-    }
-
+    /**
+     * 训练初始化：初始化参数，训练集验证集切分，构造客户端请求
+     *
+     * @param clientInfos 客户端列表
+     * @param idMap       id对照表,以及其他自动化预处理信息
+     * @param features    各客户端训练特征
+     * @param other       其他自定义参数
+     * @return 客户端请求
+     */
     public List<CommonRequest> initControl(List<ClientInfo> clientInfos,
                                            MatchResult idMap,
                                            Map<ClientInfo, Features> features,
                                            Map<String, Object> other) {
         logger.info(String.format("Init control, the client inputs are %s.", clientInfos));
-        this.clientInfoList = clientInfos;
-        this.numClient = clientInfos.size();
         this.numClass = parameter.getNumClass();
-        this.earlyStoppingRounds = parameter.getEarlyStoppingRounds();
-        double splitRatio = (double) other.get("splitRatio");
+        double splitRatio = Double.parseDouble(other.get("splitRatio").toString());
+        int clientInd = 0;
         if (numClass > 1) {
             clientInd = 1;
         }
         Tuple2<List<Integer>, List<Integer>> trainTestSplit = TrainTestSplit.trainTestSplit(idMap.getLength(), splitRatio, 666);
         assert trainTestSplit != null;
-        // test index id
-        // TODO 这里修改之前储存的是加密后的validation的ID list；后面匹配需要加密还是非加密状态
-        testUId = trainTestSplit._2();
+        List<Integer> testUId = trainTestSplit._2();
         List<CommonRequest> res = new ArrayList<>();
-        if (numSamples == -1) {
-            numSamples = trainTestSplit._1().size();
-        }
+        int numSamples = trainTestSplit._1().size();
         logger.info(String.format("Training sample number is %s", numSamples));
-        sampleIndex = IntStream.range(0, numSamples).boxed().collect(Collectors.toList());
+        List<Integer> sampleIndex = IntStream.range(0, numSamples).boxed().collect(Collectors.toList());
         int[] testIndex = testUId.stream().mapToInt(Integer::valueOf).toArray();
         for (ClientInfo clientInfo : clientInfos) {
             Features localFeature = features.get(clientInfo);
             other.put("sampleIndex", sampleIndex);
             other.put("testUid", testUId);
+            other.put("clientInfoList", clientInfos);
+            other.put("clientInd", clientInd);
             TrainInit nested_req = new TrainInit(parameter, localFeature, idMap.getMatchId(), other, testIndex);
             CommonRequest request = CommonRequest.buildTrainInitial(clientInfo, nested_req);
             res.add(request);
@@ -121,93 +117,127 @@ public class KernelLinearRegressionJava implements Control {
         return res;
     }
 
-    //TODO 后续将full control 与phaseArray 结合，自动运行
+
+    /**
+     * 训练阶段
+     *
+     * @param response 客户端返回结果
+     * @return 各阶段客户端请求
+     */
     @Override
     public List<CommonRequest> control(List<CommonResponse> response) {
-        phase = getNextPhase(phase, response);
-        logger.info(String.format("phase value %s", phase));
-        switch (KernelDispatchJavaPhaseType.valueOf(phase)) {
+        KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType = KernelDispatchJavaPhaseType.UPDATE_METRIC;
+        Message message = response.get(0).getBody();
+        if (message instanceof TrainRes) {
+            kernelDispatchJavaPhaseType = ((TrainRes) message).getKernelDispatchJavaPhaseType();
+        } else if (message instanceof InferenceInitRes) {
+            kernelDispatchJavaPhaseType = KernelDispatchJavaPhaseType.VALIDATION_FILTER;
+        } else if (message instanceof InferenceReqAndRes) {
+            kernelDispatchJavaPhaseType = ((InferenceReqAndRes) message).getKernelDispatchJavaPhaseType();
+        } else if (message == null) {
+            kernelDispatchJavaPhaseType = KernelDispatchJavaPhaseType.EMPTY_REQUEST;
+        }
+        switch (kernelDispatchJavaPhaseType) {
             case UPDATE_METRIC:
-                dataShuffle(numSamples);
+//                dataShuffle(numSamples);
                 return controlPhase1(response);
             case COMPUTE_LOSS:
                 return controlPhase2(response);
             case VALIDATION_INIT:
-                return controlPhase3(response);
             case VALIDATION_FILTER:
-                return inferenceControlPhase0(response);
+                return validateInit(response, kernelDispatchJavaPhaseType);
             case EMPTY_REQUEST:
-                return inferencecontrolPhase1(response);
-            case EMPTY_REQUEST_1:
-                return inferencecontrolPhase1(response);
+                return emptyRequest(response, message);
             case VALIDATION_RESULT:
-                return inferencecontrolPhase99(response);
+                return validateResult(response);
             default:
-                throw new UnsupportedOperationException();
+                throw new UnsupportedOperationException("unsupported message type in control");
         }
     }
 
-    //Phase 1: master send request to ask all passive parties compute w*x on local machines.
+    /**
+     * 训练步骤1：判断是否时初始化
+     * 初始化：向客户端发送样本、当前轮数等
+     * 非初始化：从客户端获取metric信息并判断是否符合早停条件
+     *
+     * @param responses 客户端返回
+     * @return 客户端请求
+     */
     public List<CommonRequest> controlPhase1(List<CommonResponse> responses) {
-        logger.info("Algo phase 2 processing on master" + splitLine);
+        logger.info("Algo phase 1 processing on coordinator");
         List<CommonRequest> commonRequests = new ArrayList<>();
+        int numClassRound = 0;
+        int bestRound = 0;
         for (CommonResponse response : responses) {
             Message message = response.getBody();
             if (message instanceof SingleElement || !((TrainRes) message).getActive()) {
                 for (CommonResponse res : responses) {
-                    TrainReq req = new TrainReq(res.getClient(), sampleIndex, numClassRound, bestRound);
-                    commonRequests.add(new CommonRequest(res.getClient(), req, phase));
+                    TrainReq req = new TrainReq(res.getClient(), numClassRound, bestRound);
+                    if (message instanceof TrainRes) {
+                        req = new TrainReq(res.getClient(), numClassRound, bestRound);
+                    }
+                    commonRequests.add(new CommonRequest(res.getClient(), req, 1));
                 }
                 return commonRequests;
             }
             TrainRes res = (TrainRes) message;
             numClassRound = res.getNumClassRound();
-            Map<MetricType, List<Double>> metric = res.getMetric();
-            Map<MetricType, List<Double>> metricVali = res.getMetricVali();
-            Map<MetricType, List<Double[][]>> metricArr = res.getMetricArr();
-            Map<MetricType, List<Double[][]>> metricArrVali = res.getMetricArrVali();
-            if (metric == null || metric.size() == 0) {
-                continue;
-            }
-            metricMap = getMetricValue(metric);
-            StringBuilder trainMetric = new StringBuilder(String.format("KernelJava round %d,%n", round - 1));
-            for (Map.Entry<MetricType, List<Pair<Integer, Double>>> e : metricMap.entrySet()) {
-                trainMetric.append(String.format("                train-%s:%.15f%n", e.getKey(), e.getValue().get(round - 1).getValue()));
-            }
-            logger.info(trainMetric.toString());
-            if (metricArr != null && !metricArr.isEmpty()) {
-                metricMapArr = getArrMetricValue(metricArr);
-            }
-            if (metricVali == null || metricVali.size() == 0) {
-                continue;
-            }
-            metricMapVali = getMetricValue(metricVali);
-            StringBuilder metricOutput = new StringBuilder(String.format("KernelJava vali round %d,%n", round - 1));
-            for (Map.Entry<MetricType, List<Pair<Integer, Double>>> e : metricMapVali.entrySet()) {
-                metricOutput.append(String.format("                train-%s:%.15f%n", e.getKey(), e.getValue().get(round - 1).getValue()));
-            }
-            if (numClass <= 2) {
-                logger.info(metricOutput.toString());
-            }
-            if (metricArrVali != null && !metricArrVali.isEmpty()) {
-                metricMapArrVali = getArrMetricValue(metricArrVali);
-            }
-            //TODO erlystopping round and metrictype
-            for (Map.Entry<MetricType, List<Double>> entry : metricVali.entrySet()) {
-                int tmpround = entry.getValue().size();
-                if (tmpround > earlyStoppingRounds + 1 && entry.getKey().equals(MetricType.RMSE)) {
-                    List<Double> lossMetric = entry.getValue();
-                    bestRound = Tool.earlyStopping(lossMetric, earlyStoppingRounds);
-                    logger.info("maxIn " + bestRound);
-                }
-            }
+            bestRound = getAllMetrics(res, bestRound);
         }
         for (CommonResponse response : responses) {
-            TrainReq req = new TrainReq(response.getClient(), sampleIndex, numClassRound, bestRound);
-            commonRequests.add(new CommonRequest(response.getClient(), req, phase));
+            TrainReq req = new TrainReq(response.getClient(), numClassRound, bestRound);
+            commonRequests.add(new CommonRequest(response.getClient(), req, 1));
         }
-        logger.info("Algo phase 2 end" + splitLine);
+        logger.info("Algo phase 1 end");
         return commonRequests;
+    }
+
+    /**
+     * 获取全部metric信息：训练的一维/二维指标，验证的一维/二维指标【改成那个对象对象】
+     *
+     * @param res 客户端返回
+     */
+    private int getAllMetrics(TrainRes res, int bestRound) {
+        Map<MetricType, List<Double>> metric = res.getMetric();
+        Map<MetricType, List<Double>> metricVali = res.getMetricVali();
+        Map<MetricType, List<Double[][]>> metricArr = res.getMetricArr();
+        Map<MetricType, List<Double[][]>> metricArrVali = res.getMetricArrVali();
+        if (metric == null || metric.size() == 0) {
+            return bestRound;
+        }
+        metricMap = getMetricValue(metric);
+        StringBuilder trainMetric = new StringBuilder(String.format("KernelJava round %d,%n", round - 1));
+        for (Map.Entry<MetricType, List<Pair<Integer, Double>>> e : metricMap.entrySet()) {
+            trainMetric.append(String.format("                train-%s:%.15f%n", e.getKey(), e.getValue().get(round - 1).getValue()));
+        }
+        logger.info(trainMetric.toString());
+        if (metricArr != null && !metricArr.isEmpty()) {
+            metricMapArr = getArrMetricValue(metricArr);
+        }
+        if (metricVali == null || metricVali.size() == 0) {
+            return bestRound;
+        }
+        metricMapVali = getMetricValue(metricVali);
+        StringBuilder metricOutput = new StringBuilder(String.format("KernelJava vali round %d,%n", round - 1));
+        for (Map.Entry<MetricType, List<Pair<Integer, Double>>> e : metricMapVali.entrySet()) {
+            metricOutput.append(String.format("                train-%s:%.15f%n", e.getKey(), e.getValue().get(round - 1).getValue()));
+        }
+        if (parameter.getNumClass() <= 2) {
+            logger.info(metricOutput.toString());
+        }
+        if (metricArrVali != null && !metricArrVali.isEmpty()) {
+            metricMapArrVali = getArrMetricValue(metricArrVali);
+        }
+        //TODO erlystopping round and metrictype
+        for (Map.Entry<MetricType, List<Double>> entry : metricVali.entrySet()) {
+            int tmpround = entry.getValue().size();
+            if (tmpround >= parameter.getEarlyStoppingRounds() + 1 && entry.getKey().equals(MetricType.RMSE)) {
+                List<Double> lossMetric = entry.getValue();
+                bestRound = Tool.earlyStopping(lossMetric, parameter.getEarlyStoppingRounds());
+                logger.info("maxIn " + bestRound);
+            }
+        }
+        return bestRound;
     }
 
     /**
@@ -244,19 +274,28 @@ public class KernelLinearRegressionJava implements Control {
         return resArrMap;
     }
 
-    //Phase 1: master send request to ask all passive parties compute w*x on local machines.
+    /**
+     * 汇总客户端信息，早停，选取下一次更新的客户端
+     *
+     * @param responses 客户端返回
+     * @return 客户端请求
+     */
     public List<CommonRequest> controlPhase2(List<CommonResponse> responses) {
         List<CommonRequest> commonRequests = new ArrayList<>();
-        int batchSize = numSamples;//Math.min(parameter.getBatchSize(), numSamples);
+        this.numClass = parameter.getNumClass();
+        TrainRes trainRes = (TrainRes) responses.get(0).getBody();
+        if (trainRes.getRound() == parameter.getMaxIter() + 1) {
+            round = trainRes.getRound();
+            responses.forEach(x -> commonRequests.add(new CommonRequest(x.getClient(), new SingleElement("earlyStopping success"), phase)));
+            return commonRequests;
+        }
+        int batchSize = trainRes.getVectors()[0].length;//Math.min(parameter.getBatchSize(), numSamples);
+        int clientInd = trainRes.getClientInd();
+        int numClassRound = trainRes.getNumClassRound();
+        List<ClientInfo> clientInfoList = trainRes.getClientInfoList();
         double[][] sumvec = new double[numClass][batchSize];
-
         for (CommonResponse response : responses) {
             TrainRes res = (TrainRes) response.getBody();
-            if (res.getRound() == parameter.getMaxIter() + 1) {
-                round = res.getRound();
-                responses.forEach(x -> commonRequests.add(new CommonRequest(x.getClient(), new SingleElement("earlyStopping success"), phase)));
-                return commonRequests;
-            }
             double[][] temp = res.getVectors();
             for (int j = 0; j < numClass; j++) {
                 for (int i = 0; i < batchSize; i++) {
@@ -268,11 +307,11 @@ public class KernelLinearRegressionJava implements Control {
             ClientInfo info = response.getClient();
             if (info.equals(clientInfoList.get(clientInd))) {
                 logger.info(String.format("Find selected client %s", info));
-                TrainReq req = new TrainReq(response.getClient(), sumvec, sampleIndex, true);
-                commonRequests.add(new CommonRequest(response.getClient(), req, phase));
+                TrainReq req = new TrainReq(response.getClient(), sumvec, true);
+                commonRequests.add(new CommonRequest(response.getClient(), req, 2));
             } else {
-                TrainReq req = new TrainReq(response.getClient(), sumvec, sampleIndex, false);
-                commonRequests.add(new CommonRequest(response.getClient(), req, phase));
+                TrainReq req = new TrainReq(response.getClient(), sumvec, false);
+                commonRequests.add(new CommonRequest(response.getClient(), req, 2));
             }
         }
         if (numClassRound + 1 == numClass) {
@@ -281,18 +320,23 @@ public class KernelLinearRegressionJava implements Control {
                 clientInd = 0;
             }
         }
-        logger.info("Algo phase 1 end" + splitLine);
+        int finalClientInd = clientInd;
+        commonRequests.forEach(x -> ((TrainReq) x.getBody()).setClientInd(finalClientInd));
+        logger.info("Algo phase 2 end");
         return commonRequests;
     }
 
-
-    public List<CommonRequest> controlPhase3(List<CommonResponse> responses) {
-        phase = 3;
-        // TODO 待修改，需要由client端将testUId的真实值/加密值传输过来
-        originIdArray = testUId.stream().map(String::valueOf).toArray(String[]::new);
-        predict = new double[originIdArray.length];
-        predicts = new double[originIdArray.length][numClass];
-        idIndexArray = IntStream.range(0, testUId.size()).toArray();
+    /**
+     * 验证过滤
+     *
+     * @param responses 验证过滤
+     * @return 客户端请求
+     */
+    public List<CommonRequest> validateInit(List<CommonResponse> responses, KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
+        int phase = 3;
+        if (kernelDispatchJavaPhaseType.equals(KernelDispatchJavaPhaseType.VALIDATION_FILTER)) {
+            phase = 4;
+        }
         List<CommonRequest> initRequests = new ArrayList<>();
         for (CommonResponse commonResponse : responses) {
             InferenceInit init = new InferenceInit(new String[0]);
@@ -302,41 +346,147 @@ public class KernelLinearRegressionJava implements Control {
         return initRequests;
     }
 
-    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid) {
-        phase = -255;
+
+    /**
+     * 获取推理类别及详情，构造推理结果信息
+     *
+     * @param response 客户端返回
+     * @return 客户端空请求
+     */
+    public List<CommonRequest> emptyRequest(List<CommonResponse> response, Message message) {
+        int phase = 5;
+        if (message == null) {
+            phase = 6;
+        }
+        final int phaseFinal = phase;
+        logger.info("Algo phase " + phase + " start");
+        List<CommonRequest> commonRequests = new ArrayList<>();
+        response.forEach(x -> commonRequests.add(new CommonRequest(x.getClient(), new InferenceReqAndRes(x.getClient()), phaseFinal)));
+        return commonRequests;
+    }
+
+    /**
+     * 验证结果
+     *
+     * @param responses 计算验证结果
+     * @return 计算结果
+     */
+    public List<CommonRequest> validateResult(List<CommonResponse> responses) {
+        this.numClass = parameter.getNumClass();
+
+        InferenceReqAndRes reqAndRes = (InferenceReqAndRes) responses.get(0).getBody();
+        List<Integer> testUid = reqAndRes.getTestUid();
+        // TODO 待修改，需要由client端将testUId的真实值/加密值传输过来 testUid需要传过来
+        predicts = new double[testUid.size()][numClass];
+        logger.info("Algo phase 4 start");
+        originIdArray = testUid.stream().map(String::valueOf).toArray(String[]::new);
+        idIndexArray = IntStream.range(0, testUid.size()).toArray();
+        List<CommonRequest> commonRequests = new ArrayList<>();
+        //每个预测样本一个预测值
+        logger.info("Post Inference Control...");
+        logger.info(String.format("Result aggregation %s samples!", predicts.length));
+        for (CommonResponse response : responses) {
+            if (idIndexArray.length != 0 && response.getBody() != null) {
+                InferenceReqAndRes res = (InferenceReqAndRes) response.getBody();
+                double[][] allPre = res.getPredicts();
+                // 需要预测的uid对应index
+                List<Integer> idSet = Arrays.stream(idIndexArray).boxed().collect(Collectors.toList());
+                for (int n = 0; n < allPre[0].length; n++) {
+                    for (int p = 0; p < predicts.length; p++) {
+                        if (idSet.contains(p)) {
+                            int index = idSet.indexOf(p);
+                            predicts[p][n] += allPre[index][n];
+                        }
+                    }
+                }
+            }
+        }
+        for (CommonResponse response : responses) {
+            TrainReq req;
+            if (((InferenceReqAndRes) response.getBody()).isActive()) {
+                req = new TrainReq(response.getClient(), new PredictRes(new String[0], predicts));
+            } else {
+                req = new TrainReq(response.getClient(), (PredictRes) null);
+            }
+            commonRequests.add(new CommonRequest(response.getClient(), req, 7));
+        }
+        return commonRequests;
+    }
+
+
+    /**
+     * 推理初始化
+     * 将原始id列表（安全推理信息）发送给客户端
+     *
+     * @param clientInfos 客户端列表
+     * @param predictUid  需要推理的uid
+     * @param others      安全推理模式
+     * @return 客户端请求
+     */
+    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid, Map<String, Object> others) {
         originIdArray = predictUid;
-        clientInfoList = clientInfos;
-        predict = new double[originIdArray.length];
         idIndexArray = IntStream.range(0, predictUid.length).toArray();
         List<CommonRequest> initRequests = new ArrayList<>();
-        for (ClientInfo clientInfo : clientInfoList) {
-            InferenceInit init = new InferenceInit(originIdArray);
-            CommonRequest request = new CommonRequest(clientInfo, init, phase);
-            initRequests.add(request);
+        phase = CommonRequest.inferenceInitialPhase;
+        if (!others.containsKey("pubKeyStr")) {
+            for (ClientInfo clientInfo : clientInfos) {
+                Map<String, Object> extraParamsFromMaster = new HashMap<>();
+                extraParamsFromMaster.put("secureMode", false);
+                InferenceInit init = new InferenceInit(originIdArray, extraParamsFromMaster);
+                CommonRequest request = CommonRequest.buildInferenceInitial(clientInfo, init);
+                initRequests.add(request);
+            }
+        } else {
+            String pubKeyStr = others.get("pubKeyStr").toString();
+            useDistributedPailler = true;
+            DistributedPaillier.DistPaillierPubkey pubkey = new DistributedPaillier.DistPaillierPubkey();
+            pubkey.parseJson(pubKeyStr);
+            this.pheKeys = new HomoEncryptionUtil(clientInfos.size(), ENC_BITS, useFakeDec);
+            this.pheKeys.setPk(pubkey);
+            for (int i = 0; i < clientInfos.size(); i++) {
+                Map<String, Object> other = new HashMap<>();
+                other.put("secureMode", useDistributedPailler);
+                // Standalone version. Master transfer keys to all parties. Master is TRUSTED.
+                other.put("numP", clientInfos.size());
+                other.put("ENC_BITS", ENC_BITS);
+                other.put("thisPartyID", i + 1);
+                InferenceInit initString = new InferenceInit(originIdArray, other);
+                initRequests.add(CommonRequest.buildInferenceInitial(clientInfos.get(i), initString));
+            }
         }
         return initRequests;
     }
 
 
+    /**
+     * 推理过程：包括过滤无需预测的uid，构造推理结果的表头，获取推理结果
+     *
+     * @param response 返回数据
+     * @return 各阶段客户端请求
+     */
     @Override
     public List<CommonRequest> inferenceControl(List<CommonResponse> response) {
         phase = getNextPhase(phase, response);
         logger.info(String.format("Phase %s", phase));
         switch (KernelDispatchJavaPhaseType.valueOf(phase)) {
             case INFERENCE_FILTER:
-                return inferenceControlPhase0(response);
+                return inferenceFilter(response);
             case INFERENCE_EMPTY_REQUEST:
-                return inferencecontrolPhase1(response);
-            case INFERENCE_EMPTY_REQUEST_1:
-                return inferencecontrolPhase1(response);
+                return constructHeaders(response);
             case INFERENCE_RESULT:
-                return inferencecontrolPhase1(response);
+                return inferenceResult(response);
             default:
                 throw new UnsupportedOperationException();
         }
     }
 
-    public List<CommonRequest> inferenceControlPhase0(List<CommonResponse> responses) {
+    /**
+     * 过滤无需预测的uid，并将需要预测的uid发送给客户端
+     *
+     * @param responses 客户端初始化结果
+     * @return 客户端请求
+     */
+    public List<CommonRequest> inferenceFilter(List<CommonResponse> responses) {
         //tep3 推断过程预处理，返回无需预测的uid索引
         Set<Integer> blacklist = new HashSet<>();
         for (CommonResponse response : responses) {
@@ -351,7 +501,6 @@ public class KernelLinearRegressionJava implements Control {
         if (existUidSize == 0) {
             headerList.add("label");
             inferenceFinish = true;
-            //TODO predicts [numclass]
             predicts = new double[originIdArray.length][1];
             IntStream.range(0, predicts.length).forEach(x -> predicts[x][0] = Double.NaN);
         }
@@ -367,14 +516,25 @@ public class KernelLinearRegressionJava implements Control {
         List<CommonRequest> res = new ArrayList<>();
         for (CommonResponse response : responses) {
             InferenceInit init = new InferenceInit(new String[0]);
+            if (KernelDispatchJavaPhaseType.valueOf(phase) == KernelDispatchJavaPhaseType.INFERENCE_FILTER) {
+                int[] idIndexArrayU = queryIdHasFiltered.stream().mapToInt(x -> x).toArray();
+                String[] idArray = Arrays.stream(idIndexArrayU).mapToObj(x -> originIdArray[x]).toArray(String[]::new);
+                init = new InferenceInit(idArray);
+            }
             CommonRequest request = new CommonRequest(response.getClient(), init, phase);
             res.add(request);
         }
         return res;
     }
 
-    public List<CommonRequest> inferencecontrolPhase1(List<CommonResponse> response) {
-        logger.info("Algo phase 1 start" + splitLine);
+    /**
+     * 获取推理类别及详情，构造推理结果信息
+     *
+     * @param response 客户端返回
+     * @return 客户端空请求
+     */
+    public List<CommonRequest> constructHeaders(List<CommonResponse> response) {
+        logger.info("Algo phase " + phase + " start");
         List<CommonRequest> commonRequests = new ArrayList<>();
         // 发送kernel type 等相关参数给各机器
         for (CommonResponse response_i : response) {
@@ -394,36 +554,61 @@ public class KernelLinearRegressionJava implements Control {
             commonRequests.add(new CommonRequest(response_i.getClient(), req, phase));
         }
         predicts = new double[originIdArray.length][numClass];
-        logger.info("Algo phase 1 end" + splitLine);
+        logger.info("Algo phase 1 end");
         return commonRequests;
     }
 
-    public List<CommonRequest> inferencecontrolPhase99(List<CommonResponse> responses) {
-        logger.info("Algo phase 1 start" + splitLine);
+
+    /**
+     * 推理结果汇总
+     *
+     * @param responses 客户端推理结果（安全模式时为解密结果）
+     * @return 推理结果（安全模式时为加密状态结果）
+     */
+    public List<CommonRequest> inferenceResult(List<CommonResponse> responses) {
         List<CommonRequest> commonRequests = new ArrayList<>();
         //每个预测样本一个预测值
-        logger.info("Post Inference Control...");
-        logger.info(String.format("Result aggregation %s samples!", predict.length));
-        for (CommonResponse response : responses) {
+        logger.info(String.format("Result aggregation %s samples!", predicts.length));
+        partialSum = new DistributedPaillierNative.signedByteArray[predicts.length][predicts[0].length];
+        if (responses.get(0).getBody() != null && responses.get(0).getBody() instanceof CypherMessage2DList) {
+            List<DistributedPaillierNative.signedByteArray[][]> forwardMessages = responses.parallelStream()
+                    .map(response -> ((CypherMessage2DList) response.getBody()).getBody().get(0)).collect(Collectors.toList());
+            for (int i = 0; i < responses.size(); i++) {
+                ClientInfo clientInfo = responses.get(i).getClient();
+                List<DistributedPaillierNative.signedByteArray[][]> forwardToSingleClient = new ArrayList<>(forwardMessages);
+                forwardToSingleClient.remove(i);
+                commonRequests.add(new CommonRequest(clientInfo, new CypherMessage2DList(forwardToSingleClient), -3));
+            }
+//            inferenceFinish = true;
+            return commonRequests;
+        }
+        for (int i = 0; i < responses.size(); i++) {
+            CommonResponse response = responses.get(i);
             if (idIndexArray.length != 0 && response.getBody() != null) {
-                InferenceReqAndRes res = (InferenceReqAndRes) response.getBody();
-                double[] values = res.getPredictA();
-                double[][] allPre = res.getPredicts();
-                // 需要预测的uid对应index
-                List<Integer> idSet = Arrays.stream(idIndexArray).boxed().collect(Collectors.toList());
-                for (int n = 0; n < allPre[0].length; n++) {
-                    for (int p = 0; p < predict.length; p++) {
-                        if (idSet.contains(p)) {
-                            int index = idSet.indexOf(p);
-                            predict[p] += values[index];
-                            predicts[p][n] += allPre[index][n];
-                        } else {
-                            predict[p] = Double.NaN; // 只要有一方没有这个推理样本，则pred=NaN
-                            predicts[p][n] = Double.NaN;
-                        }
+                Message message = response.getBody();
+                if (message instanceof InferenceReqAndRes) {
+                    if (((InferenceReqAndRes) message).getClient() == null) {
+                        inferenceFinish = true;
+                        break;
+                    } else {
+                        predictSum(response);
                     }
+                } else if (message instanceof CypherMessage2D) {
+                    CypherMessage2D res = (CypherMessage2D) response.getBody();
+                    DistributedPaillierNative.signedByteArray[][] partialScores = res.getBody();
+                    if (i == 0) {
+                        partialSum = partialScores;
+                    } else {
+                        encryptedPredictSum(partialScores);
+                    }
+                    // 1. broadcast, single sum for all clients
+                    Message body = new CypherMessage2D(partialSum);
+                    commonRequests.add(new CommonRequest(response.getClient(), body, -3));
                 }
             }
+        }
+        if (useDistributedPailler) {
+            return commonRequests;
         }
         for (CommonResponse response : responses) {
             TrainReq req;
@@ -434,77 +619,118 @@ public class KernelLinearRegressionJava implements Control {
             }
             commonRequests.add(new CommonRequest(response.getClient(), req, phase));
         }
+        inferenceFinish = true;
         return commonRequests;
+    }
+
+    /**
+     * 加密推理结果求和
+     *
+     * @param partialScores 各客户端部分加密结果
+     */
+    private void encryptedPredictSum(DistributedPaillierNative.signedByteArray[][] partialScores) {
+        for (int n = 0; n < partialScores[0].length; n++) {
+            for (int p = 0; p < partialScores.length; p++) {
+                partialSum[p][n] = pheKeys.add(partialSum[p][n], partialScores[p][n], pheKeys.getPk());
+            }
+        }
+    }
+
+
+    /**
+     * 客户端推理结果求和
+     *
+     * @param response 客户端推理结果
+     */
+    private void predictSum(CommonResponse response) {
+        InferenceReqAndRes res = (InferenceReqAndRes) response.getBody();
+        double[][] allPre = res.getPredicts();
+        // 需要预测的uid对应index
+        List<Integer> idSet = Arrays.stream(idIndexArray).boxed().collect(Collectors.toList());
+        for (int n = 0; n < allPre[0].length; n++) {
+            for (int p = 0; p < predicts.length; p++) {
+                if (idSet.contains(p)) {
+                    int index = idSet.indexOf(p);
+                    predicts[p][n] += allPre[index][n];
+                } else {
+                    predicts[p][n] = Double.NaN;
+                }
+            }
+        }
+    }
+
+    /**
+     * 推理结果匹配：将推理结果对应到uid实际位置
+     *
+     * @param response 推理结果
+     */
+    private void matchPredict(CommonResponse response) {
+        InferenceReqAndRes res = (InferenceReqAndRes) response.getBody();
+        double[][] allPre = res.getPredicts();
+        List<Integer> idSet = Arrays.stream(idIndexArray).boxed().collect(Collectors.toList());
+        for (int n = 0; n < allPre[0].length; n++) {
+            for (int p = 0; p < predicts.length; p++) {
+                if (idSet.contains(p)) {
+                    int index = idSet.indexOf(p);
+                    predicts[p][n] = allPre[index][n];
+                } else {
+                    predicts[p][n] = Double.NaN;
+                }
+            }
+        }
     }
 
     @Override
     public MetricValue readMetrics() {
-        if (bestRound != 0) {
-            metricValue = new MetricValue(metricMap, metricMapArr, metricMapVali, metricMapArrVali, new HashMap<>(), bestRound);
-        } else {
-            // -1即代表当前轮效果最优
-            metricValue = new MetricValue(metricMap, metricMapArr, metricMapVali, metricMapArrVali, new HashMap<>(), -1);
-        }
-        return metricValue;
+        // -1即代表当前轮效果最优
+        return new MetricValue(metricMap, metricMapArr, metricMapVali, metricMapArrVali, new HashMap<>(), -1);
     }
+//
+//
+//    private void dataShuffle(int numSamples) {
+//        sampleIndex = IntStream.range(0, numSamples).boxed().collect(Collectors.toList());
+//    }
 
-
-    private void dataShuffle(int numSamples) {
-        sampleIndex = IntStream.range(0, numSamples).boxed().collect(Collectors.toList());
-    }
-
-    public int getNextPhase(int phaseindex, List<CommonResponse> responses) {
-        if (phaseindex == -255) {
-            phaseindex = -1;
-        } else if (phaseindex < 0) {
-            phaseindex = phaseindex - 1;
-        } else if (phaseindex == 2) {
-            if (numClassRound + 1 == numClass) {
-                phaseindex = 3;
+    public int getNextPhase(int phase, List<CommonResponse> commonResponses) {
+        if (phase == -255) {
+            phase = -1;
+        } else if (phase == -4) {
+            phase = -4;
+        } else if (phase < 0) {
+            phase = phase - 1;
+        } else if (phase == 2) {
+            TrainRes res = (TrainRes) commonResponses.get(0).getBody();
+            int numClassRound = res.getNumClassRound();
+            // todo 从model侧传过来phaseType
+            if (numClassRound + 1 == parameter.getNumClass()) {
+                phase = 3;
             } else {
-                phaseindex = 1;
+                phase = 1;
             }
-        } else if (phaseindex == 7) {
-            phaseindex = 1;
+        } else if (phase == 7) {
+            phase = 1;
         } else {
-            phaseindex = phaseindex + 1;
+            phase = phase + 1;
         }
-        if (phaseindex == -4) {
-            inferenceFinish = true;
-        }
-        return phaseindex;
+        return phase;
     }
 
 
+    /**
+     * 结果匹配和转换
+     *
+     * @param responses 客户端推理结果
+     * @return 推理结果
+     */
     public PredictRes postInferenceControl(List<CommonResponse> responses) {
         //每个预测样本一个预测值
         logger.info("Post Inference Control...");
-        int i;
-        logger.info(String.format("Result aggregation %s samples!", predict.length));
-        for (CommonResponse response : responses) {
-            if (idIndexArray.length != 0 && response.getBody() != null) {
-                InferenceReqAndRes res = (InferenceReqAndRes) response.getBody();
-                double[] values = res.getPredictA();
-                double[][] allPre = res.getPredicts();
-                // 需要预测的uid对应index
-                List<Integer> idSet = Arrays.stream(idIndexArray).boxed().collect(Collectors.toList());
-                for (int n = 0; n < allPre[0].length; n++) {
-                    for (int p = 0; p < predict.length; p++) {
-                        if (idSet.contains(p)) {
-                            int index = idSet.indexOf(p);
-                            predict[p] += values[index];
-                            predicts[p][n] += allPre[index][n];
-                        } else {
-                            predict[p] = Double.NaN; // 只要有一方没有这个推理样本，则pred=NaN
-                            predicts[p][n] = Double.NaN;
-                        }
-                    }
-                }
-            }
+        logger.info(String.format("Result aggregation %s samples!", predicts.length));
+        if (idIndexArray.length != 0 && responses.get(0).getBody() != null && useDistributedPailler) {
+            matchPredict(responses.get(0));
         }
-        double[][] predictsClip = KernelLinearRegressionJavaModel.predTrans(predicts, numClass);
-        IntStream.range(0, predictsClip.length).forEach(index -> predict[index] = MathExt.max(predictsClip[index]));
-        if (numClass == 2) {
+        double[][] predictsClip = KernelLinearRegressionJavaModel.predictTrans(predicts, numClass);
+        if (numClass == 2 && predictsClip[0].length != 1) {
             double[][] pred = MathExt.transpose(MathExt.transpose(predictsClip)[1]);
             return new PredictRes(headerList.toArray(new String[0]), pred);
         }
@@ -529,22 +755,14 @@ public class KernelLinearRegressionJava implements Control {
         return algorithmType;
     }
 
-    public void setForUnitTest(int numSamples, int phase, List<ClientInfo> clientInfos, String modelToken, int numClient) {
-        this.numSamples = numSamples;
+    public void setForUnitTest(int phase) {
         this.phase = phase;
-        this.clientInfoList = clientInfos;
-        this.numClient = numClient;
-        this.sampleIndex = IntStream.range(0, numSamples).boxed().collect(Collectors.toList());
-        this.modelToken = modelToken;
     }
 
-    public void setForUnitTestInfer(String[] originIdArray, int[] idIndexArray, int phase, List<ClientInfo> clientInfos, String modelToken) {
+    public void setForUnitTestInfer(String[] originIdArray, int[] idIndexArray, int phase) {
         this.originIdArray = originIdArray;
         this.idIndexArray = idIndexArray;
         this.phase = phase;
-        this.clientInfoList = clientInfos;
-        this.sampleIndex = IntStream.range(0, numSamples).boxed().collect(Collectors.toList());
-        this.modelToken = modelToken;
     }
 
 

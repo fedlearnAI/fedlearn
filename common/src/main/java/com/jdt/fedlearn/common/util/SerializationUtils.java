@@ -26,10 +26,12 @@ public class SerializationUtils {
      * @throws IOException
      */
     public static String serialize(Object obj) throws IOException {
-        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
-            try(ObjectOutputStream o = new ObjectOutputStream(b)){
-                o.writeObject(obj);
-            }
+        try(
+                ByteArrayOutputStream b = new ByteArrayOutputStream();
+                ObjectOutputStream o = new ObjectOutputStream(b)
+            ){
+            o.writeObject(obj);
+            o.flush();
             return new BASE64Encoder().encode(b.toByteArray());
         }
     }
@@ -42,10 +44,11 @@ public class SerializationUtils {
      * @throws ClassNotFoundException
      */
     public static Object deserialize(String str) throws IOException, ClassNotFoundException {
-        try(ByteArrayInputStream b = new ByteArrayInputStream(new BASE64Decoder().decodeBuffer(str))){
-            try(ObjectInputStream o = new ObjectInputStream(b)){
-                return o.readObject();
-            }
+        try(
+                ByteArrayInputStream b = new ByteArrayInputStream(new BASE64Decoder().decodeBuffer(str));
+                ObjectInputStream o = new ObjectInputStream(b)
+            ){
+            return o.readObject();
         }
     }
 }

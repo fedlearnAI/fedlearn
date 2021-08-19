@@ -50,7 +50,7 @@ public class PacketUtil {
      * @return
      * @throws IOException
      */
-    public static boolean preHandel(TrainRequest trainRequest) throws IOException {
+    public static boolean preHandel(TrainRequest trainRequest){
         int dataNum = trainRequest.getDataNum();
         int dataIndex = trainRequest.getDataIndex();
         boolean isGzip = trainRequest.isGzip();
@@ -59,7 +59,7 @@ public class PacketUtil {
         if (isGzip) {
             String gstr = trainRequest.getData();
             logger.info("gzip size:" + gstr.length());
-            String data = HttpClientUtil.unCompress(gstr);
+            String data = GZIPCompressUtil.unCompress(gstr);
             logger.info("unzip data:" + LogUtil.logLine(data));
             trainRequest.setData(data);
         }

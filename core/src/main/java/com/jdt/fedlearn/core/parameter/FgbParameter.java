@@ -49,8 +49,8 @@ public class FgbParameter implements SuperParameter {
     private int numClass;
     //todo catFeatures String[]
     private final String catFeatures;
-    private double randomizedResponseProbability;
-    private double differentialPrivacyParameter;
+    private final double randomizedResponseProbability;
+    private final double differentialPrivacyParameter;
 
     public FgbParameter() {
         this.numBoostRound = 50;
@@ -76,174 +76,161 @@ public class FgbParameter implements SuperParameter {
         this.randomizedResponseProbability = 0;
     }
 
-    public FgbParameter(int numBoostRound, FirstPredictType firstRoundPred, double lambda, double gamma, int maxDepth, double eta, ObjectiveType objective, MetricType[] evalMetric, String[] catFeatures, BitLengthType bitLength, double randomizedResponseProbability, double differentialPrivacyParameter) {
-        this.numBoostRound = numBoostRound;
-        this.firstRoundPred = firstRoundPred;
-        this.lambda = lambda;
-        this.gamma = gamma;
-        this.maxDepth = maxDepth;
-        this.eta = eta;
-        this.objective = objective;
-        this.catFeatures = "";
-        this.evalMetric = evalMetric;
-        this.maximize = true;
-        this.bitLength = bitLength;
-        this.rowSample = 0.8;
-        this.colSample = 0.8;
-        this.earlyStoppingRound = 10;
-        this.minChildWeight = 1;
-        this.minSampleSplit = 10;
-        this.scalePosWeight = 1;
-        this.numBin = 33;
-        this.numClass = 1;
-        this.randomizedResponseProbability = randomizedResponseProbability;
-        this.differentialPrivacyParameter = differentialPrivacyParameter;
+    public FgbParameter(Builder builder) {
+        this.numBoostRound = builder.numRound;
+        this.firstRoundPred = builder.firstRoundPred;
+        this.evalMetric = builder.evalMetric;
+
+        this.maximize = builder.maximize;
+        this.rowSample = builder.rowSample;
+        this.colSample = builder.colSample;
+        this.earlyStoppingRound = builder.earlyStoppingRound;
+        this.minChildWeight = builder.minChildWeight;
+        this.minSampleSplit = builder.minSampleSplit;
+        this.lambda = builder.lambda;
+        this.gamma = builder.gamma;
+        this.bitLength = builder.bitLength;
+        this.scalePosWeight = builder.scalePosWeight;
+        this.numBin = builder.numBin;
+        this.maxDepth = builder.maxDepth;
+        this.eta = builder.eta;
+        this.objective = builder.objective;
+        this.numClass = builder.numClass;
+        this.catFeatures = builder.catFeatures;
+        this.randomizedResponseProbability = builder.randomizedResponseProbability;
+        this.differentialPrivacyParameter = builder.differentialPrivacyParameter;
     }
 
-    public FgbParameter(int numBoostRound, double lambda, double gamma, int maxDepth, double eta, int numBin, ObjectiveType objective, MetricType[] evalMetric, BitLengthType bitLength, String[] catFeatures) {
-        this.numBoostRound = numBoostRound;
-        this.lambda = lambda;
-        this.gamma = gamma;
-        this.maxDepth = maxDepth;
-        this.eta = eta;
-        this.objective = objective;
-        this.catFeatures = "";
-        this.evalMetric = evalMetric;
-        this.numBin = numBin;
-        this.bitLength = bitLength;
-        this.firstRoundPred = FirstPredictType.ZERO;
-        this.maximize = true;
-        this.rowSample = 1;
-        this.colSample = 1;
-        this.earlyStoppingRound = 10;
-        this.minChildWeight = 1;
-        this.minSampleSplit = 10;
-        this.scalePosWeight = 1;
-        this.numClass = 1;
-    }
+    public static class Builder {
+        //required parameters
+        private final int numRound;
+        private final MetricType[] evalMetric;
+        private final ObjectiveType objective;
 
-    public FgbParameter(int numBoostRound, double lambda, double gamma, int maxDepth, double eta, int numBin, ObjectiveType objective, MetricType[] evalMetric, BitLengthType bitLength, String[] catFeatures, double randomizedResponseProbability, double differentialPrivacyParameter) {
-        this.numBoostRound = numBoostRound;
-        this.lambda = lambda;
-        this.gamma = gamma;
-        this.maxDepth = maxDepth;
-        this.eta = eta;
-        this.numBin = numBin;
-        this.objective = objective;
-        this.catFeatures = "";
-        this.evalMetric = evalMetric;
-        this.bitLength = bitLength;
-        this.maximize = true;
-        this.rowSample = 0.8;
-        this.colSample = 0.8;
-        this.earlyStoppingRound = 10;
-        this.minChildWeight = 1;
-        this.minSampleSplit = 10;
-        this.scalePosWeight = 1;
-        this.firstRoundPred = FirstPredictType.ZERO;
-        this.numClass = 1;
-        this.randomizedResponseProbability = randomizedResponseProbability;
-        this.differentialPrivacyParameter = differentialPrivacyParameter;
-    }
+        //
+        private FirstPredictType firstRoundPred = FirstPredictType.AVG;
+        private double rowSample = 1.0;
+        private double colSample = 1.0;
+        private boolean maximize = true;
+        private int earlyStoppingRound = 10;
+        private double minChildWeight = 1.0;
+        private int minSampleSplit = 10;
+        private double lambda = 1.0;
+        private double gamma = 0.0;
+        private BitLengthType bitLength = BitLengthType.bit1024;
+        private double scalePosWeight = 1.0;
+        private int numBin = 33;
+        private int maxDepth = 7;
+        private double eta = 0.3;
+        private int numClass = 1;
+        private String catFeatures = "";
+        private double randomizedResponseProbability = 0;
+        private double differentialPrivacyParameter = 0;
 
-    public FgbParameter(int numBoostRound, FirstPredictType firstRoundPred, boolean maximize, double rowSample, double colSample, int earlyStoppingRound, double minChildWeight, int minSampleSplit, double lambda, double gamma, double scalePosWeight, int numBin, MetricType[] evalMetric, int maxDepth, double eta, ObjectiveType objective, BitLengthType bitLength, String[] catFeatures) {
-        this.numBoostRound = numBoostRound;
-        this.firstRoundPred = firstRoundPred;
-        this.maximize = maximize;
-        this.rowSample = rowSample;
-        this.colSample = colSample;
-        this.earlyStoppingRound = earlyStoppingRound;
-        this.minChildWeight = minChildWeight;
-        this.minSampleSplit = minSampleSplit;
-        this.lambda = lambda;
-        this.gamma = gamma;
-        this.bitLength = bitLength;
-        this.scalePosWeight = scalePosWeight;
-        this.numBin = numBin;
-        this.evalMetric = evalMetric;
-        this.maxDepth = maxDepth;
-        this.eta = eta;
-        this.objective = objective;
-        this.catFeatures = "";
-        this.numClass = 1;
-    }
+        public Builder(int numRound, MetricType[] evalMetric, ObjectiveType objective) {
+            this.numRound = numRound;
+            this.evalMetric = evalMetric;
+            this.objective = objective;
+        }
 
-    public FgbParameter(int numBoostRound, FirstPredictType firstRoundPred, boolean maximize, double rowSample, double colSample, int earlyStoppingRound, double minChildWeight, int minSampleSplit, double lambda, double gamma, double scalePosWeight, MetricType[] evalMetric, int maxDepth, double eta, ObjectiveType objective, BitLengthType bitLength, String[] catFeatures) {
-        this.numBoostRound = numBoostRound;
-        this.firstRoundPred = firstRoundPred;
-        this.maximize = maximize;
-        this.rowSample = rowSample;
-        this.colSample = colSample;
-        this.earlyStoppingRound = earlyStoppingRound;
-        this.minChildWeight = minChildWeight;
-        this.minSampleSplit = minSampleSplit;
-        this.lambda = lambda;
-        this.gamma = gamma;
-        this.numBin = 33;
-        this.scalePosWeight = scalePosWeight;
-        this.evalMetric = evalMetric;
-        this.bitLength = bitLength;
-//        System.arraycopy(evalMetric, 0, this.evalMetric, 0, evalMetric.length);
-        this.maxDepth = maxDepth;
-        this.eta = eta;
-        this.objective = objective;
-        this.catFeatures = "";
-        this.numClass = 1;
-    }
+        public Builder firstRoundPred(FirstPredictType firstRoundPred) {
+            this.firstRoundPred = firstRoundPred;
+            return this;
+        }
 
-    public FgbParameter(int numBoostRound, double lambda, double gamma, int maxDepth, double eta, int numBin, ObjectiveType objective, int numClass, MetricType[] evalMetric, BitLengthType bitLength, String[] catFeatures) {
-        this.numBoostRound = numBoostRound;
-        this.lambda = lambda;
-        this.gamma = gamma;
-        this.maxDepth = maxDepth;
-        this.eta = eta;
-        this.objective = objective;
-        this.numClass = numClass;
-        this.catFeatures = "";
-        this.evalMetric = evalMetric;
-        this.bitLength = bitLength;
-//        System.arraycopy(evalMetric, 0, this.evalMetric, 0, evalMetric.length);
-        this.numBin = numBin;
-        this.firstRoundPred = FirstPredictType.ZERO;
-        this.maximize = true;
-        this.rowSample = 1;
-        this.colSample = 1;
-        this.earlyStoppingRound = 10;
-        this.minChildWeight = 1;
-        this.minSampleSplit = 10;
-        this.scalePosWeight = 1;
-    }
+        public Builder rowSample(double rowSample) {
+            this.rowSample = rowSample;
+            return this;
+        }
 
-    public FgbParameter(int numBoostRound, FirstPredictType firstRoundPred, boolean maximize, double rowSample, double colSample, int earlyStoppingRound,
-                        double minChildWeight, int minSampleSplit, double lambda, double gamma, double scalePosWeight, int numBin, MetricType[] evalMetric, int maxDepth,
-                        double eta, ObjectiveType objective, int numClass, BitLengthType bitLength, String[] catFeatures, double randomizedResponseProbability, double differentialPrivacyParameter) {
-        this.numBoostRound = numBoostRound;
-        this.firstRoundPred = firstRoundPred;
-        this.maximize = maximize;
-        this.rowSample = rowSample;
-        this.colSample = colSample;
-        this.earlyStoppingRound = earlyStoppingRound;
-        this.minChildWeight = minChildWeight;
-        this.minSampleSplit = minSampleSplit;
-        this.lambda = lambda;
-        this.gamma = gamma;
-        this.bitLength = bitLength;
-        this.scalePosWeight = scalePosWeight;
-        this.numBin = numBin;
-        this.evalMetric = evalMetric;
-        this.maxDepth = maxDepth;
-        this.eta = eta;
-        this.objective = objective;
-        this.numClass = numClass;
-        this.catFeatures = "";
-        this.randomizedResponseProbability = randomizedResponseProbability;
-        this.differentialPrivacyParameter = differentialPrivacyParameter;
+        public Builder colSample(double colSample) {
+            this.colSample = colSample;
+            return this;
+        }
+
+        public Builder maximize(boolean maximize) {
+            this.maximize = maximize;
+            return this;
+        }
+
+        public Builder earlyStoppingRound(int earlyStoppingRound) {
+            this.earlyStoppingRound = earlyStoppingRound;
+            return this;
+        }
+
+        public Builder minChildWeight(double minChildWeight) {
+            this.minChildWeight = minChildWeight;
+            return this;
+        }
+
+        public Builder minSampleSplit(int minSampleSplit) {
+            this.minSampleSplit = minSampleSplit;
+            return this;
+        }
+
+        public Builder lambda(double lambda) {
+            this.lambda = lambda;
+            return this;
+        }
+
+        public Builder gamma(double gamma) {
+            this.gamma = gamma;
+            return this;
+        }
+
+        public Builder bitLength(BitLengthType bitLength) {
+            this.bitLength = bitLength;
+            return this;
+        }
+
+        public Builder scalePosWeight(double scalePosWeight) {
+            this.scalePosWeight = scalePosWeight;
+            return this;
+        }
+
+        public Builder numBin(int numBin) {
+            this.numBin = numBin;
+            return this;
+        }
+
+        public Builder maxDepth(int maxDepth) {
+            this.maxDepth = maxDepth;
+            return this;
+        }
+
+        public Builder eta(double eta) {
+            this.eta = eta;
+            return this;
+        }
+
+        public Builder numClass(int numClass) {
+            this.numClass = numClass;
+            return this;
+        }
+
+        public Builder catFeatures(String catFeatures) {
+            this.catFeatures = catFeatures;
+            return this;
+        }
+
+        public Builder randomizedResponseProbability(double randomizedResponseProbability) {
+            this.randomizedResponseProbability = randomizedResponseProbability;
+            return this;
+        }
+
+        public Builder differentialPrivacyParameter(double differentialPrivacyParameter) {
+            this.differentialPrivacyParameter = differentialPrivacyParameter;
+            return this;
+        }
+
+        public FgbParameter build() {
+            return new FgbParameter(this);
+        }
     }
 
     public List<ParameterField> obtainPara() {
         List<ParameterField> res = new ArrayList<>();
         res.add(new NumberParameter("numBoostRound", "树的个数", 50, new String[]{"1", "100"}, ParameterType.NUMS));
-//        res.add(new ParameterField("firstRoundPred", "初始化预测值", "0.0", new String[]{"0.0", "1.0"}, ParameterType.NUMS));
         res.add(new CategoryParameter("firstRoundPred", "初始化预测值", "AVG", new String[]{"ZERO", "AVG", "RANDOM"}, ParameterType.STRING));
         res.add(new CategoryParameter("maximize", "maximize", "true", new String[]{"true", "false"}, ParameterType.STRING));
         res.add(new NumberParameter("rowSample", "样本抽样比例", 1.0, new String[]{"0.1", "1.0"}, ParameterType.NUMS));

@@ -15,6 +15,7 @@ package com.jdt.fedlearn.coordinator.service.train.jdchain;
 
 import com.jdt.fedlearn.common.constant.JdChainConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTrainMapper;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdChainTaskStatus;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdchainTrainInfo;
@@ -23,7 +24,6 @@ import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
 import com.jdt.fedlearn.coordinator.service.CommonService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.exception.NotMatchException;
 import com.jdt.fedlearn.core.type.AlgorithmType;
@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -43,24 +44,25 @@ import java.util.Map;
 public class ChainStateChangeServiceImpl implements TrainService {
     private static final Logger logger = LoggerFactory.getLogger(ChainStateChangeServiceImpl.class);
 
-    public static final String ERROR_MSG = "重启异常";
-    public static final String SUCCESS_MSG = "重启成功";
-    public static final String STOP_SUCCESS = "停止成功";
-    public static final String STOP_FAIL = "停止异常，任务不存在";
-    public static final String SUSPEND_SUCCESS = "暂停成功";
-    public static final String SUSPEND_FAIL = "暂停异常，任务不存在";
+    private static final String ERROR_MSG = "重启异常";
+    private static final String SUCCESS_MSG = "重启成功";
+    private static final String STOP_SUCCESS = "停止成功";
+    private static final String STOP_FAIL = "停止异常，任务不存在";
+    private static final String SUSPEND_SUCCESS = "暂停成功";
+    private static final String SUSPEND_FAIL = "暂停异常，任务不存在";
 
     @Override
     public Map<String, Object> service(String content) throws Exception {
         Map<String, Object> resultMap = new HashMap<>();
         try {
             StateChangeSignal subRequest = new StateChangeSignal(content);
-            switch (subRequest.getType()) {
-                case "stop":
+            RunningType runningType = RunningType.valueOf(subRequest.getType().toUpperCase());
+            switch (runningType) {
+                case STOP:
                     return stopTrain(subRequest.getModelToken());
-                case "resume":
+                case RESUME:
                     return resumeTrain(subRequest.getModelToken());
-                case "suspend":
+                case SUSPEND:
                     return suspendTrain(subRequest.getModelToken());
                 default:
                     throw new NotMatchException("illegal change state type:" + subRequest.getType());
@@ -92,7 +94,7 @@ public class ChainStateChangeServiceImpl implements TrainService {
         assert false;
         ChainTrainMapper.updateStatusAndTrainInfo(modelId, jdChainTaskStatus, jdchainTrainInfo, RunningType.STOP);
         RunningType old = ChainTrainCommonServiceImpl.queryStatusByJdChain(modelId).getTrainContext().getRunningType();
-        logger.info("modelToken:" + modelId + "，执行状态：" + old);
+        logger.info("modelToken:{},执行状态：{}", modelId,old);
         logger.info("task:训练终止 , modelToken: {}", modelId);
         modelMap.put(ResponseConstant.STATUS, STOP_SUCCESS);
         modelMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
@@ -114,7 +116,7 @@ public class ChainStateChangeServiceImpl implements TrainService {
             ChainTrainMapper.updateStatusAndTrainInfo(modelId, jdChainTaskStatus, jdchainTrainInfo, RunningType.SUSPEND);
             TrainContext trainContext = ChainTrainCommonServiceImpl.queryStatusByJdChain(modelId).getTrainContext();
             RunningType old = trainContext.getRunningType();
-            logger.info("modelToken:" + modelId + "，执行状态：" + old);
+            logger.info("modelToken:{},执行状态：{}", modelId,old);
             resultMap.put(ResponseConstant.STATUS, SUSPEND_SUCCESS);
             resultMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
         } else {

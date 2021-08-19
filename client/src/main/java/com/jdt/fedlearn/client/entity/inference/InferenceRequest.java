@@ -26,8 +26,9 @@ public class InferenceRequest {
     private String modelToken;
     private AlgorithmType algorithm;
     private int phase;
-    private String data;
-
+    private String dataset;
+    private String index;
+    private String body;
 
     public InferenceRequest() {
     }
@@ -60,12 +61,12 @@ public class InferenceRequest {
         this.phase = phase;
     }
 
-    public String getData() {
-        return data;
+    public String getBody() {
+        return body;
     }
 
-    public void setData(String data) {
-        this.data = data;
+    public void setBody(String body) {
+        this.body = body;
     }
 
 
@@ -77,6 +78,22 @@ public class InferenceRequest {
         this.inferenceId = inferenceId;
     }
 
+    public String getDataset() {
+        return dataset;
+    }
+
+    public void setDataset(String dataset) {
+        this.dataset = dataset;
+    }
+
+    public String getIndex() {
+        return index;
+    }
+
+    public void setIndex(String index) {
+        this.index = index;
+    }
+
     public void parseJson(String jsonStr) {
         ObjectMapper mapper = new ObjectMapper();
         InferenceRequest p1r;
@@ -85,8 +102,10 @@ public class InferenceRequest {
             this.modelToken = p1r.modelToken;
             this.algorithm = p1r.algorithm;
             this.phase = p1r.phase;
-            this.data = p1r.data;
+            this.body = p1r.body;
             this.inferenceId = p1r.inferenceId;
+            this.dataset = p1r.dataset;
+            this.index = p1r.index;
         } catch (IOException e) {
             throw new DeserializeException("inference request parse json error ", e);
         }
@@ -94,13 +113,14 @@ public class InferenceRequest {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("SubRequest{");
-        sb.append("modelToken='").append(modelToken).append('\'');
-        sb.append(", algorithm=").append(algorithm);
-        sb.append(", phase=").append(phase);
-        sb.append(", data='").append(data).append('\'');
-        sb.append(", inferenceId='").append(inferenceId).append('\'');
-        sb.append('}');
-        return sb.toString();
+        return "InferenceRequest{" +
+                "inferenceId='" + inferenceId + '\'' +
+                ", modelToken='" + modelToken + '\'' +
+                ", algorithm=" + algorithm +
+                ", phase=" + phase +
+                ", dataset='" + dataset + '\'' +
+                ", index='" + index + '\'' +
+                ", data='" + body + '\'' +
+                '}';
     }
 }

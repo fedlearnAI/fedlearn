@@ -8,7 +8,7 @@ public class ConfigUtilTest {
         String configPath = "./src/test/resources/client.properties";
         try {
             ConfigUtil.init(configPath) ;
-            boolean useTrain2Inference = ConfigUtil.useTrainUid2Inference();
+            boolean useTrain2Inference = ConfigUtil.getClientConfig().isAllowTrainUid();
             System.out.println("useTrain2Inference: "+ useTrain2Inference);
         }catch(Exception e){
             e.printStackTrace();

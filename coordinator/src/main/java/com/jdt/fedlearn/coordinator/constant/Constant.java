@@ -58,4 +58,6 @@ public interface Constant {
     String TASK_VISIBLE_PART = "3";
     /*部分不可见 */
     String TASK_INVISIBLE_PART = "4";
+
+    String MATCH_ID = "matchId";
 }

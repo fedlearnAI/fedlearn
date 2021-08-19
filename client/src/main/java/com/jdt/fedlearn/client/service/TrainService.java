@@ -17,6 +17,7 @@ import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jdt.fedlearn.client.cache.TrainDataCache;
 import com.jdt.fedlearn.client.cache.ModelCache;
 import com.jdt.fedlearn.client.constant.Constant;
+import com.jdt.fedlearn.client.dao.CsvReader;
 import com.jdt.fedlearn.client.dao.IdMatchProcessor;
 import com.jdt.fedlearn.client.entity.train.QueryProgress;
 import com.jdt.fedlearn.client.entity.train.TrainRequest;
@@ -24,11 +25,13 @@ import com.jdt.fedlearn.client.exception.ServerNotFoundException;
 import com.jdt.fedlearn.client.util.JdChainUtils;
 import com.jdt.fedlearn.client.multi.TrainProcess;
 import com.jdt.fedlearn.client.util.*;
+import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.constant.JdChainConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.util.HttpClientUtil;
+import com.jdt.fedlearn.common.util.FileUtil;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.common.util.LogUtil;
+import com.jdt.fedlearn.common.network.INetWorkService;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.common.TrainInit;
 import com.jdt.fedlearn.core.entity.feature.Features;
@@ -58,6 +61,7 @@ public class TrainService {
     public static Map<String, String> responseQueue = new ConcurrentSkipListMap<>();
     //TODO 此处需要入参队列和出餐队列
     //TODO 文件初始化即加载，且不区分算法
+   private static INetWorkService netWorkService =  INetWorkService.getNetWorkService();
 
     /**
      * @param trainRequest 服务端请求的数据
@@ -80,31 +84,48 @@ public class TrainService {
                 modelCache.put(modelToken, localModel);
                 //构造trainData
                 Message message = Constant.serializer.deserialize(parameterData);
-                TrainInit trainInit = (TrainInit)message;
-                String dataset = trainRequest.getDataset();
-                logger.info("dataset:" + dataset);
+                TrainInit trainInit = (TrainInit) message;
                 Features features = trainInit.getFeatureList();
-                if(RequestCheck.needBelongCoordinator(features,algorithm,remoteIP)){
+                if (RequestCheck.needBelongCoordinator(features, algorithm, remoteIP)) {
                     logger.error("init error, 协调端需要与有y值的客户端部署在同一方");
                     return "init_failed, 协调端需要与有y值的客户端部署在同一方";
                 }
                 SuperParameter superParameter = trainInit.getParameter();
                 String matchToken = trainInit.getMatchId();
                 // 此时是在client端，解密的状态
-                String[] mappingResult = IdMatchProcessor.loadResult(matchToken);;
-                String[][] trainPara = TrainDataCache.getTrainData(modelToken, dataset);
+                String[] mappingResult = IdMatchProcessor.loadResult(matchToken);
+                String dataset = trainRequest.getDataset();
+                logger.info("dataset:" + dataset);
+                String[][] trainPara = null;
+                if (FileUtil.isFile(dataset)) {
+                    CsvReader csvReader = new CsvReader();
+                    trainPara = csvReader.loadData(dataset);
+                } else {
+                    trainPara = TrainDataCache.getTrainData(modelToken, dataset);
+                }
+
+                Map<String, Object> others = trainInit.getOthers();
+                List<AlgorithmType> needDistributedKeys = Arrays.asList(AlgorithmType.MixGBoost, AlgorithmType.LinearRegression);
+                if (needDistributedKeys.contains(algorithm)) {
+                    String pubkeyContent = FileUtil.loadClassFromFile("/export/data/pubkey");
+                    String prikeyPath = ConfigUtil.getClientConfig().getModelDir();
+
+                    String prikeyContent = FileUtil.loadClassFromFile(prikeyPath + "prikey");
+                    others.put("pubKeyStr", pubkeyContent);
+                    others.put("privKeyStr", prikeyContent);
+                }
                 // TODO 此时mappingResult应该是在client端，解密的状态
                 int[] testIndex = trainInit.getTestIndex();
-                TrainData trainData = localModel.trainInit(trainPara, mappingResult, testIndex, superParameter, features, trainInit.getOthers());
+                TrainData trainData = localModel.trainInit(trainPara, mappingResult, testIndex, superParameter, features, others);
                 dataMap.put(modelToken, trainData);
-                String data = "init_success";
-                if(flag){
-                    post2Server(data,trainRequest);
+                String data = AppConstant.INIT_SUCCESS;
+                if (flag) {
+                    post2Server(data, trainRequest);
                 }
-                return "init_success";
+                return data;
             } catch (IOException e) {
                 logger.error("init error: ", e);
-                return "init_failed";
+                return AppConstant.INIT_FAILED;
             }
         }
 
@@ -136,12 +157,12 @@ public class TrainService {
             if (trainRequest.isSync()) {
                 Message restoreMessage = Constant.serializer.deserialize(parameterData);
                 Message data = null;
-                if(model != null){
-                     data =  model.train(phase, restoreMessage, trainData);
+                if (model != null) {
+                    data = model.train(phase, restoreMessage, trainData);
                 }
-                String strMessage =  Constant.serializer.serialize(data);
-                if(flag){
-                    post2Server(strMessage,trainRequest);
+                String strMessage = Constant.serializer.serialize(data);
+                if (flag) {
+                    post2Server(strMessage, trainRequest);
                 }
                 return strMessage;
             }
@@ -169,23 +190,24 @@ public class TrainService {
     private static final String MODEL_TOKEN = "modelToken";
     private static final String CLIENT_INFO = "clientInfo";
     private static final String REQUEST_NUM = "reqNum";
-    private void post2Server(String data,TrainRequest trainRequest) {
+
+    private void post2Server(String data, TrainRequest trainRequest) {
         Map<String, Object> modelMap = new HashMap<>();
         String modelToken = trainRequest.getModelToken();
-        modelMap.put(DATA,data);
-        modelMap.put(PHASE,trainRequest.getPhase());
-        modelMap.put(MODEL_TOKEN,trainRequest.getModelToken());
-        modelMap.put(CLIENT_INFO,trainRequest.getClientInfo());
-        modelMap.put(REQUEST_NUM,trainRequest.getReqNum());
+        modelMap.put(DATA, data);
+        modelMap.put(PHASE, trainRequest.getPhase());
+        modelMap.put(MODEL_TOKEN, trainRequest.getModelToken());
+        modelMap.put(CLIENT_INFO, trainRequest.getClientInfo());
+        modelMap.put(REQUEST_NUM, trainRequest.getReqNum());
         /*获取随机的master*/
         String queryKey = JdChainConstant.INVOKE_RANDOM_TRAINING + JdChainConstant.SEPARATOR + modelToken + JdChainConstant.SEPARATOR + JdChainConstant.SERVER;
         TypedKVEntry typedKVEntry = JdChainUtils.queryByChaincode(queryKey);
-        if(typedKVEntry != null){
-            Map<String, Object> jsonObject = JsonUtil.parseJson((String) typedKVEntry.getValue());
-            String server = (String) ((Map)(jsonObject.get(SERVER))).get(IDENTITY);
-            String url = JdChainConstant.HTTP_PREFIX + server + JdChainConstant.API_RANDOM_SERVER;
+        if (typedKVEntry != null) {
+            Map<String, Object> map = JsonUtil.json2Object((String) typedKVEntry.getValue(), Map.class);
+            String server = JsonUtil.json2Object(map.get(SERVER).toString(), Map.class).get(IDENTITY).toString();
+            String url = AppConstant.HTTP_PREFIX + server + JdChainConstant.API_RANDOM_SERVER;
 //            String url = "http://127.0.0.1:8092/api/train/random";
-            HttpClientUtil.doHttpPost(url,modelMap);
+            netWorkService.sendAndRecv(url,modelMap);
             logger.info("random server is {} , this key is {}",url, modelToken+"-"+trainRequest.getPhase());
         }else{//找不到选举的master 默认一个或者直接抛出异常
             throw new ServerNotFoundException("master server not found！");

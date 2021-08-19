@@ -17,10 +17,17 @@ package com.jdt.fedlearn.client.service;
 import com.jdt.fedlearn.client.cache.TrainDataCache;
 import com.jdt.fedlearn.client.constant.Constant;
 import com.jdt.fedlearn.client.dao.IdMatchProcessor;
+import com.jdt.fedlearn.client.entity.prepare.KeyGenerateRequest;
 import com.jdt.fedlearn.client.entity.prepare.MatchRequest;
+import com.jdt.fedlearn.client.entity.source.ClientConfig;
+import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.client.util.PacketUtil;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.exception.NotAcceptableException;
+import com.jdt.fedlearn.common.util.FileUtil;
+import com.jdt.fedlearn.common.tool.internel.ResponseConstruct;
+import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierKeyGenerator;
+import com.jdt.fedlearn.core.encryption.nativeLibLoader;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.psi.MatchInit;
 import com.jdt.fedlearn.core.psi.CommonPrepare;
@@ -29,6 +36,7 @@ import com.jdt.fedlearn.core.type.MappingType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,37 +50,33 @@ import static com.jdt.fedlearn.client.util.PacketUtil.msgMap;
 public class PrepareService {
     private static final Logger logger = LoggerFactory.getLogger(PrepareService.class);
     Map<String, PrepareClient> clientMap = new ConcurrentHashMap<>();
+    private static DistributedPaillierKeyGenerator keyGenerator = null;
+    private static boolean loaded = false;
 
     public Map<String, Object> match(MatchRequest request) {
         Map<String, Object> modelMap = new HashMap<>();
         String strBody = "";
+        String matchToken = request.getMatchToken();
         try {
-            String matchToken = request.getMatchToken();
+            // id对齐结束处理
             if (request.getPhase() == 999) {
-                // TODO 目前只该了Vertical-MD5，其他的还没有改，会报错
-                String[] matchIds = clientMap.get(matchToken).getCommonIds();
-                logger.info("clientmap size: " + clientMap.size());
-                logger.info("matched size: " + matchIds.length);
-
-                // 储存id对齐结果
-                Boolean success = IdMatchProcessor.saveResult(matchToken, matchIds);
-                // 清楚client端缓存
-                clientMap.remove(matchToken);
-                logger.info("Match Result saved successfully: ", success);
-                modelMap.put("data", strBody);
-                modelMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
-                modelMap.put(ResponseConstant.STATUS, ResponseConstant.SUCCESS);
-                return modelMap;
+                return end(matchToken);
             }
 
+            // 本地数据加载
             String dataset = request.getDataset();
-
+            String index = request.getIndex();
+            String[] tmp;
+            if (FileUtil.isFile(dataset)) {
+                tmp = FileUtil.readColumn(dataset,index);
+            } else {
+                //String[][] uidList = TrainDataCache.readFullTrainData(matchToken, dataset);
+                tmp = TrainDataCache.loadTrainDataUid(dataset, index);
+            }
             logger.info("dataset: " + dataset);
+            //对齐逻辑
             MappingType type = MappingType.valueOf(request.getMatchType());
             Message restoreMessage = Constant.serializer.deserialize(request.getBody());
-            // todo tmp?
-            String[][] uidList = TrainDataCache.readFullTrainData(matchToken, dataset);
-            String[] tmp = TrainDataCache.getFirstColumnUid(uidList);
             if (!clientMap.containsKey(matchToken)) {
                 PrepareClient uidMatchClient = CommonPrepare.constructClient(type);
                 clientMap.put(matchToken, uidMatchClient);
@@ -81,7 +85,7 @@ public class PrepareService {
                     logger.info("error: init message is " + restoreMessage.getClass());
                     throw new NotAcceptableException("unexpected message from initial phase of ID match");
                 }
-                MatchInit matchInit = (MatchInit)restoreMessage;
+                MatchInit matchInit = (MatchInit) restoreMessage;
                 Message trainData = uidMatchClient.init(tmp, matchInit.getOthers());
                 strBody = Constant.serializer.serialize(trainData);
 //                logger.info("common Id: " + (clientMap.get(matchToken).getCommonIds().length));
@@ -127,4 +131,37 @@ public class PrepareService {
         return modelMap;
     }
 
+    private Map<String, Object> end(String matchToken) throws IOException {
+        String[] matchIds = clientMap.get(matchToken).getCommonIds();
+        logger.info("clientmap size: " + clientMap.size());
+        logger.info("matched size: " + matchIds.length);
+
+        // 储存id对齐结果
+        boolean success = IdMatchProcessor.saveResult(matchToken, matchIds);
+        // 清楚client端缓存
+        clientMap.remove(matchToken);
+        logger.info("Match Result saved successfully: ", success);
+
+        return ResponseConstruct.success();
+    }
+
+    public Message generateKey(KeyGenerateRequest request) {
+        try {
+            if (!loaded) {
+                nativeLibLoader.load();
+            }
+            loaded = true;
+        } catch (UnsatisfiedLinkError e) {
+            logger.error("load jni error", e);
+            System.exit(1);
+        }
+        if (keyGenerator == null) {
+            String prikeyPath = ConfigUtil.getClientConfig().getModelDir();
+            //TODO
+            keyGenerator = new DistributedPaillierKeyGenerator(prikeyPath);
+        }
+        Message message = Constant.serializer.deserialize(request.getBody());
+        ///mock receive message serialize and deserialize
+        return  (keyGenerator.stateMachine(message));
+    }
 }

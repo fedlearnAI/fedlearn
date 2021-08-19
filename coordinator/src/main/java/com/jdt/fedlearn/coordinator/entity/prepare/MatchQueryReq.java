@@ -24,27 +24,18 @@ import java.io.IOException;
  * @author lijingxi
  */
 public class MatchQueryReq {
-    private String username;
-    private String matchToken;
+    private String matchId;
 
     public MatchQueryReq() {
     }
 
-    public MatchQueryReq(String jsonStr) {
-        parseJson(jsonStr);
+
+    public MatchQueryReq( String matchToken) {
+        this.matchId = matchToken;
     }
 
-    public MatchQueryReq(String username, String matchToken) {
-        this.username = username;
-        this.matchToken = matchToken;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getMatchToken() {
-        return matchToken;
+    public String getMatchId() {
+        return matchId;
     }
 
     public void parseJson(String jsonStr) {
@@ -52,11 +43,7 @@ public class MatchQueryReq {
         MatchQueryReq p3r;
         try {
             p3r = mapper.readValue(jsonStr, MatchQueryReq.class);
-            this.username = p3r.username;
-            this.matchToken = p3r.matchToken;
-            if (username == null || matchToken == null) {
-                throw new DeserializeException("缺少参数");
-            }
+            this.matchId = p3r.matchId;
         } catch (IOException e) {
             throw new DeserializeException(e.getMessage());
         }

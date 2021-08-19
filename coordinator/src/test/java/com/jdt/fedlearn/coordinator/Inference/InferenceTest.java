@@ -8,9 +8,9 @@ import com.jdt.fedlearn.coordinator.entity.inference.InferenceFetchDTO;
 import com.jdt.fedlearn.coordinator.entity.inference.RemotePredict;
 import com.jdt.fedlearn.coordinator.entity.table.InferenceEntity;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
-import com.jdt.fedlearn.coordinator.entity.train.SingleParameter;
+import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.coordinator.service.inference.InferenceRemoteServiceImpl;
-import com.jdt.fedlearn.coordinator.service.inference.InferenceService;
+import com.jdt.fedlearn.coordinator.service.inference.InferenceCommonService;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
 import com.jdt.fedlearn.core.entity.ClientInfo;
@@ -27,8 +27,6 @@ import com.jdt.fedlearn.core.entity.serialize.Serializer;
 import com.jdt.fedlearn.core.model.common.tree.Tree;
 import com.jdt.fedlearn.core.model.common.tree.TreeNode;
 import com.jdt.fedlearn.core.type.AlgorithmType;
-import com.jdt.fedlearn.coordinator.dao.db.PartnerMapper;
-import com.jdt.fedlearn.coordinator.dao.db.FeatureMapper;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import com.jdt.fedlearn.coordinator.entity.table.PartnerProperty;
 import com.jdt.fedlearn.coordinator.service.inference.InferenceBatchServiceImpl;
@@ -93,13 +91,16 @@ public class InferenceTest {
     private static final String DATA_KEY = "data";
     private static final String PREDICT_KEY = "predict";
 
+    // 这个多线程没有意义
     @Test(invocationCount = 3, threadPoolSize = 2)
     public void testBatch() throws Exception {
         String[] allUids = {"1B","59255", "2A", "3A","4A"};
         StringBuilder stringBuilder = new StringBuilder(PRE_MODEL);
         String model = stringBuilder.append(getSubUUID()).toString();
+//        int count = random.nextInt(allUids.length) + 1;//每次推理的uid的个数
         int count = allUids.length;
         logger.info("推理uid个数={}", count);
+//        String[] uids = randomUids(allUids, count, model);
         String[] uids = allUids;
 
         Map<String, Object> paramMap = new HashMap<>();
@@ -138,6 +139,8 @@ public class InferenceTest {
         List predict = data.get(PREDICT_KEY);
 
         // TODO 当前待修改
+//        Assert.assertTrue(0 == code);
+//        Assert.assertEquals(uids.length+1, predict.size());
     }
 
 //    @Test
@@ -237,7 +240,7 @@ public class InferenceTest {
         InferenceFetchDTO inferenceFetchDTO = new InferenceFetchDTO();
         inferenceFetchDTO.setUid(new String[]{"1B","59255", "2A", "3A","4A"});
         inferenceFetchDTO.setModel("1-FederatedGB-4522552445");
-        new MockUp<InferenceService>() {
+        new MockUp<InferenceCommonService>() {
             @Mock
             private InferenceFetchDTO getUidList(RemotePredict remotePredict, ObjectMapper mapper, ClientInfo clientInfo) throws JsonProcessingException {
                 return inferenceFetchDTO;
@@ -285,18 +288,18 @@ public class InferenceTest {
         featureList3.add(new SingleFeature("Age", "float"));
         Features features3 = new Features(featureList3);
 
-        new MockUp<FeatureMapper>() {
-            @Mock
-            public Features selectFeatureListByTaskIdAndCli(String taskId, PartnerProperty clientInfo) {
-                if (clientInfo.equals(c1)) {
-                    return features;
-                } else if (clientInfo.equals(c2)) {
-                    return features2;
-                } else {
-                    return features3;
-                }
-            }
-        };
+//        new MockUp<FeatureMapper>() {
+//            @Mock
+//            public Features selectFeatureListByTaskIdAndCli(String taskId, PartnerProperty clientInfo) {
+//                if (clientInfo.equals(c1)) {
+//                    return features;
+//                } else if (clientInfo.equals(c2)) {
+//                    return features2;
+//                } else {
+//                    return features3;
+//                }
+//            }
+//        };
     }
 
     /**
@@ -314,17 +317,17 @@ public class InferenceTest {
         clientInfos.add(c2);
         clientInfos.add(c3);
         // 将PartnerMapper传入MockUp类
-        new MockUp<PartnerMapper>() {
-            @Mock
-            public List<PartnerProperty> selectPartnerList(String taskId, String username) {
-                return clientInfos;
-            }
-
-            @Mock
-            public PartnerProperty selectClientByToken(String modelToken, String username) {
-                return c1;
-            }
-        };
+//        new MockUp<PartnerMapper>() {
+//            @Mock
+//            public List<PartnerProperty> selectPartnerList(String taskId, String username) {
+//                return clientInfos;
+//            }
+//
+//            @Mock
+//            public PartnerProperty selectClientByToken(String modelToken, String username) {
+//                return c1;
+//            }
+//        };
 
     }
 
@@ -397,8 +400,8 @@ public class InferenceTest {
             fullRet.add(cr255Three);
         } else if (phase == -1) {
             ArrayList<Tree> trees = new ArrayList<>();
-            TreeNode root1 = new TreeNode(1, 4, new ClientInfo(null, 0, "null", 3), 1, 1.0);
-            TreeNode root2 = new TreeNode(1, 4, new ClientInfo(null, 0, "null", 3), 2, 1.0);
+            TreeNode root1 = new TreeNode(1, 4, new ClientInfo(null, 0, "null", ""), 1, 1.0);
+            TreeNode root2 = new TreeNode(1, 4, new ClientInfo(null, 0, "null", ""), 2, 1.0);
             // left
             TreeNode left1 = new TreeNode(2, -0.6666666666666666);
             TreeNode left2 = new TreeNode(2, -0.5590094712505657);

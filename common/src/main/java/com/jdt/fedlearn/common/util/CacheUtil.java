@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  * C. 支持自定义call回调
  *
  * @author dongluning
- * @date 2020-09-11 10:16
+ * @version  2020-09-11 10:16 0.6.1
  */
 public class CacheUtil {
     /***

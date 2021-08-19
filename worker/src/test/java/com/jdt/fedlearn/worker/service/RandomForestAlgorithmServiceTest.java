@@ -12,6 +12,9 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.service;
 
+import ch.qos.logback.core.joran.spi.JoranException;
+import com.jdt.fedlearn.client.util.ConfigUtil;
+import com.jdt.fedlearn.core.type.ReduceType;
 import com.jdt.fedlearn.worker.cache.ManagerCache;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.*;
@@ -19,7 +22,6 @@ import com.jdt.fedlearn.common.enums.BusinessTypeEnum;
 import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
 import com.jdt.fedlearn.common.enums.RunStatusEnum;
 import com.jdt.fedlearn.common.enums.TaskTypeEnum;
-import com.jdt.fedlearn.worker.util.ConfigUtil;
 
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
@@ -29,6 +31,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +40,7 @@ import java.util.List;
 public class RandomForestAlgorithmServiceTest extends PowerMockTestCase {
 
     @Test
-    public void testInit(){
+    public void testInit() throws IOException, JoranException {
         Phase0();
         ConfigUtil.init("src/test/resources/conf/worker.properties");
         PowerMockito.mockStatic(ManagerCache.class);
@@ -64,7 +67,7 @@ public class RandomForestAlgorithmServiceTest extends PowerMockTestCase {
                 "¬í\u0000\u0005sr\u0000Dcom.jdt.fedlearn.core.entity.randomForest.DistributedRandomForestReq×ÃÿK¬BåÏ\u0002\u0000\u0006Z\u0000\u0004skipI\u0000\u0006treeIdL\u0000\u0004bodyt\u0000\u0012Ljava/lang/String;L\u0000\u0006clientt\u0000)Lcom/jdt/fedlearn/core/entity/ClientInfo;L\u0000\textraInfoq\u0000~\u0000\u0001L\u0000\bsampleIdt\u0000\u0015Ljava/util/ArrayList;xp\u0000ÿÿÿÿt\u0000={\"treeId\":1.0,\"percentile\":33.33333333333333,\"featureId\":0.0}sr\u0000'com.jdt.fedlearn.core.entity.ClientInfo\u007FÂ<Y\u0016Õ\u009Cø\u0002\u0000\u0005I\u0000\u0004portI\u0000\buniqueIdL\u0000\u0002ipq\u0000~\u0000\u0001L\u0000\u0004pathq\u0000~\u0000\u0001L\u0000\bprotocolq\u0000~\u0000\u0001xp\u0000\u0000#\u0086\u008Eî\u000FÒt\u0000\t127.0.0.1pt\u0000\u0004httpt\u0000\f1||[2, 3, 4]p",
                 "0");
         PowerMockito.mockStatic(ManagerCache.class);
-        PowerMockito.when(ManagerCache.getCache(AppConstant.TREE_CACHE,"data:pre_205-DistributedRandomForest-210406195046")).thenReturn("[0,1]");
+        PowerMockito.when(ManagerCache.getCache(AppConstant.MODEL_COUNT_CACHE,"data:pre_205-DistributedRandomForest-210406195046")).thenReturn("[0,1]");
 
         phase("¬í\u0000\u0005sr\u0000Dcom.jdt.fedlearn.core.entity.randomForest.DistributedRandomForestReq×ÃÿK¬BåÏ\u0002\u0000\u0006Z\u0000\u0004skipI\u0000\u0006treeIdL\u0000\u0004bodyt\u0000\u0012Ljava/lang/String;L\u0000\u0006clientt\u0000)Lcom/jdt/fedlearn/core/entity/ClientInfo;L\u0000\textraInfoq\u0000~\u0000\u0001L\u0000\bsampleIdt\u0000\u0015Ljava/util/ArrayList;xp\u0000ÿÿÿÿt\u0000\u0000sr\u0000'com.jdt.fedlearn.core.entity.ClientInfo\u007FÂ<Y\u0016Õ\u009Cø\u0002\u0000\u0005I\u0000\u0004portI\u0000\buniqueIdL\u0000\u0002ipq\u0000~\u0000\u0001L\u0000\u0004pathq\u0000~\u0000\u0001L\u0000\bprotocolq\u0000~\u0000\u0001xp\u0000\u0000#\u0086\u008Eî\u000FÒt\u0000\t127.0.0.1pt\u0000\u0004httpq\u0000~\u0000\u0005p",
                 5,
@@ -130,16 +133,16 @@ public class RandomForestAlgorithmServiceTest extends PowerMockTestCase {
         taskResp1[1].setSubRequest(trainRequestp12);
 
         TrainRequest trainRequestp13 = new TrainRequest();
-        trainRequestp13.setReduceType(finish);
-        trainRequestp13.setReduceType("1");
+        trainRequestp13.setReduceType(ReduceType.needMerge);
+        trainRequestp13.setReduceType(ReduceType.needMerge);
         taskResp1[2].setPreTaskList(taskListp1);
         taskResp1[2].setSubRequest(trainRequestp13);
 
         taskResp1[3].setPreTaskList(taskListp1);
         taskResp1[3].setSubRequest(null);
-        RandomForestAlgorithmService randomForestAlgorithmService1 = new RandomForestAlgorithmService();
+        AlgorithmService algorithmService1 = new AlgorithmService();
 
-        List<Task> resp1 = randomForestAlgorithmService1.init(taskp1ori);
+        List<Task> resp1 = algorithmService1.init(taskp1ori);
         int len = resp1.size();
         if (phase == 5) {
             len = 2;
@@ -191,13 +194,13 @@ public class RandomForestAlgorithmServiceTest extends PowerMockTestCase {
         taskRes[0].setPreTaskList(taskList);
         taskRes[0].setSubRequest(trainRequest1);
         TrainRequest trainRequest2 = new TrainRequest();
-        trainRequest2.setReduceType("0");
+        trainRequest2.setReduceType(ReduceType.needMerge);
         taskRes[1].setPreTaskList(taskList);
         taskRes[1].setSubRequest(trainRequest2);
         taskRes[2].setPreTaskList(taskList);
         taskRes[2].setSubRequest(null);
-        RandomForestAlgorithmService randomForestAlgorithmService0 = new RandomForestAlgorithmService();
-        List<Task> res = randomForestAlgorithmService0.init(task);
+        AlgorithmService algorithmService0 = new AlgorithmService();
+        List<Task> res = algorithmService0.init(task);
         for (int i = 0; i < res.size(); i++) {
             Assert.assertEquals(res.get(i).getSubRequest(), taskRes[i].getSubRequest());
             Assert.assertEquals(res.get(i).getRunStatusEnum(), taskRes[i].getRunStatusEnum());

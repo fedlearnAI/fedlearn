@@ -13,8 +13,6 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.encryption.common;
 
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
-
 public interface EncryptionTool {
 
     /**

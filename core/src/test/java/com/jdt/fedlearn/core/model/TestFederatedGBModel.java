@@ -10,6 +10,7 @@ import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.base.StringArray;
 import com.jdt.fedlearn.core.entity.boost.*;
 import com.jdt.fedlearn.core.entity.common.InferenceInitRes;
+import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
@@ -22,19 +23,15 @@ import com.jdt.fedlearn.core.model.common.tree.Tree;
 import com.jdt.fedlearn.core.model.common.tree.TreeNode;
 import com.jdt.fedlearn.core.model.serialize.FgbModelSerializer;
 import com.jdt.fedlearn.core.parameter.FgbParameter;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.*;
-import com.jdt.fedlearn.core.type.data.DoubleTuple2;
-import com.jdt.fedlearn.core.type.data.StringTuple2;
-import com.jdt.fedlearn.core.type.data.Tuple2;
-import com.jdt.fedlearn.core.type.data.Tuple3;
+import com.jdt.fedlearn.core.type.data.*;
 import org.testng.Assert;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.*;
 
 public class TestFederatedGBModel {
+    private static final FgbParameter fp = new FgbParameter.Builder(3, new MetricType[]{MetricType.ACC}, ObjectiveType.regLogistic).build();
 
     @Test
     public void testMultiLabelTransform() {
@@ -45,7 +42,7 @@ public class TestFederatedGBModel {
         String[] result = compoundInput._2().get(); // id match info
         Features features = compoundInput._3().get(); // feature and label column names
         // train init
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0], new FgbParameter(), features, new HashMap<>());
+        BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
         model.multiLabelTransform();
         // expected value
         double[] target = {0.0, 1.0, 0.0, 1.0};
@@ -57,120 +54,57 @@ public class TestFederatedGBModel {
     @Test
     public void trainInit() {
         /*
-        Regression trainInit test
+        trainInit test
         */
         FederatedGBModel model = new FederatedGBModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0],new FgbParameter(), features, new HashMap<>());
-
-        Assert.assertEquals(trainData.getDatasetSize(), 3);
-        Assert.assertEquals(trainData.getFeatureDim(), 3);
-        //TODO add more Assert
-        Assert.assertEquals(trainData.getLabel().length, 3);
-        Assert.assertEquals(model.pred.length, 1);
-        Assert.assertEquals(model.pred[0].length, 3);
+        List<Tuple3<String[][], String[], Features>> dataArray = new ArrayList<>();
+        dataArray.add(StructureGenerate.trainInputStd());
+        dataArray.add(StructureGenerate.trainClassInputStd());
+        dataArray.add(StructureGenerate.trainInputStdNoLabel());
+        // fp
+        List<FgbParameter> fpList = new ArrayList<>();
+        fpList.add(fp);
+        MetricType[] metricTypes = new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC};
+//        fpList.add(new FgbParameter.Builder(50, metricTypes, ObjectiveType.multiSoftmax).eta(0.1).maxDepth(5).build());
+        fpList.add(new FgbParameter.Builder(50, metricTypes, ObjectiveType.regSquare).build());
+        fpList.add(new FgbParameter.Builder(50, new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC}, ObjectiveType.countPoisson).build());
+        fpList.add(new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.multiSoftProb).numClass(2).eta(0.1).maxDepth(5).build());
+        fpList.add(new FgbParameter.Builder(50, new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC}, ObjectiveType.regLogistic).build());
+        fpList.add(new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.multiSoftmax).numClass(2).build());
+        fpList.add(new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.binaryLogistic).numClass(1).build());
+        for (Tuple3<String[][], String[], Features> compoundInput : dataArray) {
+            for (FgbParameter fp : fpList) {
+                String[][] raw = compoundInput._1().get();
+                String[] result = compoundInput._2().get();
+                Features features = compoundInput._3().get();
+                try {
+                    BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
+                    Assert.assertEquals(model.pred[0].length, 3);
+                    if ((fp.getObjective() == ObjectiveType.multiSoftProb)||(fp.getObjective() == ObjectiveType.multiSoftmax)) {
+                        Assert.assertEquals(model.pred.length, 2);
+                    } else {
+                        Assert.assertEquals(model.pred.length, 1);
+                    }
+                    //TODO add more Assert
+                } catch (Exception e) {
+                    System.out.println("unmatched dataset and objective");
+                }
+            }
+        }
     }
 
+    /**
+     * countPoisson & negative label
+     */
     @Test
     public void trainInit2() {
-        /*
-        Binary Classification trainInit test
-        */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0], new FgbParameter(), features, new HashMap<>());
-        Assert.assertEquals(trainData.getDatasetSize(), 3);
-        Assert.assertEquals(trainData.getFeatureDim(), 2);
-        Assert.assertEquals(trainData.getLabel().length, 3);
-        Assert.assertEquals(model.pred.length, 1);
-        Assert.assertEquals(model.pred[0].length, 3);
-    }
-
-    @Test
-    public void trainInit3() {
-        /*
-        No label trainInit test
-        */
-        FederatedGBModel model = new FederatedGBModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStdNoLabel();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ObjectiveType.multiSoftmax
-                , new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC},
-                BitLengthType.bit1024, new String[]{""});
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
-        Assert.assertEquals(trainData.getDatasetSize(), 3);
-        Assert.assertEquals(trainData.getFeatureDim(), 3);
-        Assert.assertEquals(trainData.getLabel(), null);
-        Assert.assertEquals(model.pred.length, 1);
-        Assert.assertEquals(model.pred[0].length, 3);
-    }
-
-    @Test
-    public void trainInit4() {
-        /*
-        regSquare
-        */
-        FederatedGBModel model = new FederatedGBModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ObjectiveType.regSquare
-                , new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC},
-                BitLengthType.bit1024, new String[]{""});
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
-        Assert.assertEquals(trainData.getDatasetSize(), 3);
-        Assert.assertEquals(trainData.getFeatureDim(), 3);
-        Assert.assertEquals(trainData.getLabel().length, 3);
-        Assert.assertEquals(model.pred.length, 1);
-        Assert.assertEquals(model.pred[0].length, 3);
-    }
-
-    @Test
-    public void trainInit5() {
-        /*
-        countPoisson
-        */
-        FederatedGBModel model = new FederatedGBModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ObjectiveType.countPoisson
-                , new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC},
-                BitLengthType.bit1024, new String[]{""});
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
-
-        Assert.assertEquals(trainData.getDatasetSize(), 3);
-        Assert.assertEquals(trainData.getFeatureDim(), 3);
-        Assert.assertEquals(trainData.getLabel().length, 3);
-        Assert.assertEquals(model.pred.length, 1);
-        Assert.assertEquals(model.pred[0].length, 3);
-    }
-
-    @Test
-    public void trainInit5_2() {
-        /*
-        countPoisson & negative label
-        */
-        FederatedGBModel model = new FederatedGBModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStd();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ObjectiveType.countPoisson
-                , new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC},
-                BitLengthType.bit1024, new String[]{""});
-        double[] newLabel = {-1.0, 0.0, 1.0};
-        model.label = newLabel;
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC}, ObjectiveType.countPoisson).build();
+        model.label = new double[]{-1.0, 0.0, 1.0};
         try {
             BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
         } catch (UnsupportedOperationException e) {
@@ -178,134 +112,36 @@ public class TestFederatedGBModel {
         }
     }
 
+    /**
+     * Other ObjectiveType
+     */
     @Test
-    public void trainInit5_3() {
-        /*
-        countPoisson
-        if (MathExt.average(this.label) <= 0) {
-            this.firstRoundPred = Math.log(1);
-        }
-        */
-    }
-
-    @Test
-    public void trainInit6() {
-        /*
-        multiSoftProb
-        */
-        FederatedGBModel model = new FederatedGBModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStd();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ObjectiveType.multiSoftProb, 2,
-                new MetricType[]{MetricType.ACC}, BitLengthType.bit1024, new String[]{""});
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
-
-        Assert.assertEquals(trainData.getDatasetSize(), 3);
-        Assert.assertEquals(trainData.getFeatureDim(), 2);
-        Assert.assertEquals(trainData.getLabel().length, 3);
-        Assert.assertEquals(model.pred.length, 2);
-        Assert.assertEquals(model.pred[0].length, 3);
-    }
-
-    @Test
-    public void trainInit7() {
-        /*
-        regLogistic
-        */
-        FederatedGBModel model = new FederatedGBModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ObjectiveType.regLogistic
-                , new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC},
-                BitLengthType.bit1024, new String[]{""});
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
-
-        Assert.assertEquals(trainData.getDatasetSize(), 3);
-        Assert.assertEquals(trainData.getFeatureDim(), 3);
-        Assert.assertEquals(trainData.getLabel().length, 3);
-        Assert.assertEquals(model.pred.length, 1);
-        Assert.assertEquals(model.pred[0].length, 3);
-    }
-
-    @Test
-    public void trainInit8() {
-        /*
-        multiSoftmax
-        */
-        FederatedGBModel model = new FederatedGBModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStd();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ObjectiveType.multiSoftmax, 2,
-                new MetricType[]{MetricType.ACC}, BitLengthType.bit1024, new String[]{""});
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
-
-        Assert.assertEquals(trainData.getDatasetSize(), 3);
-        Assert.assertEquals(trainData.getFeatureDim(), 2);
-        Assert.assertEquals(trainData.getLabel().length, 3);
-        Assert.assertEquals(model.pred.length, 2);
-        Assert.assertEquals(model.pred[0].length, 3);
-    }
-
-    @Test
-    public void trainInit9() {
-        /*
-        binaryLogistic
-        */
-        FederatedGBModel model = new FederatedGBModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStd();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ObjectiveType.binaryLogistic, 2,
-                new MetricType[]{MetricType.ACC}, BitLengthType.bit1024, new String[]{""});
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
-
-        Assert.assertEquals(trainData.getDatasetSize(), 3);
-        Assert.assertEquals(trainData.getFeatureDim(), 2);
-        Assert.assertEquals(trainData.getLabel().length, 3);
-        Assert.assertEquals(model.pred.length, 1);
-        Assert.assertEquals(model.pred[0].length, 3);
-    }
-
-    @Test
-    public void trainInit10() {
-        /*
-        Other ObjectiveType
-        */
+    public void trainInit3() {
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
         try {
-            FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, null, 2,
-                    new MetricType[]{MetricType.ACC}, BitLengthType.bit1024, new String[]{""});
+            FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, null).numClass(2).build();
             BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
-
         } catch (NotImplementedException e) {
             Assert.assertNull(e.getMessage());
         }
     }
 
+    /**
+     * firstRoundPred
+     * countPoisson && FirstPredictType.AVG
+     */
     @Test
     public void firstRoundPred1() {
-        /**
-         firstRoundPred
-         countPoisson && FirstPredictType.AVG
-         */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, FirstPredictType.AVG, 1, 0, 5, 0.1, ObjectiveType.countPoisson,
-                new MetricType[]{MetricType.ACC}, new String[]{""}, BitLengthType.bit1024, 0.1, 0.1);
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.countPoisson).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         Assert.assertEquals(trainData.getDatasetSize(), 3);
@@ -318,19 +154,19 @@ public class TestFederatedGBModel {
         }
     }
 
+    /**
+     * firstRoundPred
+     * countPoisson && FirstPredictType.ZERO
+     */
     @Test
     public void firstRoundPred2() {
-        /*
-        firstRoundPred
-        countPoisson && FirstPredictType.ZERO
-        */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, FirstPredictType.ZERO, 1, 0, 5, 0.1, ObjectiveType.countPoisson,
-                new MetricType[]{MetricType.ACC}, new String[]{""}, BitLengthType.bit1024, 0.1, 0.1);
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.countPoisson)
+                .firstRoundPred(FirstPredictType.ZERO).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         Assert.assertEquals(trainData.getDatasetSize(), 3);
@@ -343,19 +179,18 @@ public class TestFederatedGBModel {
         }
     }
 
+    /**
+     * firstRoundPred
+     * countPoisson && FirstPredictType.RANDOM
+     */
     @Test
     public void firstRoundPred3() {
-        /*
-        firstRoundPred
-        countPoisson && FirstPredictType.RANDOM
-        */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, FirstPredictType.RANDOM, 1, 0, 5, 0.1, ObjectiveType.countPoisson,
-                new MetricType[]{MetricType.ACC}, new String[]{""}, BitLengthType.bit1024, 0.1, 0.1);
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.countPoisson).firstRoundPred(FirstPredictType.RANDOM).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         Assert.assertEquals(trainData.getDatasetSize(), 3);
@@ -370,19 +205,18 @@ public class TestFederatedGBModel {
         }
     }
 
+    /**
+     * firstRoundPred
+     * binaryLogistic && FirstPredictType.AVG
+     */
     @Test
     public void firstRoundPred4() {
-        /*
-        firstRoundPred
-        binaryLogistic && FirstPredictType.AVG
-        */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, FirstPredictType.AVG, 1, 0, 5, 0.1, ObjectiveType.binaryLogistic,
-                new MetricType[]{MetricType.ACC}, new String[]{""}, BitLengthType.bit1024, 0.1, 0.1);
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.binaryLogistic).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         Assert.assertEquals(trainData.getDatasetSize(), 3);
@@ -395,19 +229,20 @@ public class TestFederatedGBModel {
         }
     }
 
+    /**
+     * firstRoundPred
+     * binaryLogistic && FirstPredictType.ZERO
+     */
     @Test
     public void firstRoundPred5() {
-        /**
-         firstRoundPred
-         binaryLogistic && FirstPredictType.ZERO
-         */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, FirstPredictType.ZERO, 1, 0, 5, 0.1, ObjectiveType.binaryLogistic,
-                new MetricType[]{MetricType.ACC}, new String[]{""}, BitLengthType.bit1024, 0.1, 0.1);
+
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.binaryLogistic)
+                .firstRoundPred(FirstPredictType.ZERO).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         Assert.assertEquals(trainData.getDatasetSize(), 3);
@@ -420,19 +255,19 @@ public class TestFederatedGBModel {
         }
     }
 
+    /**
+     * firstRoundPred
+     * binaryLogistic && FirstPredictType.RANDOM
+     */
     @Test
     public void firstRoundPred6() {
-        /**
-         firstRoundPred
-         binaryLogistic && FirstPredictType.RANDOM
-         */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, FirstPredictType.RANDOM, 1, 0, 5, 0.1, ObjectiveType.binaryLogistic,
-                new MetricType[]{MetricType.ACC}, new String[]{""}, BitLengthType.bit1024, 0.1, 0.1);
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.binaryLogistic)
+                .firstRoundPred(FirstPredictType.RANDOM).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         Assert.assertEquals(trainData.getDatasetSize(), 3);
@@ -447,19 +282,18 @@ public class TestFederatedGBModel {
         }
     }
 
+    /**
+     * method: train
+     * condition: null trainID
+     */
     @Test
     public void train0_1() {
-        /**
-         method: train
-         condition: null trainID
-         */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, FirstPredictType.RANDOM, 1, 0, 5, 0.1, ObjectiveType.binaryLogistic,
-                new MetricType[]{MetricType.ACC}, new String[]{""}, BitLengthType.bit1024, 0.1, 0.1);
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.binaryLogistic).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         try {
@@ -469,20 +303,20 @@ public class TestFederatedGBModel {
         }
     }
 
+    /**
+     * method: updateGradHess
+     * condition: scalePosWeight != 1; grad[i] < 0.0001
+     */
     @Test
     public void updateGradHess() {
-        /**
-         method: updateGradHess
-         condition: scalePosWeight != 1; grad[i] < 0.0001
-         */
         FederatedGBModel model1 = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp1 = new FgbParameter(50, FirstPredictType.AVG, false, 0.6, 0.6, 50, 0.6, 30, 1, 0.6, 5, 33,
-                new MetricType[]{MetricType.ACC}, 5, 0.1, ObjectiveType.binaryLogistic, BitLengthType.bit1024, new String[]{""});
-        BoostTrainData trainData = model1.trainInit(raw, result, new int[0], fp1, features, new HashMap<>());
+
+        FgbParameter fp1 = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.binaryLogistic).gamma(0.6).minSampleSplit(30).scalePosWeight(5).maxDepth(5).build();
+        model1.trainInit(raw, result, new int[0], fp1, features, new HashMap<>());
 
         Assert.assertEquals(model1.grad.length, 1);
         Assert.assertEquals(model1.grad[0].length, 3);
@@ -497,19 +331,18 @@ public class TestFederatedGBModel {
 
     }
 
+    /**
+     * method: train
+     * condition: phase not in 1,2,3,4,5
+     */
     @Test
     public void train0_2() {
-        /*
-        method: train
-        condition: phase not in 1,2,3,4,5
-        */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, FirstPredictType.RANDOM, 1, 0, 5, 0.1, ObjectiveType.binaryLogistic,
-                new MetricType[]{MetricType.ACC}, new String[]{""}, BitLengthType.bit1024, 0.1, 0.1);
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.binaryLogistic).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         try {
@@ -519,19 +352,18 @@ public class TestFederatedGBModel {
         }
     }
 
+    /**
+     * method: train
+     * condition: phase1 without label
+     */
     @Test
     public void train1_1() {
-        /**
-         method: train
-         condition: phase1 without label
-         */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStdNoLabel();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, FirstPredictType.RANDOM, 1, 0, 5, 0.1, ObjectiveType.binaryLogistic,
-                new MetricType[]{MetricType.ACC}, new String[]{""}, BitLengthType.bit1024, 0.1, 0.1);
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.binaryLogistic).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         EncryptedGradHess res = (EncryptedGradHess) model.train(1, null, trainData);
@@ -539,19 +371,19 @@ public class TestFederatedGBModel {
         Assert.assertEquals(res.getInstanceSpace(), null);
     }
 
+    /**
+     * method: train, trainPhase1, treeInit
+     * condition: phase1 with label, new tree, getNumClass > 1
+     */
     @Test
     public void train1_2() {
-        /**
-         method: train, trainPhase1, treeInit
-         condition: phase1 with label, new tree, getNumClass > 1
-         */
+
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ObjectiveType.multiSoftmax, 2,
-                new MetricType[]{MetricType.ACC}, BitLengthType.bit1024, new String[]{""});
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.multiSoftmax).numClass(2).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
@@ -564,29 +396,29 @@ public class TestFederatedGBModel {
         // TODO 补充解密后g,h相同
     }
 
+    /**
+     * method: train, trainPhase1, treeInit
+     * condition: phase1 with label, existed tree, getNumClass > 1
+     */
     @Test
     public void train1_3() {
-        /**
-         method: train, trainPhase1, treeInit
-         condition: phase1 with label, existed tree, getNumClass > 1
-         */
+
         // TODO
 
     }
 
+    /**
+     * method: train
+     * condition: phase2, client with label (Active)
+     */
     @Test
     public void train2_1() {
-        /**
-         method: train
-         condition: phase2, client with label (Active)
-         */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ObjectiveType.multiSoftmax, 2,
-                new MetricType[]{MetricType.ACC}, BitLengthType.bit1024, new String[]{""});
+        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.multiSoftmax).numClass(2).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
@@ -595,18 +427,19 @@ public class TestFederatedGBModel {
         Assert.assertNull(bp2r.getFeatureGL());
     }
 
+    /**
+     * method: train
+     * condition: phase2, clients without label (Passive), new tree
+     */
     @Test
     public void train2_2() {
-        /**
-         method: train
-         condition: phase2, clients without label (Passive), new tree
-         */
         FederatedGBModel model = new FederatedGBModel();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStdNoLabel();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        BoostTrainData trainData = model.trainInit(raw, result, new int[0], new FgbParameter(), features, new HashMap<>());
+
+        BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
         EncryptionTool encryptionTool = new FakeTool();
@@ -648,7 +481,7 @@ public class TestFederatedGBModel {
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter();
+        FgbParameter fp = new FgbParameter.Builder(3, new MetricType[]{MetricType.ACC}, ObjectiveType.regLogistic).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
@@ -689,7 +522,7 @@ public class TestFederatedGBModel {
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        FgbParameter fp = new FgbParameter();
+        FgbParameter fp = new FgbParameter.Builder(3, new MetricType[]{MetricType.ACC}, ObjectiveType.regLogistic).build();
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
@@ -721,8 +554,8 @@ public class TestFederatedGBModel {
         BoostP4Req jsonData = new BoostP4Req(false);
         //TODO Assert
         Map<Integer, List<Bucket>> sortedFeatureMap = new HashMap<>();
-        LinkedHashMap<Integer, QueryEntry> passiveQueryTable = new LinkedHashMap<Integer, QueryEntry>();
-        Tuple2<LeftTreeInfo, LinkedHashMap<Integer, QueryEntry>> req = model.trainPhase4(jsonData, sortedFeatureMap, passiveQueryTable);
+        List<QueryEntry> passiveQueryTable = new ArrayList<>();
+        Tuple2<LeftTreeInfo, List<QueryEntry>> req = model.trainPhase4(jsonData, sortedFeatureMap, passiveQueryTable);
         Assert.assertEquals(req._1().getRecordId(), 0);
         Assert.assertNull(req._1().getLeftInstances());
 
@@ -752,8 +585,8 @@ public class TestFederatedGBModel {
         sortedFeatureMap.put(0, Buckets);
         sortedFeatureMap.put(1, Buckets2);
         // null passiveQueryTable
-        LinkedHashMap<Integer, QueryEntry> passiveQueryTable = new LinkedHashMap<Integer, QueryEntry>();
-        Tuple2<LeftTreeInfo, LinkedHashMap<Integer, QueryEntry>> req = model.trainPhase4(jsonData, sortedFeatureMap, passiveQueryTable);
+        List<QueryEntry> passiveQueryTable = new ArrayList<>();
+        Tuple2<LeftTreeInfo, List<QueryEntry>> req = model.trainPhase4(jsonData, sortedFeatureMap, passiveQueryTable);
 
         Assert.assertEquals(req._1().getRecordId(), 1);
         double[] target = new double[]{3.0, 0.0, 2.0, 1.0};
@@ -762,9 +595,9 @@ public class TestFederatedGBModel {
         }
 
         // not null passiveQueryTable
-        LinkedHashMap<Integer, QueryEntry> passiveQueryTable2 = new LinkedHashMap<Integer, QueryEntry>();
-        passiveQueryTable2.put(1, new QueryEntry(1, 1, 10.0));
-        Tuple2<LeftTreeInfo, LinkedHashMap<Integer, QueryEntry>> req2 = model.trainPhase4(jsonData, sortedFeatureMap, passiveQueryTable2);
+        List<QueryEntry> passiveQueryTable2 = new ArrayList<>();
+        passiveQueryTable2.add(new QueryEntry(1, 1, 10.0));
+        Tuple2<LeftTreeInfo, List<QueryEntry>> req2 = model.trainPhase4(jsonData, sortedFeatureMap, passiveQueryTable2);
         Assert.assertEquals(req2._1().getRecordId(), 2);
         double[] target2 = new double[]{3.0, 0.0, 2.0, 1.0};
         for (int i = 0; i < req2._1().getLeftInstances().length; i++) {
@@ -787,7 +620,9 @@ public class TestFederatedGBModel {
         tn1_copy.leafNodeSetter(10.0, true);
 //        TreeNode tn2 = new TreeNode(0, 0, client, 0, 0.0);
         TreeNode[] correspondingTreeNode = new TreeNode[]{};
-        model.postPrune(tn1, new FgbParameter(), correspondingTreeNode);
+        FgbParameter fgbParameter = new FgbParameter.Builder(3, new MetricType[]{MetricType.ACC}, ObjectiveType.regLogistic).build();
+        ;
+        model.postPrune(tn1, fgbParameter, correspondingTreeNode);
         Assert.assertEquals(tn1.client, tn1_copy.client);
         Assert.assertEquals(tn1.depth, tn1_copy.depth);
         Assert.assertEquals(tn1.featureDim, tn1_copy.featureDim);
@@ -832,7 +667,9 @@ public class TestFederatedGBModel {
         Assert.assertEquals(tn1.leftChild.leafScore, tn1_copy.leftChild.leafScore);
         Assert.assertEquals(tn1.leafScore, tn1_copy.leafScore);
         TreeNode[] correspondingTreeNode = new TreeNode[3];
-        model.postPrune(tn1, new FgbParameter(), correspondingTreeNode);
+        FgbParameter fp = new FgbParameter.Builder(3, new MetricType[]{MetricType.ACC}, ObjectiveType.regLogistic).build();
+        ;
+        model.postPrune(tn1, fp, correspondingTreeNode);
         Assert.assertNotEquals(tn1.leafScore, tn1_copy.leafScore);
     }
 
@@ -844,7 +681,7 @@ public class TestFederatedGBModel {
          * condition: Passive client
          */
         FederatedGBModel model = new FederatedGBModel();
-        FgbParameter fp = new FgbParameter();
+        FgbParameter fp = new FgbParameter.Builder(3, new MetricType[]{MetricType.ACC}, ObjectiveType.regLogistic).build();
         ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
         // jsonData: (int recordId, int[] leftIns)
         LeftTreeInfo jsonData = new LeftTreeInfo(1, new int[10]);
@@ -859,14 +696,14 @@ public class TestFederatedGBModel {
         Queue<TreeNode> newTreeNodes = new LinkedList<>();
         TreeNode[] correspondingTreeNode = new TreeNode[3];
         List<Tree> trees = new ArrayList<>();
-        Map<MetricType, List<Double>> metricMap = null;
+        MetricValue metricMap = null;
         int datasetSize = 10;
         Loss loss = new LogisticLoss();
         double[][] pred = new double[][]{{}};
         double[] label = {};
         int depth = 2;
         //TODO Assert
-        ArrayList res = model.trainPhase5(jsonData, grad, hess, numClassRound, currentNode,
+        List res = model.trainPhase5(jsonData, grad, hess, numClassRound, currentNode,
                 newTreeNodes, fp, correspondingTreeNode, metricMap, trees, loss,
                 datasetSize, pred, label, depth);
         BoostP5Res bp5r = (BoostP5Res) res.get(0);
@@ -883,7 +720,7 @@ public class TestFederatedGBModel {
          */
         FederatedGBModel model = new FederatedGBModel();
         model.hasLabel = true;
-        FgbParameter fp = new FgbParameter();
+        FgbParameter fp = new FgbParameter.Builder(3, new MetricType[]{MetricType.RMSE}, ObjectiveType.regSquare).build();
         ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
         // jsonData: (int recordId, int[] leftIns)
         LeftTreeInfo jsonData = new LeftTreeInfo(1, new int[]{0, 1, 2}); // 左子树有3个datapoint
@@ -904,24 +741,25 @@ public class TestFederatedGBModel {
         Tree tree = new Tree(root);
         List<Tree> trees = new ArrayList<>();
         trees.add(tree);
-        Map<MetricType, List<Double>> metricMap = new HashMap<>();
-        List<Double> Metricvalue = new ArrayList<>();
+        Map<MetricType, List<Pair<Integer, Double>>> metricMap = new HashMap<>();
+        List<Pair<Integer, Double>> Metricvalue = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            Metricvalue.add(0.1);
+            Metricvalue.add(new Pair<>(i, 0.1));
         }
         metricMap.put(MetricType.RMSE, Metricvalue);
+        MetricValue metricValue = new MetricValue(metricMap);
         int datasetSize = 10;
         Loss loss = new LogisticLoss();
         double[][] pred = new double[1][10];
         double[] label = {1, 0, 0, 1, 1, 0, 0, 1, 0, 0};
         int depth = 2;
         //TODO Assert
-        ArrayList res = model.trainPhase5(jsonData, grad, hess, numClassRound, currentNode,
-                newTreeNodes, fp, correspondingTreeNode, metricMap, trees, loss,
+        List res = model.trainPhase5(jsonData, grad, hess, numClassRound, currentNode,
+                newTreeNodes, fp, correspondingTreeNode, metricValue, trees, loss,
                 datasetSize, pred, label, depth);
         BoostP5Res bp5r = (BoostP5Res) res.get(0);
         Assert.assertTrue(bp5r.isStop());
-        Assert.assertNotNull(bp5r.getTrainMetric());
+        Assert.assertNull(bp5r.getTrainMetric());
         Assert.assertEquals(bp5r.getDepth(), 0);
 
 
@@ -1051,7 +889,7 @@ public class TestFederatedGBModel {
     @Test
     public void processEachNumericFeature2() {
         // buckets
-        List<Bucket> buckets = new ArrayList<Bucket>();
+        List<Bucket> buckets = new ArrayList<>();
         double[][] mat1 = {{1.0, 1.0}, {2.0, 9.0}, {3.0, 10.0}};
         double[][] mat2 = {{1.0, 8.0}, {2.0, 9.0}};
         buckets.add(new Bucket(mat1));
@@ -1080,7 +918,7 @@ public class TestFederatedGBModel {
         double g = 100.0;
         double h = 30.0;
         // parameter
-        FgbParameter parameter = new FgbParameter();
+        FgbParameter parameter = new FgbParameter.Builder(3, new MetricType[]{MetricType.ACC}, ObjectiveType.regLogistic).build();
         FederatedGBModel model = new FederatedGBModel();
         System.out.println(parameter.getGamma());
         System.out.println(parameter.getLambda());
@@ -1092,18 +930,18 @@ public class TestFederatedGBModel {
 
     }
 
+    /**
+     * GainOutput fetchGain(FeatureLeftGH input, double g, double h,
+     * EncryptionTool encryptionTool, PrivateKey privateKey)
+     */
     @Test
     public void fetchGain() {
-        /**
-         * GainOutput fetchGain(FeatureLeftGH input, double g, double h,
-         *                                 EncryptionTool encryptionTool, PrivateKey privateKey)
-         */
         ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
         StringTuple2[] ghLeft = new StringTuple2[]{new StringTuple2("10", "5"), new StringTuple2("10", "2"), new StringTuple2("10", "6")};
         FeatureLeftGH input = new FeatureLeftGH(client, "feat", ghLeft);
         double g = 100.0;
         double h = 30.0;
-        FgbParameter parameter = new FgbParameter();
+        FgbParameter parameter = new FgbParameter.Builder(3, new MetricType[]{MetricType.ACC}, ObjectiveType.regLogistic).build();
         // encrytionTool
         EncryptionTool encryptionTool = new FakeTool();
         PrivateKey privateKey = encryptionTool.keyGenerate(1024, 64);
@@ -1134,7 +972,7 @@ public class TestFederatedGBModel {
         Loss loss = new Loss();
         double firstRoundPredict = 0.0;
         double eta = 0.0;
-        LinkedHashMap<Integer, QueryEntry> passiveQueryTable = new LinkedHashMap<>();
+        List<QueryEntry> passiveQueryTable = new ArrayList<>();
         List<Double> multiClassUniqueLabelList = new ArrayList<>();
         FederatedGBModel model1 = new FederatedGBModel(trees, loss, firstRoundPredict, eta, passiveQueryTable, multiClassUniqueLabelList);
         FgbModelSerializer fms = new FgbModelSerializer(trees, loss, firstRoundPredict, eta, passiveQueryTable, multiClassUniqueLabelList);

@@ -125,20 +125,29 @@ public class TrainDataCache {
         return null;
     }
 
-    public static List<String> loadTrainDataUid(String dataset, String uidName) throws IOException {
-        if (cacheFileMap.get(dataset) == null) {
-            synchronized (datasetLock) {
-                if (cacheFileMap.get(dataset) == null) {
-                    String[][] cacheFile = loadFullData(dataset);
-                    cacheFileMap.put(dataset, cacheFile);
-                }
+    // TODO 和训练数据读取分离，只读取指定列
+    public static String[] loadTrainDataUid(String dataset, String uidName) throws IOException {
+        String[][] trainData = readFullTrainData("", dataset);
+        int index = 0;
+        String[] header = trainData[0];
+        for (int i = 0; i < header.length; i++) {
+            if (uidName != null && uidName.equals(header[i])) {
+                index = i;
             }
         }
-        List<String> resList = new ArrayList<>();
-        for (String[] row : cacheFileMap.get(dataset)) {
-            resList.add(row[0]);
+        String[] inst_id_list = new String[trainData.length - 1];
+        for (int i = 1; i < trainData.length; i++) {
+            inst_id_list[i - 1] = trainData[i][index];
         }
-        return resList;
+        return inst_id_list;
+    }
+
+    public static String[] getFirstColumnUid(String[][] data) {
+        String[] inst_id_list = new String[data.length - 1];
+        for (int i = 1; i < data.length; i++) {
+            inst_id_list[i - 1] = data[i][0];
+        }
+        return inst_id_list;
     }
 
 
@@ -155,14 +164,6 @@ public class TrainDataCache {
         String[][] trainData = cacheFileMap.get(dataName);
         logger.info("trainData size:" + trainData.length);
         return trainData;
-    }
-
-    public static String[] getFirstColumnUid(String[][] data) {
-        String[] inst_id_list = new String[data.length - 1];
-        for (int i = 1; i < data.length; i++) {
-            inst_id_list[i - 1] = data[i][0];
-        }
-        return inst_id_list;
     }
 
     public static List<Feature> loadHeader(DataSourceConfig config) {

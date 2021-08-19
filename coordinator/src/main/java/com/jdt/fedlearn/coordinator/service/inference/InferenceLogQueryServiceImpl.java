@@ -21,7 +21,7 @@ import com.jdt.fedlearn.coordinator.entity.table.InferenceEntity;
 import com.jdt.fedlearn.coordinator.entity.inference.InferenceInfoDto;
 import com.jdt.fedlearn.coordinator.entity.inference.InferenceResp;
 import com.jdt.fedlearn.coordinator.service.AbstractDispatchService;
-import com.jdt.fedlearn.coordinator.service.InferenceService;
+import com.jdt.fedlearn.coordinator.service.IDispatchService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +33,7 @@ import java.util.Map;
  * 推理日志查询的实现类，实现分页查询预测信息
  * 包含{@code queryInferenceLog}方法实现分页从数据库中调取查询预测信息
  */
-public class InferenceLogQueryServiceImpl implements InferenceService {
+public class InferenceLogQueryServiceImpl implements IDispatchService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Override

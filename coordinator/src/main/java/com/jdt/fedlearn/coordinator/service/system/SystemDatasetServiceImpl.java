@@ -17,16 +17,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.coordinator.dao.db.TaskMapper;
-import com.jdt.fedlearn.coordinator.entity.common.Response;
+import com.jdt.fedlearn.common.tool.internel.ResponseInternal;
 import com.jdt.fedlearn.coordinator.entity.system.FeatureMapDTO;
 import com.jdt.fedlearn.coordinator.entity.system.FeatureReq;
-import com.jdt.fedlearn.coordinator.entity.table.TaskAnswer;
 import com.jdt.fedlearn.coordinator.exception.UnauthorizedException;
-import com.jdt.fedlearn.coordinator.service.SystemService;
+import com.jdt.fedlearn.coordinator.service.IDispatchService;
 import com.jdt.fedlearn.coordinator.constant.RequestConstant;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +33,7 @@ import java.util.Map;
 /**
  * 查询数据源的接口实现类
  */
-public class SystemDatasetServiceImpl implements SystemService {
+public class SystemDatasetServiceImpl implements IDispatchService {
     private static final Logger logger = LoggerFactory.getLogger(SystemDatasetServiceImpl.class);
 
     @Override
@@ -63,17 +60,10 @@ public class SystemDatasetServiceImpl implements SystemService {
      * @return 查询结果
      */
     public FeatureMapDTO queryDataset(FeatureReq featureReq) throws JsonProcessingException, UnauthorizedException {
-        if(StringUtils.isNotEmpty(featureReq.getTaskPwd())){
-            String taskId = featureReq.getTaskId();
-            TaskAnswer taskAnswer = TaskMapper.selectTaskById(Integer.parseInt(taskId));
-            if(!featureReq.getTaskPwd().equals(taskAnswer.getTaskPwd())){
-                throw new UnauthorizedException("任务密码错误,无法加入任务！");
-            }
-        }
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        final String url = featureReq.getClientUrl() + RequestConstant.QUERY_DATASET;
-        Response result = SendAndRecv.sendPost(url, new HashMap());
+        final String url = featureReq.getUrl() + RequestConstant.QUERY_DATASET;
+        ResponseInternal result = SendAndRecv.sendPost(url);
         logger.info("queryDataset result:{}", result);
         final FeatureMapDTO response = mapper.readValue(result.getData(), FeatureMapDTO.class);
         //  TODO 需要简单判断

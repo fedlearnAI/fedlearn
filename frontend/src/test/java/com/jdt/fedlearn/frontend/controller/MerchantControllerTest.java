@@ -3,9 +3,9 @@ package com.jdt.fedlearn.frontend.controller;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.frontend.FederatedApplication;
 import com.jdt.fedlearn.frontend.JdchainFederatedApplication;
-import com.jdt.fedlearn.frontend.mapper.entity.Merchant;
-import com.jdt.fedlearn.frontend.service.impl.merchant.MerchantDbServiceImpl;
-import com.jdt.fedlearn.frontend.service.impl.merchant.MerchantJdchainServiceImpl;
+import com.jdt.fedlearn.frontend.entity.table.MerchantDO;
+import com.jdt.fedlearn.frontend.service.impl.merchant.MerchantServiceDbImpl;
+import com.jdt.fedlearn.frontend.service.impl.merchant.MerchantServiceJdchainImpl;
 import mockit.Mock;
 import mockit.MockUp;
 
@@ -61,17 +61,17 @@ public class MerchantControllerTest extends AbstractTestNGSpringContextTests{
         MvcResult mvcResult = mockMvc.perform(request).andReturn() ;
         String result = mvcResult.getResponse().getContentAsString();
         //{"code":0,"status":"success","data":{"merchantList":[{"id":null,"name":"京东科技","merCode":"jd","status":null,"createTime":null,"modifiedTime":null}]}}
-        ModelMap modelMap = JsonUtil.parseJson(result);
+        ModelMap modelMap = JsonUtil.json2Object(result,ModelMap.class);
         Assert.assertEquals(modelMap.get("code"),0);
     }
 
 
     private void mockMerchantServiceDb() {
-        new MockUp<MerchantDbServiceImpl>() {
+        new MockUp<MerchantServiceDbImpl>() {
             @Mock
-            public List<Merchant> queryAllMerchant() {
-                List<Merchant> res = new ArrayList<>(8);
-                Merchant merchant = new Merchant();
+            public List<MerchantDO> queryAllMerchant() {
+                List<MerchantDO> res = new ArrayList<>(8);
+                MerchantDO merchant = new MerchantDO();
                 merchant.setName("京东科技");
                 merchant.setMerCode("jd");
                 res.add(merchant);
@@ -81,11 +81,11 @@ public class MerchantControllerTest extends AbstractTestNGSpringContextTests{
     }
 
     private void mockMerchantServiceJdchain() {
-        new MockUp<MerchantJdchainServiceImpl>() {
+        new MockUp<MerchantServiceJdchainImpl>() {
             @Mock
-            public List<Merchant> queryAllMerchant() {
-                List<Merchant> res = new ArrayList<>(8);
-                Merchant merchant = new Merchant();
+            public List<MerchantDO> queryAllMerchant() {
+                List<MerchantDO> res = new ArrayList<>(8);
+                MerchantDO merchant = new MerchantDO();
                 merchant.setName("京东科技");
                 merchant.setMerCode("jd");
                 res.add(merchant);

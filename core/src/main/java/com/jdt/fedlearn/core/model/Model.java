@@ -14,12 +14,17 @@ limitations under the License.
 package com.jdt.fedlearn.core.model;
 
 import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.entity.common.TrainInit;
+import com.jdt.fedlearn.core.entity.distributed.InitResult;
+import com.jdt.fedlearn.core.entity.distributed.SplitResult;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.parameter.SuperParameter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -90,5 +95,60 @@ public interface Model {
      * @return 算法类型
      */
     AlgorithmType getModelType();
+
+    /**
+     *
+     * @param models 模型列表
+     * @return  合并后的模型列表
+     */
+    default List<Model> mergeModel(List<Model> models) {
+        return null;
+    }
+
+    /**
+     *
+     * @param requestId 请求ID
+     * @param trainInit 训练请求
+     * @param IndexList 索引列表
+     * @return  需要读取数据的索引列表
+     */
+    default ArrayList<Integer> dataIdList(String requestId, TrainInit trainInit, List<Integer> IndexList) {
+        return null;
+    }
+
+    /**
+     * 分布式调用，初始化模型和数据
+     *
+     * @param requestId 请求id
+     * @param rawData   原始数据集
+     * @param trainInit 初始化训练请求
+     * @param matchResult
+     * @return
+     */
+    default InitResult initMap(String requestId, String[][] rawData, TrainInit trainInit, String[] matchResult) {
+        return null;
+    }
+
+    /**
+     * 分布式调用，获得拆分后的结果
+     *
+     * @param phase 训练阶段
+     * @param req   训练请求
+     * @return  拆分后内容
+     */
+    default SplitResult split(int phase, Message req) {
+        return null;
+    }
+
+    /**
+     * 分布式调用，reduce合并结果
+     *
+     * @param phase 训练阶段
+     * @param result  响应列表
+     * @return  merge后的响应
+     */
+    default Message merge(int phase, List<Message> result) {
+        return null;
+    }
 
 }

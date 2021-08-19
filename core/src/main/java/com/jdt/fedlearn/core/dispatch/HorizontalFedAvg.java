@@ -291,7 +291,7 @@ public class HorizontalFedAvg implements Control {
     }
 
     @Override
-    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid) {
+    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid, Map<String, Object> others) {
         inferenceDataUid = predictUid;
         for (int i = 0; i < inferenceDataUid.length; i++) {
             mapInferenceOrder.put(inferenceDataUid[i], i);

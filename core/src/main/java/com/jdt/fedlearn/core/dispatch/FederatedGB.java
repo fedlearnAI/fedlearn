@@ -14,34 +14,31 @@ limitations under the License.
 package com.jdt.fedlearn.core.dispatch;
 
 import com.jdt.fedlearn.core.dispatch.common.Control;
-import com.jdt.fedlearn.core.entity.base.EmptyMessage;
+import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.entity.base.SingleElement;
+import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.base.Int2dArray;
 import com.jdt.fedlearn.core.entity.base.StringArray;
+import com.jdt.fedlearn.core.entity.boost.*;
 import com.jdt.fedlearn.core.entity.common.*;
+import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.exception.NotMatchException;
-import com.jdt.fedlearn.core.math.MathExt;
+import com.jdt.fedlearn.core.model.common.loss.LogisticLoss;
 import com.jdt.fedlearn.core.model.common.loss.Loss;
+import com.jdt.fedlearn.core.model.common.loss.SquareLoss;
 import com.jdt.fedlearn.core.model.common.loss.crossEntropy;
 import com.jdt.fedlearn.core.model.common.tree.Tree;
 import com.jdt.fedlearn.core.model.common.tree.TreeNode;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.core.parameter.FgbParameter;
 import com.jdt.fedlearn.core.psi.MatchResult;
-import com.jdt.fedlearn.core.type.*;
 import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.core.type.FGBDispatchPhaseType;
+import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.ObjectiveType;
 import com.jdt.fedlearn.core.type.data.Pair;
-import com.jdt.fedlearn.core.parameter.FgbParameter;
-import com.jdt.fedlearn.core.model.common.loss.LogisticLoss;
-import com.jdt.fedlearn.core.model.common.loss.SquareLoss;
-
-import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.exception.NotImplementedException;
-import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.Tool;
-import com.jdt.fedlearn.core.entity.boost.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple4;
@@ -57,11 +54,7 @@ public class FederatedGB implements Control {
     private static final Logger logger = LoggerFactory.getLogger(FederatedGB.class);
     private static final AlgorithmType algorithmType = AlgorithmType.FederatedGB;
     private final FgbParameter parameter;
-    //    private static final int[] phases = new int[]{1, 2, 3, 4, 5};
     private int numRound = 0;
-//
-//    //构造的树列表
-//    private List<Tree> trees = new ArrayList<>();
 
     //接口输入的需要推理的id列表
     private String[] originIdArray;
@@ -73,7 +66,7 @@ public class FederatedGB implements Control {
     private TreeNode[][] treeNodeMatrix;//每行一个样本，每列一棵树，
     //scores samples * trees
     private double[][] scores;
-    private Map<MetricType, List<Pair<Integer, Double>>> metricMap;
+    private MetricValue metricValue;
     private List<ClientInfo> clientInfoList;
 
     private boolean isStopInference = false;
@@ -125,17 +118,13 @@ public class FederatedGB implements Control {
      * master端根据client端返回的结果进行训练阶段的控制
      *
      * @param responses 客户端返回结果
-     * @return
+     * @return 聚合后的下一次请求
      */
-
     @Override
     public List<CommonRequest> control(List<CommonResponse> responses) {
-        String trainId = 1 + getAlgorithmType().toString();
+        metricValue = null;
         Message message = responses.stream().findAny().orElse(new CommonResponse(null, new Message() {
         })).getBody();
-        logger.info(message.getClass().getName());
-        final String baseClass = "com.jdt.fedlearn.core.entity.";
-//        trainPhase = getNextPhase(trainPhase);
         String messageName = message.getClass().getName();
         if (messageName.equals(FGBDispatchPhaseType.FromInit.getPhaseType())) {
             return fromInit(responses);
@@ -144,18 +133,17 @@ public class FederatedGB implements Control {
         } else if (messageName.equals(FGBDispatchPhaseType.ControlPhase2.getPhaseType())) {
             return controlPhase2(responses);
         } else if (messageName.equals(FGBDispatchPhaseType.ControlPhase3.getPhaseType())) {
-            return controlPhase3(trainId, responses);
+            return controlPhase3(responses);
         } else if (messageName.equals(FGBDispatchPhaseType.ControlPhase4.getPhaseType())) {
-            return controlPhase4(trainId, responses);
+            return controlPhase4(responses);
         } else if (messageName.equals(FGBDispatchPhaseType.ControlPhase5.getPhaseType())) {
-            return controlPhase5(trainId, responses);
+            return controlPhase5(responses);
         } else {
             throw new UnsupportedOperationException("unsupported control message " + message.getClass().getName());
         }
     }
 
 
-    //TODO full control 和 getNextPhase 结合，做成真正的自动机
     public int getNextPhase(int old, List<CommonResponse> responses) {
         Map<Integer, Integer> phaseMap = new HashMap<>();
         phaseMap.put(CommonRequest.inferenceInitialPhase, -1);
@@ -207,11 +195,6 @@ public class FederatedGB implements Control {
 
     //首次收到的responses 来自于 初始化过程，后续收到的responses 来自于phase5
     private List<CommonRequest> controlPhase1(List<CommonResponse> responses) {
-        Message message = responses.stream().findAny().get().getBody();
-        // responses from init
-        if (message instanceof SingleElement) {
-            return fromInit(responses);
-        }
         // responses from phase5
         List<CommonRequest> commonRequests = new ArrayList<>();
         //重新构造init response
@@ -221,42 +204,40 @@ public class FederatedGB implements Control {
             if (res.getDepth() != 0) {
                 isStop = res.isStop();
             }
+            updateMetricMap(res.getTrainMetric());
             // generate phase1 input
             BoostP1Req req;
             if (isNewTree(res.getDepth(), isStop)) {
                 req = new BoostP1Req(response.getClient(), true);
+                realTimeMetricLog(res.getTrainMetric());
             } else {
                 req = new BoostP1Req(response.getClient(), false);
             }
-//            CommonRequest init = new CommonRequest(response.getClient(), req, phase);
             CommonRequest init = new CommonRequest(response.getClient(), req, 1);
-
             commonRequests.add(init);
-            if (res.getDepth() != 0) {
-                Map<MetricType, List<Double>> sumLoss = res.getTrainMetric();
-//                Map<MetricType, Double> sumLoss = res.getTrainMetric();
-                // if does not stop or no metric or empty metric, check response from next client
-                if (!res.isStop() || sumLoss == null || sumLoss.isEmpty()) {
-                    continue;
-                }
-                metricMap = new HashMap<>();
-                for (Map.Entry<MetricType, List<Double>> entry : sumLoss.entrySet()) {
-                    numRound = entry.getValue().size();
-                    List<Pair<Integer, Double>> tmpRoundMetric = IntStream.range(0, numRound).boxed().parallel().map(i ->
-                            new Pair<>(i, entry.getValue().get(i))).collect(Collectors.toList());
-                    metricMap.put(entry.getKey(), tmpRoundMetric);
-                }
-                // for real-time log
-                numRound--;
-                StringBuilder metricOutput = new StringBuilder(String.format("TGBoost round %d,%n", numRound));
-                for (Map.Entry<MetricType, List<Pair<Integer, Double>>> e : metricMap.entrySet()) {
-                    metricOutput.append(String.format("                train-%s:%.15f%n", e.getKey(), e.getValue().get(numRound).getValue()));
-                }
-                logger.info(metricOutput.toString());
-                // update metricMap
-            }
         }
         return commonRequests;
+    }
+
+    private void updateMetricMap(MetricValue metrics) {
+        if (metrics == null || metrics.getMetrics() == null) {
+            return;
+        }
+        metricValue = metrics;
+    }
+
+    private void realTimeMetricLog(MetricValue metrics) {
+        if (metrics == null || metricValue == null || metricValue.getMetrics().isEmpty()) {
+            return;
+        }
+        // for real-time log
+        numRound = metricValue.getMetrics().entrySet().stream().findFirst().get().getValue().size() - 1;
+
+        StringBuilder metricOutput = new StringBuilder(String.format("TGBoost round %d%n", numRound));
+        for (Map.Entry<MetricType, List<Pair<Integer, Double>>> e : metricValue.getMetrics().entrySet()) {
+            metricOutput.append(String.format("                train-%s:%.15f%n", e.getKey(), e.getValue().get(numRound).getValue()));
+        }
+        logger.info(metricOutput.toString());
     }
 
     private List<CommonRequest> controlPhase2(List<CommonResponse> responses) {
@@ -269,6 +250,8 @@ public class FederatedGB implements Control {
         //TODO 目前只会有一个client 有label，后续混合算法需要新的聚合方法
         //get phase1 output from client who has label(Active)
         EncryptedGradHess res = responses.stream().map(x -> (EncryptedGradHess) (x.getBody())).filter(x -> x.getInstanceSpace() != null).findFirst().get();
+        MetricValue metric = responses.stream().map(x -> ((EncryptedGradHess) (x.getBody())).getTrainMetric()).filter(Objects::nonNull).findAny().orElse(null);
+        updateMetricMap(metric);
         for (CommonResponse response : responses) {
             ClientInfo client = response.getClient();
             CommonRequest request = new CommonRequest(client, EmptyMessage.message());
@@ -284,28 +267,30 @@ public class FederatedGB implements Control {
         return reqList;
     }
 
-    private List<CommonRequest> controlPhase3(String trainId, List<CommonResponse> responses) {
+    private List<CommonRequest> controlPhase3(List<CommonResponse> responses) {
         /**
          * Gather and reorganize result from train phase2(including null)
          * and prepare for input for phase3 (no null)
          */
         List<CommonRequest> reqList = new ArrayList<>();
         List<BoostP2Res> realP2Res = responses.stream().map(x -> (BoostP2Res) (x.getBody())).filter(x -> x.getFeatureGL() != null).collect(Collectors.toList());
+        MetricValue metric = responses.stream().map(x -> ((BoostP2Res) (x.getBody())).getTrainMetric()).filter(Objects::nonNull).findAny().orElse(null);
+        updateMetricMap(metric);
         for (CommonResponse response : responses) {
             ClientInfo client = response.getClient();
             BoostP3Req req = new BoostP3Req(client, realP2Res); // G H info from all other clients
             CommonRequest request = new CommonRequest(client, req, 3);
-
             reqList.add(request);
         }
         return reqList;
     }
 
-    private List<CommonRequest> controlPhase4(String trainId, List<CommonResponse> responses) {
+    private List<CommonRequest> controlPhase4(List<CommonResponse> responses) {
         List<CommonRequest> reqList = new ArrayList<>();
         CommonResponse commonResponse = responses.stream().filter(x -> ((BoostP3Res) (x.getBody())).getFeature() != null).findAny().get();
         BoostP3Res realP3Res = (BoostP3Res) (commonResponse.getBody());
-
+        MetricValue metric = responses.stream().map(x -> ((BoostP3Res) (x.getBody())).getTrainMetric()).filter(Objects::nonNull).findAny().orElse(null);
+        updateMetricMap(metric);
         for (CommonResponse response : responses) {
             ClientInfo client = response.getClient();
             BoostP4Req boostP4Req;
@@ -321,9 +306,11 @@ public class FederatedGB implements Control {
         return reqList;
     }
 
-    private List<CommonRequest> controlPhase5(String trainId, List<CommonResponse> responses) {
+    private List<CommonRequest> controlPhase5(List<CommonResponse> responses) {
         List<CommonRequest> reqList = new ArrayList<>();
         LeftTreeInfo realP4Res = responses.stream().map(x -> (LeftTreeInfo) (x.getBody())).filter(x -> x.getRecordId() != 0).findAny().get();
+        MetricValue metric = responses.stream().map(x -> ((LeftTreeInfo) (x.getBody())).getTrainMetric()).filter(Objects::nonNull).findAny().orElse(null);
+        updateMetricMap(metric);
         for (CommonResponse response : responses) {
             ClientInfo client = response.getClient();
             LeftTreeInfo req = new LeftTreeInfo(realP4Res.getRecordId(), realP4Res.getLeftInstances());
@@ -343,7 +330,7 @@ public class FederatedGB implements Control {
      * @return 请求体
      * TODO 增加predictUid重复检测，如有重复，报错退出
      */
-    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid) {
+    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid, Map<String, Object> others) {
         this.inferencePhase = CommonRequest.inferenceInitialPhase;
         this.clientInfoList = clientInfos;
         this.originIdArray = predictUid;
@@ -371,13 +358,9 @@ public class FederatedGB implements Control {
 
     //TODO 后续查询树保存在服务端，由服务端维护
     // 根据收到的请求
-    public Tuple4<List<CommonRequest>, Boolean, double[][], int[]> inferenceControl1
-    (List<CommonResponse> responses,
-     String[] originIdArray,
-     Boolean isStopInference,
-     double[][] scores,
-     int numClass,
-     int inferencePhase) {
+    public Tuple4<List<CommonRequest>, Boolean, double[][], int[]> inferenceControl1(List<CommonResponse> responses, String[] originIdArray,
+                                                                                     Boolean isStopInference, double[][] scores, int numClass,
+                                                                                     int inferencePhase) {
         /**
          * update isStopInference to isStopInferenceU, scores to scoresU, idIndexArray to idIndexArrayU
          */
@@ -498,7 +481,7 @@ public class FederatedGB implements Control {
 
         // treeNode 中的 client只包含uniqueId，需要把 client信息补上
         res.forEach(r -> {
-                    ClientInfo clientInfo = clientInfoList.stream().filter(x -> x.getUniqueId() == (r.getClient().getUniqueId())).findFirst().get();
+                    ClientInfo clientInfo = clientInfoList.stream().filter(x -> x.getUniqueId().equals(r.getClient().getUniqueId())).findFirst().get();
                     r.setClient(clientInfo);
                 }
         );
@@ -634,17 +617,22 @@ public class FederatedGB implements Control {
         return false;
     }
 
-    // 获取截至当前每轮的指标值
+    /**
+     * 获取截至当前每轮的指标值
+     *
+     * @return 当前每轮的指标值
+     */
+    @Override
     public MetricValue readMetrics() {
-        if (metricMap == null || metricMap.isEmpty()) {
+        if (metricValue == null) {
             double initSumLoss = parameter.isMaximize() ? (-Double.MAX_VALUE) : Double.MAX_VALUE;
             List<Pair<Integer, Double>> tmpRoundMetric = new ArrayList<>();
             tmpRoundMetric.add(new Pair<>(0, initSumLoss));
             Map<MetricType, List<Pair<Integer, Double>>> tmp = Arrays.stream(parameter.getEvalMetric())
                     .collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetric)));
-            return new MetricValue(tmp);
+            metricValue = new MetricValue(tmp);
         }
-        return new MetricValue(metricMap);
+        return metricValue;
     }
 
     private void inferenceCleanUp() {

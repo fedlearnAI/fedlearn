@@ -234,7 +234,7 @@ public class TaskManager {
             if (workerUnit == null) {
                 logger.info("没有合适的机器, task is {} ", readyTask.getTaskId());
                 //fixme                避免cpu过高执行
-                sleep(10000);
+                sleep(1000);
                 continue;
             }
             logger.info("开始在： {} 上执行任务： {}", workerUnit, readyTask.getTaskId());

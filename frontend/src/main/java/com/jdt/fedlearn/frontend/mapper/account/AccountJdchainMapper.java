@@ -20,7 +20,7 @@ import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.frontend.constant.Constant;
 import com.jdt.fedlearn.frontend.jdchain.config.JdChainCondition;
 import com.jdt.fedlearn.frontend.mapper.JdChainBaseMapper;
-import com.jdt.fedlearn.frontend.mapper.entity.Account;
+import com.jdt.fedlearn.frontend.entity.table.AccountDO;
 import com.jdt.fedlearn.frontend.util.IdGenerateUtil;
 import com.jdt.fedlearn.frontend.util.MD5EncryptUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -66,32 +66,32 @@ public class AccountJdchainMapper implements InitializingBean {
      * @author: geyan29
      * @date: 2021/1/25 4:35 下午
      */
-    public void afterPropertiesSet() throws Exception {
-        Account account = queryAccount(username);
-        if (account == null) {
-            account = new Account();
-            account.setUserId(IdGenerateUtil.getUUID());
-            account.setUsername(username);
-            account.setPassword(MD5EncryptUtil.MD5(password));
-            account.setCreateTime(TimeUtil.getNowDateStr());
-            account.setModifiedTime(TimeUtil.getNowDateStr());
-            account.setStatus(Constant.STATUS_ENABLE);
-            account.setRoles(Constant.ROLE_SUPER_ADMIN);
-            account.setMerCode(Constant.ROLE_SUPER_ADMIN);
-            insertAccount(account);
+    public void afterPropertiesSet(){
+        AccountDO accountDO = queryAccount(username);
+        if (accountDO == null) {
+            accountDO = new AccountDO();
+            accountDO.setUserId(IdGenerateUtil.getUUID());
+            accountDO.setUsername(username);
+            accountDO.setPassword(MD5EncryptUtil.MD5(password));
+            accountDO.setCreateTime(TimeUtil.getNowDateStr());
+            accountDO.setModifiedTime(TimeUtil.getNowDateStr());
+            accountDO.setStatus(Constant.STATUS_ENABLE);
+            accountDO.setRoles(Constant.ROLE_SUPER_ADMIN);
+            accountDO.setMerCode(Constant.ROLE_SUPER_ADMIN);
+            insertAccount(accountDO);
         }
     }
 
     /**
-     * @param account
+     * @param accountDO
      * @description: 插入用户账户
      * @return: boolean
      * @author: geyan29
      * @date: 2021/1/25 4:27 下午
      */
-    public boolean insertAccount(Account account) {
-        String accountStr = JsonUtil.object2json(account);
-        TransactionResponse response = jdChainBaseMapper.saveKV(userTableAddress, account.getUsername(), accountStr);
+    public boolean insertAccount(AccountDO accountDO) {
+        String accountStr = JsonUtil.object2json(accountDO);
+        TransactionResponse response = jdChainBaseMapper.saveKV(userTableAddress, accountDO.getUsername(), accountStr);
         if(response != null){
             return response.isSuccess();
         }else {
@@ -102,15 +102,15 @@ public class AccountJdchainMapper implements InitializingBean {
     /**
      * @param userName
      * @description: 通过用户名查询用户
-     * @return: com.jdt.fedlearn.frontend.mapper.entity.Account
+     * @return: com.jdt.fedlearn.frontend.entity.table.Account
      * @author: geyan29
      * @date: 2021/1/25 4:34 下午
      */
-    public Account queryAccount(String userName) {
+    public AccountDO queryAccount(String userName) {
         String result = jdChainBaseMapper.queryLatestValueByKey(userTableAddress, userName);
         if (!StringUtils.isBlank(result)) {
-            Account account = JsonUtil.json2Object(result, Account.class);
-            return account;
+            AccountDO accountDO = JsonUtil.json2Object(result, AccountDO.class);
+            return accountDO;
         }
         return null;
     }
@@ -118,14 +118,14 @@ public class AccountJdchainMapper implements InitializingBean {
     /**
      * @param
      * @description: 查询链上的所有用户信息
-     * @return: java.util.List<com.jdt.fedlearn.frontend.mapper.entity.Account>
+     * @return: java.util.List<com.jdt.fedlearn.frontend.entity.table.Account>
      * @author: geyan29
      * @date: 2021/1/25 6:47 下午
      */
-    public List<Account> queryAllAccount() {
+    public List<AccountDO> queryAllAccount() {
         TypedKVEntry[] typedKVEntries = jdChainBaseMapper.queryAllKVByDataAccountAddr(userTableAddress);
         if(typedKVEntries !=  null){
-            List<Account> list = Arrays.stream(typedKVEntries).map(typedKVEntry -> JsonUtil.json2Object((String) typedKVEntry.getValue(), Account.class)).collect(Collectors.toList());
+            List<AccountDO> list = Arrays.stream(typedKVEntries).map(typedKVEntry -> JsonUtil.json2Object((String) typedKVEntry.getValue(), AccountDO.class)).collect(Collectors.toList());
             return list;
         }else {
             return null;
@@ -135,16 +135,16 @@ public class AccountJdchainMapper implements InitializingBean {
     /***
     * @description: 通过merCode查询用户列表
     * @param merCode
-    * @return: java.util.List<com.jdt.fedlearn.frontend.mapper.entity.Account>
+    * @return: java.util.List<com.jdt.fedlearn.frontend.entity.table.Account>
     * @author: geyan29
     * @date: 2021/3/11 2:09 下午
     */
-    public List<Account> queryAllAccountByMerCode(String merCode) {
+    public List<AccountDO> queryAllAccountByMerCode(String merCode) {
         TypedKVEntry[] typedKVEntries = jdChainBaseMapper.queryAllKVByDataAccountAddr(userTableAddress);
         if(typedKVEntries !=  null){
-            List<Account> list = Arrays.stream(typedKVEntries).map(typedKVEntry -> JsonUtil.json2Object((String) typedKVEntry.getValue(), Account.class))
+            List<AccountDO> list = Arrays.stream(typedKVEntries).map(typedKVEntry -> JsonUtil.json2Object((String) typedKVEntry.getValue(), AccountDO.class))
                     .filter(account -> (account.getMerCode()!= null && merCode.equals(account.getMerCode())))
-                    .sorted(Comparator.comparing(Account::getModifiedTime, Comparator.nullsLast(Comparator.reverseOrder())))
+                    .sorted(Comparator.comparing(AccountDO::getModifiedTime, Comparator.nullsLast(Comparator.reverseOrder())))
                     .collect(Collectors.toList());
             return list;
         }else {

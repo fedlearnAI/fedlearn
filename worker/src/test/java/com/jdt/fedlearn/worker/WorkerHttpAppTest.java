@@ -12,10 +12,11 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker;
 
-import com.jdt.fedlearn.common.util.HttpClientUtil;
-import com.jdt.fedlearn.worker.cache.InferenceDataCache;
+import com.jdt.fedlearn.client.cache.InferenceDataCache;
+import com.jdt.fedlearn.client.entity.inference.InferenceRequest;
+import com.jdt.fedlearn.common.network.INetWorkService;
+import com.jdt.fedlearn.common.util.GZIPCompressUtil;
 import com.jdt.fedlearn.worker.constant.Constant;
-import com.jdt.fedlearn.worker.entity.inference.InferenceRequest;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.Job;
 import com.jdt.fedlearn.common.entity.JobReq;
@@ -59,7 +60,7 @@ public class WorkerHttpAppTest extends PowerMockTestCase {
         String[] uids = {"111"};
         InferenceInit inferenceInit = new InferenceInit(uids);
         String serialize = Constant.serializer.serialize(inferenceInit);
-        String data = HttpClientUtil.compress(serialize);
+        String data = GZIPCompressUtil.compress(serialize);
         inferenceRequest.setData(data);
     }
 
@@ -74,8 +75,8 @@ public class WorkerHttpAppTest extends PowerMockTestCase {
     @Test
     public void testMain() throws Exception {
         Thread.sleep(3000L);
-        String s = HttpClientUtil.doHttpPost("http://127.0.0.1:9099/api/test", "");
-        String result = HttpClientUtil.unCompress(s);
+        String s = INetWorkService.getNetWorkService().sendAndRecv("http://127.0.0.1:9099/api/test", "");
+        String result = GZIPCompressUtil.unCompress(s);
         JobResult jobResult = JsonUtil.json2Object(result, JobResult.class);
         Assert.assertEquals(jobResult.getResultTypeEnum(), ResultTypeEnum.SUCCESS);
     }
@@ -83,8 +84,8 @@ public class WorkerHttpAppTest extends PowerMockTestCase {
     @Test
     public void testInferenceInit() throws Exception{
         Thread.sleep(1000L);
-        String s = HttpClientUtil.doHttpPost("http://127.0.0.1:9099/api/inference", inferenceRequest);
-        String result = HttpClientUtil.unCompress(s);
+        String s = INetWorkService.getNetWorkService().sendAndRecv("http://127.0.0.1:9099/api/inference", inferenceRequest);
+        String result = GZIPCompressUtil.unCompress(s);
         JobResult jobResult = JsonUtil.json2Object(result, JobResult.class);
         Assert.assertEquals(jobResult.getResultTypeEnum(), ResultTypeEnum.SUCCESS);
     }
@@ -96,8 +97,8 @@ public class WorkerHttpAppTest extends PowerMockTestCase {
         InferenceData inferenceData = CommonLoad.constructInference(AlgorithmType.DistributedRandomForest, sample);
         InferenceDataCache.INFERENCE_CACHE.putValue("124-DistributedRandomForest-210427162559-8b63dc07ffd1470c9926e250c34c9eb2",inferenceData);
 
-        String s = HttpClientUtil.doHttpPost("http://127.0.0.1:9099/api/inference", inferenceRequest);
-        String result = HttpClientUtil.unCompress(s);
+        String s = INetWorkService.getNetWorkService().sendAndRecv("http://127.0.0.1:9099/api/inference", inferenceRequest);
+        String result = GZIPCompressUtil.unCompress(s);
         JobResult jobResult = JsonUtil.json2Object(result, JobResult.class);
         Assert.assertEquals(jobResult.getResultTypeEnum(), ResultTypeEnum.SUCCESS);
     }
@@ -109,8 +110,8 @@ public class WorkerHttpAppTest extends PowerMockTestCase {
         Job job = new Job(jobReq, new JobResult());
         Task task = new Task(job, RunStatusEnum.READY, TaskTypeEnum.INIT);
         task.setTaskId("taskId");
-        String s = HttpClientUtil.doHttpPost("http://127.0.0.1:9099/getTaskResult", task);
-        String result = HttpClientUtil.unCompress(s);
+        String s = INetWorkService.getNetWorkService().sendAndRecv("http://127.0.0.1:9099/getTaskResult", task);
+        String result = GZIPCompressUtil.unCompress(s);
         JobResult jobResult = JsonUtil.json2Object(result, JobResult.class);
         Assert.assertEquals(jobResult.getResultTypeEnum(), ResultTypeEnum.SUCCESS);
     }
@@ -122,8 +123,8 @@ public class WorkerHttpAppTest extends PowerMockTestCase {
         Job job = new Job(jobReq, new JobResult());
         Task task = new Task(job, RunStatusEnum.READY, TaskTypeEnum.INIT);
         task.setTaskId("taskId");
-        String s = HttpClientUtil.doHttpPost("http://127.0.0.1:9099/clearTaskCache", task);
-        String result = HttpClientUtil.unCompress(s);
+        String s = INetWorkService.getNetWorkService().sendAndRecv("http://127.0.0.1:9099/clearTaskCache", task);
+        String result = GZIPCompressUtil.unCompress(s);
         JobResult jobResult = JsonUtil.json2Object(result, JobResult.class);
         Assert.assertEquals(jobResult.getResultTypeEnum(), ResultTypeEnum.SUCCESS);
     }

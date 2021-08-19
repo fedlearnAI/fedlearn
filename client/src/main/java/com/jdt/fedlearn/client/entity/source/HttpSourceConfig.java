@@ -15,30 +15,19 @@ package com.jdt.fedlearn.client.entity.source;
 
 import com.jdt.fedlearn.client.type.SourceType;
 
+/**
+ *
+ */
 public class HttpSourceConfig extends DataSourceConfig {
-    private String trainBase;
-    private String dataset;
+    private final String url;
 
-    public HttpSourceConfig(String trainBase, String dataset) {
+    public HttpSourceConfig(String url, String dataset) {
         super.setSourceType(SourceType.HTTP);
         super.setDataName(dataset);
-        this.trainBase = trainBase;
-        this.dataset = dataset;
+        this.url = url;
     }
 
-    public String getTrainBase() {
-        return trainBase;
-    }
-
-    public void setTrainBase(String trainBase) {
-        this.trainBase = trainBase;
-    }
-
-    public String getDataset() {
-        return dataset;
-    }
-
-    public void setDataset(String dataset) {
-        this.dataset = dataset;
+    public String getUrl() {
+        return url;
     }
 }

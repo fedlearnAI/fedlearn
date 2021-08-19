@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.http.HttpServletRequest;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -53,12 +55,8 @@ public class FileUtil {
     // 从请求中获取数据
     public static List<String> getBodyData(InputStream inputStream) {
         List<String> bodyStr = new ArrayList<>();
-        BufferedReader br = null;
-        InputStreamReader inputStreamReader = null;
-        try {
-            // 创建输入流
-            inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-            br = new BufferedReader(inputStreamReader);
+        try (InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+             BufferedReader br = new BufferedReader(inputStreamReader)) {
             // 获取body内容
             String line = "";
             while ((line = br.readLine()) != null) {
@@ -66,19 +64,6 @@ public class FileUtil {
             }
         } catch (Exception e) {
             logger.error("获取流失败", e);
-        } finally {
-            try {
-                if (inputStreamReader != null) {
-                    inputStreamReader.close();
-                }
-                if (br != null) {
-                    br.close();
-                }
-
-            } catch (IOException e) {
-                logger.error("关闭流失败", e);
-            }
-
         }
         return bodyStr;
     }
@@ -179,8 +164,7 @@ public class FileUtil {
      */
     public static String[] readAsList(String filePath) throws IOException {
         List<String> res = new ArrayList<>();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8));
-        try {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8))) {
             String line = reader.readLine();
             while (line != null) {
                 res.add(line);
@@ -190,8 +174,6 @@ public class FileUtil {
             return res.toArray(new String[res.size()]);
         } catch (IOException e) {
             logger.error("read idMatch result error: ", e);
-        } finally {
-            reader.close();
         }
         return null;
     }
@@ -204,15 +186,13 @@ public class FileUtil {
      */
     public static void writeList(String[] matchedId, String filePath) throws IOException {
         File fout = new File(filePath);
-        FileOutputStream fos = new FileOutputStream(fout);
-        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8));
-        try {
+        try (FileOutputStream fos = new FileOutputStream(fout);
+             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {
             for (int i = 0; i < matchedId.length; i++) {
                 bw.write(matchedId[i]);
+                bw.flush();
                 bw.newLine();
             }
-        } finally {
-            bw.close();
         }
     }
 
@@ -250,5 +230,49 @@ public class FileUtil {
             logger.error("失败: ", e);
         }
         return bufferedReader;
+    }
+
+    /**
+     * @param path 文件路径
+     * @return 是否文件存在
+     */
+    public static boolean isFile(String path) {
+        File file = new File(path);
+        return file.exists() && file.isFile();
+    }
+
+    /**
+     * @param path 文件路径
+     * @return uid列表
+     */
+    public static String[] readColumn(String path, String columnName) {
+        List<String> uidList = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8))) {
+            int index = 0;
+            String[] header = br.readLine().split(",");
+            for (int i = 0; i < header.length; i++) {
+                if (columnName != null && columnName.equals(header[i])) {
+                    index = i;
+                }
+            }
+            String line = "";
+            while ((line = br.readLine()) != null) {
+                String[] words = line.split(",");
+                uidList.add(words[index]);
+            }
+        } catch (IOException e) {
+            logger.error("fetch异常", e);
+        }
+        return uidList.toArray(new String[0]);
+    }
+
+    public static String loadClassFromFile(String path) {
+        try {
+            String str = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
+            return str;
+        } catch (IOException e) {
+            logger.error("PubKey ioexception", e);
+            return null;
+        }
     }
 }

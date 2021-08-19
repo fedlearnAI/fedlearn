@@ -13,6 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.entity.kernelLinearRegression;
 
+import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.grpc.federatedlearning.*;
 import com.jdt.fedlearn.grpc.federatedlearning.Vector;
 import org.ejml.simple.SimpleMatrix;
@@ -162,6 +163,37 @@ public class DataUtils {
             }
         }
         return res;
+    }
+
+    public static SimpleMatrix arraysToSimpleMatrix(double[][] data){
+        int rows = data.length;
+        int cols =data[0].length;
+        SimpleMatrix simpleMatrix = new SimpleMatrix(rows,cols);
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                double value = data[i][j];
+                simpleMatrix.set(i, j, value);
+            }
+        }
+        return simpleMatrix;
+    }
+
+    public static Vector[] arraysToVectors(double[][] data){
+        int cols = data[0].length;
+        Vector[] vectors = new Vector[cols];
+        double[][] transData = MathExt.transpose(data);
+        for(int i=0;i<transData.length;i++){
+            vectors[i]=arrayToVector(transData[i]);
+        }
+        return vectors;
+    }
+
+    public static double[][] vectorsToArrays(Vector[] vectors){
+        double[][] res = new double[vectors.length][vectors[0].getValuesCount()];
+        for(int i=0;i<vectors.length;i++){
+            res[i] = vectorToArray(vectors[i]);
+        }
+        return MathExt.transpose(res);
     }
 
 }

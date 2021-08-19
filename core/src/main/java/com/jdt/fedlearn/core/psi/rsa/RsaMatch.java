@@ -16,7 +16,7 @@ package com.jdt.fedlearn.core.psi.rsa;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
-import com.jdt.fedlearn.core.psi.MappingReport;
+import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.psi.Prepare;
 import com.jdt.fedlearn.core.type.MappingType;
 import com.jdt.fedlearn.core.entity.psi.*;
@@ -46,7 +46,7 @@ public class RsaMatch implements Prepare {
             Map<String, Object> others = new HashMap<>();
             others.put("hash1", "SHA1");
             others.put("hash2", "SHA1");
-            MatchInit init = new MatchInit(MappingType.VERTICAL_RSA, "uid", others);
+            MatchInit init = new MatchInit(MappingType.RSA, "uid", others);
             CommonRequest request = new CommonRequest(client, init, p);
             requests.add(request);
         }
@@ -103,7 +103,7 @@ public class RsaMatch implements Prepare {
     }
 
     /**
-     * phase2: send first layer ids from RSA clients to RSA server
+     * phase2: mockSend first layer ids from RSA clients to RSA server
      *
      * @return first layer ids from RSA clients
      */
@@ -149,9 +149,9 @@ public class RsaMatch implements Prepare {
     }
 
     @Override
-    public MappingReport postMaster(List<CommonResponse> responses1) {
+    public MatchResult postMaster(List<CommonResponse> responses1) {
         String report = "IdMatch is complete!! \n Match num is " + matchRes.size();
-        return new MappingReport(report, matchRes.size());
+        return new MatchResult(matchRes.size(), report);
 
     }
 

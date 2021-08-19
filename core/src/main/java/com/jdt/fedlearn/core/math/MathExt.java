@@ -20,6 +20,7 @@ import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.n1analytics.paillier.EncryptedNumber;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -554,6 +555,7 @@ public class MathExt {
         return res;
     }
 
+
     public static BigDecimal[][] transpose(BigDecimal[][] mat) {
         BigDecimal[][] res = new BigDecimal[mat[0].length][mat.length];
         for (int i = 0; i < mat.length; i++) {
@@ -615,6 +617,14 @@ public class MathExt {
             }
         }
         return max;
+    }
+
+    public static BigInteger max(BigInteger[] col) {
+        BigInteger maxValue = col[0];
+        for (int i = 1; i < col.length; i++) {
+            maxValue = maxValue.max(col[i]);
+        }
+        return maxValue;
     }
 
     public static double max(double[] col) {
@@ -802,6 +812,39 @@ public class MathExt {
         return res;
     }
 
+    /**
+     * 生成符合高斯分布的数组
+     *
+     * @param m 生成数据的列数
+     * @param n 生成数据的维数
+     * @return 符合高斯分布的数组
+     */
+    public static double[][] generateNormal(int m, int n,double scale) {
+        double[][] res = new double[m][n];
+        Random r = new Random();
+        for (int i = 0; i < res.length; i++) {
+            for (int j = 0; j < res[0].length; j++) {
+                res[i][j] = r.nextGaussian() * Math.sqrt(2 * scale);
+            }
+        }
+        return res;
+    }
+
+    /**
+     * 生成符合均匀分布的数组
+     *
+     * @param m 维数
+     * @return 符合均匀分布的数组
+     */
+    public static double[] generateUniform(int m) {
+        //TODO    range
+        double[] res = new double[m];
+        Random random = new Random(7);
+        for (int i = 0; i < res.length; i++) {
+            res[i] = random.nextDouble() * 2 * Math.PI;
+        }
+        return res;
+    }
 
 }
 

@@ -20,10 +20,6 @@ import com.jdt.fedlearn.coordinator.service.train.inner.TrainProgressInnerServic
 import com.jdt.fedlearn.coordinator.service.train.jdchain.*;
 import com.jdt.fedlearn.coordinator.service.inference.*;
 import com.jdt.fedlearn.coordinator.service.prepare.*;
-import com.jdt.fedlearn.coordinator.service.task.TaskCreateImpl;
-import com.jdt.fedlearn.coordinator.service.task.TaskDetailImpl;
-import com.jdt.fedlearn.coordinator.service.task.TaskJoinImpl;
-import com.jdt.fedlearn.coordinator.service.task.TaskListImpl;
 import com.jdt.fedlearn.coordinator.service.train.*;
 import com.jdt.fedlearn.coordinator.service.validate.ValidateBatchServiceImpl;
 import org.apache.commons.lang3.StringUtils;
@@ -35,28 +31,24 @@ import org.apache.commons.lang3.StringUtils;
  * <blockquote><pre>
  *     APIEnum interfaceEnum = APIEnum.urlOf(url);
  * </pre></blockquote>
- * @author lijingxi
  * @author menglingyang
+ * @author lijingxi
  * @version  0.6.2
  */
 public enum APIEnum {
 
-    /**
-     * 任务相关接口
-     */
-    API_TASK_CREATE("/api/task/create", "任务创建接口", new TaskCreateImpl()),
-    API_TASK_JOIN("/api/task/join", "任务加入接口", new TaskJoinImpl()),
-    API_TASK_LIST("/api/task/list", "任务列表", new TaskListImpl()),
-    API_TASK_DETAIL("/api/task/detail", "根据id查询任务详情", new TaskDetailImpl()),
 
     /**
      * 预处理相关接口
      */
-    API_TRAIN_MATCH_START("/api/prepare/match/start", "ID对齐", new MatchStartImpl()),
-    API_TRAIN_MATCH_PROGRESS("/api/prepare/match/progress", "ID对齐进度查询", new MatchProgressImpl()),
     //以下注意区分，第1个查询训练通用参数，包括支持的算法类型等，第2个查询该算法的特有参数，
-    API_TRAIN_COMMON_PARAMETER("/api/prepare/parameter/common", "查询训练算法支持的通用参数", new CommonParameterImpl()),
-    API_TRAIN_ALGORITHM_PARAMETER("/api/prepare/parameter/algorithm", "查询算法相关的参数", new AlgorithmParameterImpl()),
+    API_COMMON_PARAMETER("/api/prepare/parameter/common", "查询训练算法支持的通用参数", new CommonParameterImpl()),
+    API_ALGORITHM_PARAMETER("/api/prepare/parameter/algorithm", "查询算法相关的参数", new AlgorithmParameterImpl()),
+    //id对齐发起和进度查询接口
+    API_MATCH_START("/api/prepare/match/start", "ID对齐", new MatchStartImpl()),
+    API_MATCH_PROGRESS("/api/prepare/match/progress", "ID对齐进度查询", new MatchProgressImpl()),
+    API_MATCH_LIST("/api/prepare/match/list", "id对齐列表查询", new MatchListImpl()),
+    API_DIST_KEY_GENE("/api/prepare/key/generate", "多方密钥生成", new SecureKeyGeneImpl()),
 
     /**
      * 训练相关接口
@@ -65,20 +57,16 @@ public enum APIEnum {
     API_TRAIN_PARAMETER("/api/train/parameter", "单个训练参数信息", new TrainParameterServiceImpl()),
     API_TRAIN_STATUS("/api/train/status", "单个训练进度和指标（包括训练完成和训练失败的任务也可以查询）", new TrainStatusServiceImpl()),
     API_TRAIN_LIST("/api/train/list", "训练列表包括正在训练和训练完成的，失败的和主动停止的", new TrainListServiceImpl()),
-    // TODO 以下三个接口合并
-//    API_TRAIN_SUSPEND("/api/train/suspend", "暂停训练", new TrainSuspendServiceImpl()),
-//    API_TRAIN_CONTINUE("/api/train/continue", "继续训练", new TrainResumeServiceImpl()),
-//    API_TRAIN_STOP("/api/train/stop", "停止训练", new TrainStopServiceImpl()),
     API_TRAIN_STATE_CHANGE("/api/train/change", "训练状态变更，包括停止，暂停和恢复", new StateChangeServiceImpl()),
     // 只给前端使用，不对外提供
     API_TRAIN_PROGRESS_NEW("/api/train/progress/new", "单个任务训练进度（包括训练完成和训练失败的任务也可以查询）", new TrainProgressInnerServiceImpl()),
 
     /**
-     * 模型相关接口
+     * 推理相关接口
      */
     API_VALIDATE_BATCH("/api/validate/batch", "验证集结果查询--/api/validate/batch", new ValidateBatchServiceImpl()),
-    API_INFERENCE_MODEL_QUERY("/api/inference/query/model", "模型查询--/api/inference/query/model", new InferenceModelQueryServiceImpl()),
-    API_INFERENCE_LOG_QUERY("/api/inference/query/log", "推理日志查询--/api/inference/log/query", new InferenceLogQueryServiceImpl()),
+//    API_INFERENCE_MODEL_QUERY("/api/inference/query/model", "模型查询--/api/inference/query/model", new InferenceModelQueryServiceImpl()),
+//    API_INFERENCE_LOG_QUERY("/api/inference/query/log", "推理日志查询--/api/inference/log/query", new InferenceLogQueryServiceImpl()),
     //batch 是同步接口，实时返回结果；remote 是异步接口，同时配合progress 进行进度查询
     API_INFERENCE_BATCH("/api/inference/batch", "手动输入预测--/api/inference/batch", new InferenceBatchServiceImpl()),
     API_INFERENCE_REMOTE("/api/inference/remote", "模型远端推理--/api/inference/remote", new InferenceRemoteServiceImpl()),
@@ -106,7 +94,6 @@ public enum APIEnum {
     /**
      *从链上查询训练列表，包括训练中的和训练完成的
      */
-//    API_JDCHAIN_TRAIN_LIST("/api/chain/train/list", "区块链训练列表包括正在训练和训练完成的", new ChainTrainListServiceImpl()),
 
     //
     CHAIN_STATE_CHANGE("/api/chain/train/change", "", new ChainStateChangeServiceImpl());

@@ -14,21 +14,24 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.entity.inference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jdt.fedlearn.common.entity.project.PartnerInfoNew;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.exception.SerializeException;
 
 import java.io.IOException;
+import java.util.List;
 
 
 /**
- * 推理请求,参数包括， 用户名--用于验证是否有权推理
+ * 推理请求,参数包括，
  * 需要推理的uid 列表
  * 模型token
  */
 public class InferenceRequest implements Message {
-    private String username;
     private String[] uid;
-    private String model;
+    private String modelToken;
+    private List<PartnerInfoNew> clientList;
+    private boolean secureMode;
 
     public InferenceRequest() {
     }
@@ -43,22 +46,12 @@ public class InferenceRequest implements Message {
         try {
             p3r = mapper.readValue(jsonStr, InferenceRequest.class);
             this.uid = p3r.uid;
-            this.model = p3r.model;
-            this.username = p3r.username;
+            this.modelToken = p3r.modelToken;
+            this.clientList = p3r.clientList;
+            this.secureMode =p3r.secureMode;
         } catch (IOException e) {
             throw new SerializeException("predict Phase1 Request to json");
         }
-    }
-
-    public String toJson() {
-        String jsonStr;
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            jsonStr = objectMapper.writeValueAsString(this);
-        } catch (Exception e) {
-            throw new SerializeException("Boost Phase1 Request to json");
-        }
-        return jsonStr;
     }
 
     public String[] getUid() {
@@ -69,19 +62,28 @@ public class InferenceRequest implements Message {
         this.uid = uid;
     }
 
-    public String getUsername() {
-        return username;
+
+    public String getModelToken() {
+        return modelToken;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setModelToken(String modelToken) {
+        this.modelToken = modelToken;
     }
 
-    public String getModel() {
-        return model;
+    public List<PartnerInfoNew> getClientList() {
+        return clientList;
     }
 
-    public void setModel(String model) {
-        this.model = model;
+    public void setClientList(List<PartnerInfoNew> clientList) {
+        this.clientList = clientList;
+    }
+
+    public boolean isSecureMode() {
+        return secureMode;
+    }
+
+    public void setSecureMode(boolean secureMode) {
+        this.secureMode = secureMode;
     }
 }

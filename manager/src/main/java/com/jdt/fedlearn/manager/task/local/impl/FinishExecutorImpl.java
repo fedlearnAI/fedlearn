@@ -13,6 +13,7 @@ limitations under the License.
 package com.jdt.fedlearn.manager.task.local.impl;
 
 import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.*;
 import com.jdt.fedlearn.common.exception.BusinessException;
@@ -104,7 +105,7 @@ public class FinishExecutorImpl implements Executor {
                 logger.error("execute finish job fail, ", e);
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.OTHER_FAIL);
                 job.getJobResult().setResultTypeEnum(ResultTypeEnum.BUS_FAIL);
-                job.getJobResult().getData().put(AppConstant.MESSAGE, e.getMessage());
+                job.getJobResult().getData().put(ResponseConstant.MESSAGE, e.getMessage());
             }
         }
         logger.info("通知job执行完成，返回job执行结果 {}", job.getJobReq().getJobId());

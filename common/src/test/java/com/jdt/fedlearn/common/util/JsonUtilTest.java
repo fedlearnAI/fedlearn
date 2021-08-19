@@ -36,7 +36,7 @@ public class JsonUtilTest {
     @Test
     public void parseJson() {
         String s = "{\"key0\":\"value0\",\"key1\":\"value1\",\"key2\":\"value2\",\"key3\":\"value3\",\"key4\":\"value4\"}";
-        Map map = JsonUtil.parseJson(s);
+        Map map = JsonUtil.json2Object(s,Map.class);
         Assert.assertEquals(map.size(),5);
     }
 

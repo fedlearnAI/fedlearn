@@ -14,96 +14,203 @@ limitations under the License.
 package com.jdt.fedlearn.core.model;
 
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.Laplace;
+import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillier;
+import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierNative;
+import com.jdt.fedlearn.core.encryption.distributedPaillier.HomoEncryptionUtil;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
 import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.entity.kernelLinearRegression.*;
+import com.jdt.fedlearn.core.entity.kernelLinearRegression.DataUtils;
+import com.jdt.fedlearn.core.entity.kernelLinearRegression.InferenceReqAndRes;
+import com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainReq;
+import com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainRes;
+import com.jdt.fedlearn.core.entity.mixedLinearRegression.CypherMessage2D;
+import com.jdt.fedlearn.core.entity.mixedLinearRegression.CypherMessage2DList;
+import com.jdt.fedlearn.core.exception.DeserializeException;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
-import com.jdt.fedlearn.core.metrics.Metric;
-import com.jdt.fedlearn.core.preprocess.InferenceFilter;
-
-import com.jdt.fedlearn.core.type.AlgorithmType;
-//import com.jdt.fedlearn.core.type.KernelModelJavaPhaseType;
-import com.jdt.fedlearn.core.type.MetricType;
-import com.jdt.fedlearn.core.type.NormalizationType;
-import com.jdt.fedlearn.core.type.data.Tuple2;
-import com.jdt.fedlearn.core.util.Tool;
-import com.jdt.fedlearn.grpc.federatedlearning.Vector;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
-import com.jdt.fedlearn.core.loader.kernelLinearRegression.*;
+import com.jdt.fedlearn.core.loader.kernelLinearRegression.KernelLinearRegressionTrainData;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.math.Normalizer;
 import com.jdt.fedlearn.core.math.NormalizerOutPackage;
+import com.jdt.fedlearn.core.metrics.Metric;
+import com.jdt.fedlearn.core.model.serialize.KernelJavaSerializer;
+import com.jdt.fedlearn.core.model.serialize.SerializerUtils;
 import com.jdt.fedlearn.core.parameter.KernelLinearRegressionParameter;
 import com.jdt.fedlearn.core.parameter.SuperParameter;
-
+import com.jdt.fedlearn.core.preprocess.InferenceFilter;
+import com.jdt.fedlearn.core.type.*;
+import com.jdt.fedlearn.core.type.data.Tuple2;
+import com.jdt.fedlearn.core.util.Tool;
+import com.jdt.fedlearn.grpc.federatedlearning.Vector;
 import org.ejml.simple.SimpleMatrix;
-import org.jblas.*;
+import org.jblas.DoubleMatrix;
 import org.jblas.Solve;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+
 public class KernelLinearRegressionJavaModel implements Model {
     private static final Logger logger = LoggerFactory.getLogger(KernelLinearRegressionJavaModel.class);
+    //算法参数
+    private KernelLinearRegressionParameter parameter;
+    private double mapdim;
+    private double scale;
+    private int numSample;
+    private int batchSize;
+    private double kernelType;
+    private NormalizationType normalizationType = NormalizationType.NONE;
+    private int numClass;
+    // 数据特征
     private boolean isInitTrain = false;
     private boolean hasFeature = true;
-    boolean isActive = false;
+    private boolean isActive = false;
+    private int clientInd = 0;
+    private List<ClientInfo> clientInfoList;
+    private List<Integer> sampleIndex;
+    private List<Integer> testUid;
     private SimpleMatrix xsTrain = null;
     private SimpleMatrix xsTrainTrans = null;
     private SimpleMatrix xsTrainTransSub = null;
     private SimpleMatrix xsTest = null;
     private SimpleMatrix xsTestTrans = null;
-    private SimpleMatrix transMat = null;
-    private Vector bias;
     private double[] yTrain;
     private double[] yTrainSub;
-    private Vector[] modelParas;
-    private String splitLine = "========================================================";
-    private String modelToken;
-    private double kernelType;
-    private double mapdim;
-    private double scale;
-    private int numsample;
-    private int batchSize;
-    private NormalizationType normalizationType = NormalizationType.NONE;
-    private KernelLinearRegressionParameter parameter;
-    private double[][] transMetric;
-    private double[] bias1;
-    private double[] normParams1;
-    private double[] normParams2;
-    private Map<MetricType, List<Double>> metricMap;
-    private Map<MetricType, List<Double>> metricMapVali;
-    private List<Double> multiClassUniqueLabelList = new ArrayList<>();
-    private int numClassRound = 0;
-    private double[][] preds;
-    private int numClass;
     private double[][] yTrainSubs;
-    private Map<MetricType, List<Double[][]>> metricMapArr;
-    private Map<MetricType, List<Double[][]>> metricMapArrVali;
-    private CommonInferenceData validationTest;
+    private String[] testId;
+    private String[][] validationData;
     private double[] yValiSub;
     private double[][] yValiSubs;
-    private String[] testId;
-    private String[][] valiadationData;
-    private Map<Integer, Vector[]> modelParasRounds = new HashMap<>();
-    private int bestRound;
     private int tmpRound = 1;
+    // 变换参数
+    private Vector bias;
+    private SimpleMatrix transMat = null;
+    private double[] bias1;
+    private double[][] transMetric;
+    private final Map<Integer, Vector[]> modelParasRounds = new HashMap<>();
+    private double[] normParams1;
+    private double[] normParams2;
+    private Vector[] modelParas;
+    // 指标更新
+    private String modelToken;
+    private Map<MetricType, List<Double>> metricMap;
+    private Map<MetricType, List<Double>> metricMapVali;
+    private Map<MetricType, List<Double[][]>> metricMapArr;
+    private Map<MetricType, List<Double[][]>> metricMapArrVali;
+    private List<Double> multiClassUniqueLabelList = new ArrayList<>();
+    private int numClassRound = 0;
+    private double[][] predicts;
+    // 安全推理
+    private boolean useDistributedPillar = false;
+    private boolean useFakeDec = false;
+    private HomoEncryptionUtil pheKeys;
+    private DistributedPaillierNative.signedByteArray[][] decPartialSum;
+    private DistributedPaillierNative.signedByteArray[][] partialSum;
+
 
     public KernelLinearRegressionJavaModel() {
     }
 
-    public KernelLinearRegressionJavaModel(String modelToken, SimpleMatrix transMat, Vector bias, int mapdim, Vector[] modelParas) {
-        this.modelToken = modelToken;
-        this.transMat = transMat;
-        this.bias = bias;
-        this.mapdim = mapdim;
-        this.modelParas = modelParas;
+    /**
+     * 训练初始化
+     *
+     * @param rawData  原始数据
+     * @param sp       算法参数
+     * @param features 特征
+     * @param others   其他参数
+     * @return 训练数据
+     */
+    public KernelLinearRegressionTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter sp, Features features, Map<String, Object> others) {
+        this.parameter = (KernelLinearRegressionParameter) sp;
+        numClass = parameter.getNumClass();
+        Tuple2<String[], String[]> trainTestUId = Tool.splitUid(uids, testIndex);
+        KernelLinearRegressionTrainData trainData = new KernelLinearRegressionTrainData(rawData, trainTestUId._1(), features);
+        extractedValidationData(rawData, testIndex, trainTestUId);
+        normalization(trainData);
+        kernelType = parameter.getKernelType();
+        mapdim = parameter.getMapdim();
+        scale = parameter.getScale();
+        sampleIndex = (List<Integer>) others.get("sampleIndex");
+        clientInd = (int) others.get("clientInd");
+        clientInfoList = (List<ClientInfo>) others.get("clientInfoList");
+        testUid = (List<Integer>) others.get("testUid");
+        initTrainData(trainData);
+        //TODO batchSize = numsample
+        numSample = xsTrain.numRows();
+        modelParas = new Vector[numClass];
+        predicts = new double[numClass][numSample];
+        yTrainSubs = new double[numClass][numSample];
+        yValiSubs = new double[numClass][testId.length];
+        //Math.min(numsample, parameter.getBatchSize());
+        batchSize = numSample;
+        logger.info("Finish initializing training data.");
+        if (trainData.hasLabel) {
+            isActive = true;
+            yTrain = trainData.getLabel();
+            IntStream.range(0, numClass).forEach(x -> yTrainSubs[x] = yTrain);
+            if (numClass > 1) {
+                multiLabelTransform();
+            }
+            yValiSub = Tool.str2double(MathExt.transpose(validationData)[validationData[0].length - 1]);
+            IntStream.range(0, numClass).forEach(x -> yValiSubs[x] = yValiSub);
+            validationData = loadFea(validationData);
+            initMetrics();
+        }
+        return trainData;
+    }
+
+
+    /**
+     * 初始化训练指标：包括训练，验证的一维/二维指标
+     */
+    private void initMetrics() {
+        double initSumLoss = -Double.MAX_VALUE;
+        Double[][] initSumLossArr = new Double[1][];
+        initSumLossArr[0] = new Double[]{-Double.MAX_VALUE, -Double.MAX_VALUE};
+        List<Double> tmpRoundMetric = new ArrayList<>();
+        tmpRoundMetric.add(initSumLoss);
+        //TODO metricType 常量化
+        String[] arr = MetricType.getArrayMetrics();
+        List<Double[][]> tmpRoundMetricArr = new ArrayList<>();
+        tmpRoundMetricArr.add(initSumLossArr);
+        metricMap = Arrays.stream(parameter.getMetricType()).filter(x -> !Arrays.asList(arr).contains(x.getMetric()))
+                .collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetric)));
+        metricMapArr = Arrays.stream(parameter.getMetricType()).filter(x -> Arrays.asList(arr).contains(x.getMetric()))
+                .collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetricArr)));
+        metricMapVali = Arrays.stream(parameter.getMetricType()).filter(x -> !Arrays.asList(arr).contains(x.getMetric()))
+                .collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetric)));
+        metricMapArrVali = Arrays.stream(parameter.getMetricType()).filter(x -> Arrays.asList(arr).contains(x.getMetric()))
+                .collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetricArr)));
+    }
+
+    /**
+     * 从全部数据提取验证数据
+     *
+     * @param rawData      全部二维数据
+     * @param testIndex    测试uid的index
+     * @param trainTestUId （训练uid，验证uid）
+     */
+    private void extractedValidationData(String[][] rawData, int[] testIndex, Tuple2<String[], String[]> trainTestUId) {
+        if (testIndex.length == 0) {
+            testId = trainTestUId._1();
+        }
+        testId = trainTestUId._2();
+        validationData = new String[testId.length + 1][rawData[0].length];
+        validationData[0] = rawData[0];
+        for (int i = 0; i < testId.length; i++) {
+            for (String[] rawDatum : rawData) {
+                if (rawDatum[0].equals(testId[i])) {
+                    validationData[i + 1] = rawDatum;
+                }
+            }
+        }
     }
 
 
@@ -117,12 +224,8 @@ public class KernelLinearRegressionJavaModel implements Model {
      */
     private double[] getSubTrainLabel(double[] labelset, List<Integer> sampleIndex, int batchSize) {
         yTrainSub = new double[batchSize];
+        IntStream.range(0, batchSize).forEach(x -> yTrainSub[x] = labelset[sampleIndex.get(x)]);
         logger.info("Training label size " + labelset.length + ", sampleIndex size is " + sampleIndex.size());
-        //TODO
-        for (int i = 0; i < batchSize; i++) {
-            int ind = sampleIndex.get(i);
-            yTrainSub[i] = labelset[ind];
-        }
         return yTrainSub;
     }
 
@@ -170,7 +273,7 @@ public class KernelLinearRegressionJavaModel implements Model {
     /**
      * 多分类标签映射关系
      */
-    public void multiLabelTransform() {
+    private void multiLabelTransform() {
         multiClassUniqueLabelList = Arrays.stream(yTrain).distinct().boxed().collect(Collectors.toList());
         int missingLabelNum = parameter.getNumClass() - multiClassUniqueLabelList.size();
         double startUniqueValue = multiClassUniqueLabelList.stream().max(Double::compareTo).get() + 1;
@@ -182,92 +285,25 @@ public class KernelLinearRegressionJavaModel implements Model {
     /**
      * 多分类部分训练数据标签转换
      */
-    public void transTrainSub() {
+    private void transTrainSub() {
         //y是否等于numcloassround的类别，相等为1，否则为0
         this.yTrainSubs[numClassRound] = Arrays.stream(yTrainSub).map(l -> (l == multiClassUniqueLabelList.get(numClassRound)) ? 1 : 0).toArray();
     }
 
+    /**
+     * 加载特征
+     *
+     * @param rawTable 二维数据
+     * @return 特征数据
+     */
     private String[][] loadFea(String[][] rawTable) {
         String[][] res = new String[rawTable.length][rawTable[0].length - 1];
         for (int i = 0; i < rawTable.length; i++) {
-            for (int j = 0; j < rawTable[0].length - 1; j++) {
-                res[i][j] = rawTable[i][j];
+            if (rawTable[0].length - 1 >= 0) {
+                System.arraycopy(rawTable[i], 0, res[i], 0, rawTable[0].length - 1);
             }
         }
         return res;
-    }
-
-    /**
-     * 训练初始化
-     *
-     * @param rawData  原始数据
-     * @param sp       算法参数
-     * @param features 特征
-     * @param others   其他参数
-     * @return 训练数据
-     */
-    public KernelLinearRegressionTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter sp, Features features, Map<String, Object> others) {
-        this.parameter = (KernelLinearRegressionParameter) sp;
-        numClass = parameter.getNumClass();
-        Tuple2<String[], String[]> trainTestUId = Tool.splitUid(uids, testIndex);
-        KernelLinearRegressionTrainData trainData = new KernelLinearRegressionTrainData(rawData, trainTestUId._1(), features);
-        if (testIndex.length == 0) {
-            testId = trainTestUId._1();
-        }
-        testId = trainTestUId._2();
-        valiadationData = new String[testId.length + 1][rawData[0].length];
-        valiadationData[0] = rawData[0];
-        for (int i = 0; i < testId.length; i++) {
-            for (int m = 0; m < rawData.length; m++) {
-                if (rawData[m][0].equals(testId[i])) {
-                    valiadationData[i + 1] = rawData[m];
-                }
-            }
-        }
-        normalization(trainData);
-        kernelType = parameter.getKernelType();
-        mapdim = parameter.getMapdim();
-        scale = parameter.getScale();
-        initTrainData(trainData);
-        //TODO batchSize = numsample
-        numsample = xsTrain.numRows();
-        modelParas = new Vector[numClass];
-        preds = new double[numClass][numsample];
-        yTrainSubs = new double[numClass][numsample];
-        yValiSubs = new double[numClass][testId.length];
-        //Math.min(numsample, parameter.getBatchSize());
-        batchSize = numsample;
-        logger.info("Finish initializing training data.");
-        if (trainData.hasLabel) {
-            isActive = true;
-            yTrain = trainData.getLabel();
-            IntStream.range(0, numClass).forEach(x -> yTrainSubs[x] = yTrain);
-            if (numClass > 1) {
-                multiLabelTransform();
-            }
-            yValiSub = Tool.str2double(MathExt.transpose(valiadationData)[valiadationData[0].length - 1]);
-            IntStream.range(0, numClass).forEach(x -> yValiSubs[x] = yValiSub);
-            valiadationData = loadFea(valiadationData);
-
-        }
-        double initSumLoss = -Double.MAX_VALUE;
-        Double[][] initSumLossArr = new Double[1][];
-        initSumLossArr[0] = new Double[]{-Double.MAX_VALUE, -Double.MAX_VALUE};
-        List<Double> tmpRoundMetric = new ArrayList<>();
-        tmpRoundMetric.add(initSumLoss);
-        //TODO metricType 常量化
-        String[] arr = MetricType.getArrayMetrics();
-        List<Double[][]> tmpRoundMetricArr = new ArrayList<>();
-        tmpRoundMetricArr.add(initSumLossArr);
-        metricMap = Arrays.stream(parameter.getMetricType()).filter(x -> !Arrays.asList(arr).contains(x.getMetric()))
-                .collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetric)));
-        metricMapArr = Arrays.stream(parameter.getMetricType()).filter(x -> Arrays.asList(arr).contains(x.getMetric()))
-                .collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetricArr)));
-        metricMapVali = Arrays.stream(parameter.getMetricType()).filter(x -> !Arrays.asList(arr).contains(x.getMetric()))
-                .collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetric)));
-        metricMapArrVali = Arrays.stream(parameter.getMetricType()).filter(x -> Arrays.asList(arr).contains(x.getMetric()))
-                .collect(Collectors.toMap(metric -> metric, metric -> new ArrayList<>(tmpRoundMetricArr)));
-        return trainData;
     }
 
     /**
@@ -277,12 +313,12 @@ public class KernelLinearRegressionJavaModel implements Model {
      */
     private void initTrainData(KernelLinearRegressionTrainData trainData) {
         logger.info("Start initializing training data.");
-        if (trainData.featureDim > 0) {
+        if (trainData.getFeatureDim() > 0) {
             xsTrain = new SimpleMatrix(trainData.getFeature());
         }
         //TODO feature维度为0时填的0，可以不计算直接返回
-        else if (trainData.featureDim == 0) {
-            xsTrain = DataUtils.toSmpMatrix(DataUtils.zeroMatrix(trainData.datasetSize, 1));
+        else if (trainData.getFeatureDim() == 0) {
+            xsTrain = DataUtils.toSmpMatrix(DataUtils.zeroMatrix(trainData.getDatasetSize(), 1));
             hasFeature = false;
         }
     }
@@ -295,10 +331,7 @@ public class KernelLinearRegressionJavaModel implements Model {
     private void normalization(KernelLinearRegressionTrainData trainData) {
         this.normalizationType = parameter.getNormalizationType();
         NormalizerOutPackage tempNormalizedOut;
-        boolean couldDoNormalization = false;
-        if (trainData.featureDim > 0) {
-            couldDoNormalization = true;
-        }
+        boolean couldDoNormalization = trainData.getFeatureDim() > 0;
         if (couldDoNormalization) {
             switch (this.normalizationType) {
                 case MINMAX:
@@ -332,53 +365,62 @@ public class KernelLinearRegressionJavaModel implements Model {
     }
 
     /**
-     * 生成符合高斯分布的数组
+     * 核方法训练过程：7个步骤，分训练和验证两个部分；
+     * 训练：步骤1：对数据进行变换，计算本地的w*x;
+     * 步骤2：获取predict-y，求解w，并更新训练指标；
+     * 验证：步骤3：验证初始化；
+     * 步骤4：验证数据做变换；
+     * 步骤6：各客户端计算本地的predict；
+     * 步骤7：更新验证指标；
      *
-     * @param m 生成数据的列数
-     * @param n 生成数据的维数
-     * @return 符合高斯分布的数组
+     * @param phase    训练阶段
+     * @param jsonData 训练中间结果
+     * @param train    训练数据
+     * @return 训练中间结果
      */
-    public double[][] generateNormal(int m, int n) {
-        double[][] res = new double[m][n];
-        Random r = new Random(7);
-        for (int i = 0; i < res.length; i++) {
-            for (int j = 0; j < res[0].length; j++) {
-                res[i][j] = r.nextGaussian() * Math.sqrt(2 * scale);
-            }
+    public Message train(int phase, Message jsonData, TrainData train) {
+        logger.info(String.format("Traing process, phase %s start", phase));
+        if (jsonData == null) {
+            return null;
         }
-        return res;
+        switch (KernelJavaModelPhaseType.valueOf(phase)) {
+            case COMPUTE_LOCAL_PREDICT:
+                return computeLocalPredict((TrainReq) jsonData);
+            case UPDATE_TRAIN_INFO:
+                return trainPhase2((TrainReq) jsonData);
+            case VALIDATE_INIT:
+                return validInit(testId, validationData);
+            case VALIDATE_NORMALIZATION:
+                String[][] validationClone = validationData.clone();
+                CommonInferenceData validationTest = new CommonInferenceData(validationClone, "uid", null);
+                return inference1(phase, (InferenceInit) jsonData, validationTest);
+            case VALIDATE_TRANS_DATA:
+                inference2(xsTest.numRows(), xsTest.numRows(), 1);
+                return null;
+            case VALIDATE_RESULT:
+                return validateResult(jsonData, xsTest.numRows(), xsTest.numRows(), 1);
+            case VALIDATE_UPDATE_METRIC:
+                return updateValidationMetric(jsonData);
+            default:
+                throw new UnsupportedOperationException("unsupported phase in kernel model");
+        }
     }
 
-    /**
-     * 生成符合均匀分布的数组
-     *
-     * @param m 维数
-     * @return 符合均匀分布的数组
-     */
-    public double[] generateUniform(int m) {
-        //TODO    range
-        double[] res = new double[m];
-        Random random = new Random(7);
-        for (int i = 0; i < res.length; i++) {
-            res[i] = random.nextDouble() * 2 * Math.PI;
-        }
-        return res;
-    }
 
     /**
-     * 训练数据特征
+     * 初始核近似：生成核近似变换矩阵，并完成转换
      *
      * @param featureTrain 训练数据特征
      * @return 转换之后的矩阵
      */
-    public SimpleMatrix KernelApproximationTrain(SimpleMatrix featureTrain) {
+    public SimpleMatrix initKernelApproximation(SimpleMatrix featureTrain) {
         if (kernelType != 3) {
             return new SimpleMatrix(new double[0][]);
         }
         int num = featureTrain.numRows();
         int col = featureTrain.numCols();
-        transMetric = generateNormal(col, (int) mapdim);
-        bias1 = generateUniform((int) mapdim);
+        transMetric = MathExt.generateNormal(col, (int) mapdim, scale);
+        bias1 = MathExt.generateUniform((int) mapdim);
         double[][] mulity = new double[num][transMetric[0].length];
         for (int i = 0; i < mulity.length; i++) {
             for (int j = 0; j < transMetric[0].length; j++) {
@@ -394,126 +436,125 @@ public class KernelLinearRegressionJavaModel implements Model {
     /**
      * 训练数据核近似转换
      *
-     * @param origionFeature 原始特征
-     * @param transMatric    转换矩阵
-     * @param bias           bias
+     * @param simpleMatrix 原始特征
+     * @param transMat     转换矩阵
+     * @param bias         bias
      * @return 转换后的特征
      */
-    public SimpleMatrix kernelApproximationPhase2(SimpleMatrix origionFeature, SimpleMatrix transMatric, Vector bias) {
-        double[][] mutiRes = MathExt.matrixMul(origionFeature, transMatric);
-        double[][] res = new double[mutiRes.length][mutiRes[0].length];
+    public SimpleMatrix kernelApproximation(SimpleMatrix simpleMatrix, SimpleMatrix transMat, Vector bias) {
+        double[][] multiRes = MathExt.matrixMul(simpleMatrix, transMat);
+        double[][] res = new double[multiRes.length][multiRes[0].length];
         for (int i = 0; i < res.length; i++) {
             for (int j = 0; j < res[i].length; j++) {
-                res[i][j] = (Math.sqrt(2.) / Math.sqrt(bias.getValuesCount())) * Math.cos(mutiRes[i][j] + bias.getValues(j));
+                res[i][j] = (Math.sqrt(2.) / Math.sqrt(bias.getValuesCount())) * Math.cos(multiRes[i][j] + bias.getValues(j));
             }
         }
         return new SimpleMatrix(res);
     }
 
 
-    public Message train(int phase, Message jsonData, TrainData train) {
-        logger.info(String.format("Traing process, phase %s start", phase) + splitLine);
+    /**
+     * 训练第一步，计算本地预测值：分是否是第一次两种情况
+     * 第一次：数据需要做核变换，然后计算本地预测值 w*x
+     * 非第一次：计算本地预测值：w*x
+     *
+     * @param trainReq 训练请求
+     * @return 计算结果
+     */
+    private Message computeLocalPredict(TrainReq trainReq) {
         Message res = null;
-        if (jsonData == null) {
-            return null;
-        }
-        if (phase == 1) {
-            TrainReq req = (TrainReq) jsonData;
-            ClientInfo client = req.getClient();
-            //初始化
-            if (!isInitTrain) {
-                client = req.getClient();
-                logger.info("Finish the initialization process.");
-                if (hasFeature) {
-                    res = fromInitTrain(req, client);
-                }
-                if (!hasFeature) {
-                    res = fromInitNoFea(req, client);
-                }
-                isInitTrain = true;
+        ClientInfo client = trainReq.getClient();
+//        clientInd = trainReq.getClientInd();
+        //初始化
+        if (!isInitTrain) {
+            logger.info("Finish the initialization process.");
+            if (hasFeature) {
+                res = fromInitTrain(trainReq, client);
             } else {
-                if (req.getBestRound() != 0) {
-                    bestRound = req.getBestRound();
-                    modelParas = modelParasRounds.get(bestRound);
-                    res = new TrainRes(client, parameter.getMaxIter() + 1);
-                    return res;
-                }
-                if (hasFeature) {
-                    List<Integer> sampleIndex = req.getSampleIndex();
-                    numClassRound = req.getNumClassRound();
-                    xsTrainTransSub = getSubTrainFeat(xsTrainTrans, sampleIndex, batchSize);
-                    SimpleMatrix inner_prod = xsTrainTransSub.mult(DataUtils.toSmpMatrix(modelParas[numClassRound])).scale(-1);
-                    if (isActive) {
-                        //todo trans y
-                        yTrainSub = getSubTrainLabel(yTrain, sampleIndex, batchSize);
-                        if (numClass > 1) {
-                            transTrainSub();
-                        }
-                        inner_prod = inner_prod.plus(DataUtils.toSmpMatrix(DataUtils.arrayToVector(yTrainSubs[numClassRound])));
-                    }
-                    preds[numClassRound] = DataUtils.vectorToArray(DataUtils.toVector(inner_prod)).clone();
-                    res = new TrainRes(client, preds, 0.0, isActive);
-                    // todo erlystopping
-
-                } else {
-                    List<Integer> sampleIndex = req.getSampleIndex();
-                    modelParas[numClassRound] = DataUtils.allzeroVector((int) mapdim);
-                    SimpleMatrix inner_prod = DataUtils.toSmpMatrix(DataUtils.allzeroVector(batchSize));
-                    double para_norm = 0;
-                    if (isActive) {
-                        //todo trans y
-                        yTrainSub = getSubTrainLabel(yTrain, sampleIndex, batchSize);
-                        if (numClass > 1) {
-                            transTrainSub();
-                        }
-                        inner_prod = inner_prod.plus(DataUtils.toSmpMatrix(DataUtils.arrayToVector(yTrainSubs[numClassRound])));
-                    }
-                    preds[numClassRound] = DataUtils.vectorToArray(DataUtils.toVector(inner_prod)).clone();
-                    res = new TrainRes(client, preds, para_norm, isActive);
-                }
+                res = fromInitNoFea(trainReq, client);
             }
-            logger.info("Phase 1 finish.");
-            return res;
-        }
-        if (phase == 2) {
-            TrainReq req = (TrainReq) jsonData;
-            ClientInfo client = req.getClient();
-            res = trainPhase2(req, client);
-            return res;
-        }
-        if (phase == 3) {
-            res = inferenceInit(testId, valiadationData, null);
+            isInitTrain = true;
         } else {
-            String[][] validationClone = valiadationData.clone();
-            validationTest = new CommonInferenceData(validationClone, "uid", null);
-            res = validation(phase, jsonData, validationTest);
+            if (trainReq.getBestRound() != 0) {
+                int bestRound = trainReq.getBestRound();
+                modelParas = modelParasRounds.get(bestRound);
+                res = new TrainRes(client, parameter.getMaxIter() + 1, KernelDispatchJavaPhaseType.COMPUTE_LOSS);
+                return res;
+            }
+//            List<Integer> sampleIndex = trainReq.getSampleIndex();
+            if (hasFeature) {
+                numClassRound = trainReq.getNumClassRound();
+                xsTrainTransSub = getSubTrainFeat(xsTrainTrans, sampleIndex, batchSize);
+                SimpleMatrix inner_prod = xsTrainTransSub.mult(DataUtils.toSmpMatrix(modelParas[numClassRound])).scale(-1);
+                if (isActive) {
+                    //todo trans y
+                    yTrainSub = getSubTrainLabel(yTrain, sampleIndex, batchSize);
+                    if (numClass > 1) {
+                        transTrainSub();
+                    }
+                    inner_prod = inner_prod.plus(DataUtils.toSmpMatrix(DataUtils.arrayToVector(yTrainSubs[numClassRound])));
+                }
+                predicts[numClassRound] = DataUtils.vectorToArray(DataUtils.toVector(inner_prod)).clone();
+                res = new TrainRes(client, predicts, 0.0, isActive, clientInd, numClassRound, clientInfoList, KernelDispatchJavaPhaseType.COMPUTE_LOSS);
+                // todo erlystopping
+            } else {
+                modelParas[numClassRound] = DataUtils.allzeroVector((int) mapdim);
+                SimpleMatrix inner_prod = DataUtils.toSmpMatrix(DataUtils.allzeroVector(batchSize));
+                double para_norm = 0;
+                if (isActive) {
+                    //todo trans y
+                    yTrainSub = getSubTrainLabel(yTrain, sampleIndex, batchSize);
+                    if (numClass > 1) {
+                        transTrainSub();
+                    }
+                    inner_prod = inner_prod.plus(DataUtils.toSmpMatrix(DataUtils.arrayToVector(yTrainSubs[numClassRound])));
+                }
+                predicts[numClassRound] = DataUtils.vectorToArray(DataUtils.toVector(inner_prod)).clone();
+                res = new TrainRes(client, predicts, para_norm, isActive, clientInd, numClassRound, clientInfoList, KernelDispatchJavaPhaseType.COMPUTE_LOSS);
+            }
         }
+        logger.info("Phase 1 finish.");
         return res;
     }
 
 
+    /**
+     * 无特征时生成全零的矩阵
+     *
+     * @param req    训练请求
+     * @param client 客户端信息
+     * @return 客户端处理结果
+     */
     private TrainRes fromInitNoFea(TrainReq req, ClientInfo client) {
         TrainRes res;
-        int numsample = xsTrain.numRows();
+        int numSample = xsTrain.numRows();
         IntStream.range(0, numClass).forEach(x -> modelParas[x] = DataUtils.allzeroVector((int) mapdim));
-//                    modelParas[numClassRound] = DataUtils.allzeroVector((int) mapdim);
-        xsTrainTrans = DataUtils.toSmpMatrix(DataUtils.zeroMatrix(numsample, (int) mapdim));
-        List<Integer> sampleIndex = req.getSampleIndex();
+        xsTrainTrans = DataUtils.toSmpMatrix(DataUtils.zeroMatrix(numSample, (int) mapdim));
+        transMat = DataUtils.toSmpMatrix(DataUtils.zeroMatrix(numSample, (int) mapdim));
+        bias = DataUtils.allzeroVector((int) mapdim);
+//        List<Integer> sampleIndex = req.getSampleIndex();
         xsTrainTransSub = getSubTrainFeat(xsTrainTrans, sampleIndex, batchSize);
-        SimpleMatrix inner_prod = DataUtils.toSmpMatrix(DataUtils.allzeroVector(batchSize)).scale(-1);
-        double para_norm = Math.pow(inner_prod.normF(), 2);
+        SimpleMatrix innerProd = DataUtils.toSmpMatrix(DataUtils.allzeroVector(batchSize)).scale(-1);
+        double para_norm = Math.pow(innerProd.normF(), 2);
         if (isActive) {
             yTrainSub = getSubTrainLabel(yTrain, sampleIndex, batchSize);
             if (numClass > 1) {
                 transTrainSub();
             }
-            inner_prod = inner_prod.plus(DataUtils.toSmpMatrix(DataUtils.arrayToVector(yTrainSubs[numClassRound])));
+            innerProd = innerProd.plus(DataUtils.toSmpMatrix(DataUtils.arrayToVector(yTrainSubs[numClassRound])));
         }
-        preds[numClassRound] = DataUtils.vectorToArray(DataUtils.toVector(inner_prod));
-        res = new TrainRes(client, preds, para_norm, isActive);
+        predicts[numClassRound] = DataUtils.vectorToArray(DataUtils.toVector(innerProd));
+        res = new TrainRes(client, predicts, para_norm, isActive, clientInd, numClassRound, clientInfoList, KernelDispatchJavaPhaseType.COMPUTE_LOSS);
         return res;
     }
 
+    /**
+     * 有特征时处理
+     *
+     * @param req    训练请求
+     * @param client 客户端信息
+     * @return 客户端计算结果
+     */
     private TrainRes fromInitTrain(TrainReq req, ClientInfo client) {
         TrainRes res;
         logger.info(String.format("Training data shape %s, %s", xsTrain.numCols(), xsTrain.numRows()));
@@ -529,16 +570,15 @@ public class KernelLinearRegressionJavaModel implements Model {
             int end = Math.min(numsample, (i + 1) * batchSize);
             SimpleMatrix temp = xsTrain.rows(start, end);
             if (i == 0) {
-                xsTrainTransSub = KernelApproximationTrain(temp);
+                xsTrainTransSub = initKernelApproximation(temp);
                 transMat = new SimpleMatrix(transMetric);
                 bias = DataUtils.arrayToVector(bias1);
-                xsTrainTrans = setSmpMatValue(xsTrainTrans, xsTrainTransSub, start, end);
             } else {
-                xsTrainTransSub = kernelApproximationPhase2(temp, transMat, bias);
-                xsTrainTrans = setSmpMatValue(xsTrainTrans, xsTrainTransSub, start, end);
+                xsTrainTransSub = kernelApproximation(temp, transMat, bias);
             }
+            setSmpMatValue(xsTrainTrans, xsTrainTransSub, start, end);
         }
-        List<Integer> sampleIndex = req.getSampleIndex();
+//        List<Integer> sampleIndex = req.getSampleIndex();
         logger.info("batchSize:" + batchSize);
         xsTrainTransSub = getSubTrainFeat(xsTrainTrans, sampleIndex, batchSize);
         IntStream.range(0, numClass).forEach(x -> modelParas[x] = DataUtils.alloneVector((int) mapdim, 0.1));
@@ -557,9 +597,9 @@ public class KernelLinearRegressionJavaModel implements Model {
             innerProd = innerProd.plus(DataUtils.toSmpMatrix(DataUtils.arrayToVector(yTrainSubs[numClassRound])));
         }
         double[] predArray = DataUtils.vectorToArray(DataUtils.toVector(innerProd));
-        preds[numClassRound] = predArray.clone();
+        predicts[numClassRound] = predArray.clone();
         //TODO return double[numclass][samplenum] preds
-        res = new TrainRes(client, preds, para_norm, isActive);
+        res = new TrainRes(client, predicts, para_norm, isActive, clientInd, numClassRound, clientInfoList, KernelDispatchJavaPhaseType.COMPUTE_LOSS);
         return res;
     }
 
@@ -567,17 +607,21 @@ public class KernelLinearRegressionJavaModel implements Model {
         if (val < 0.00001) {
             return 0.0001;
         }
-        if (val > 0.99999) {
-            return 0.99999;
-        }
-        return val;
+        return Math.min(val, 0.99999);
     }
 
-    public static double[][] predTrans(double[][] data, int numClass) {
+    /**
+     * 变换推理结果：
+     * 类别为1时，直接返回；类别大于2时，将预测值映射到（0，1）区间，并使得各样本预测值之和为1
+     *
+     * @param data     数据
+     * @param numClass 类别数据量
+     * @return 变化之后的结果
+     */
+    public static double[][] predictTrans(double[][] data, int numClass) {
         double[][] res = new double[data.length][data[0].length];
-        if (numClass == 1) {
-            res = data;
-            return res;
+        if (numClass == 1 || data[0].length == 1) {
+            return data;
         }
         for (int i = 0; i < data.length; i++) {
             for (int j = 0; j < data[0].length; j++) {
@@ -591,53 +635,66 @@ public class KernelLinearRegressionJavaModel implements Model {
         return res;
     }
 
-    public double[] transform(double[][] pred) {
-        double[][] values = MathExt.transpose(pred);
+    /**
+     * @param predict 训练中间结果
+     * @return 转换之后的结果
+     */
+    public double[] transform(double[][] predict) {
+        double[][] values = MathExt.transpose(predict);
         Arrays.stream(values).forEach(predValues -> {
             double sum = Arrays.stream(predValues).sum();
             IntStream.range(0, numClass).forEach(i -> predValues[i] = predValues[i] / sum);
         });
-        // return flatten nClass * dataSize
         return Arrays.stream(MathExt.transpose(values)).flatMapToDouble(Arrays::stream).toArray();
     }
 
-    private TrainRes trainPhase2(TrainReq req, ClientInfo client) {
-        TrainRes res = null;
-        ClientInfo clientInfo = req.getClient();
-        boolean isUpdate = req.isUpdate();
-        List<Integer> sampleIndex = req.getSampleIndex();
+    /**
+     * 训练第二步：主动方更新metric、更新的客户端更新w
+     *
+     * @param jsonData 请求数据
+     * @return 更新后的指标
+     */
+    private TrainRes trainPhase2(TrainReq jsonData) {
+        ClientInfo client = jsonData.getClient();
+        clientInd = jsonData.getClientInd();
+        TrainRes res;
+        KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType = KernelDispatchJavaPhaseType.UPDATE_METRIC;
+        ClientInfo clientInfo = jsonData.getClient();
+        boolean isUpdate = jsonData.isUpdate();
+//        List<Integer> sampleIndex = jsonData.getSampleIndex();
         SimpleMatrix tmp = null;
         SimpleMatrix innerProd = null;
         if (isActive) {
-            double[][] predActuals = new double[numClass][yTrainSub.length];
-            double[][] predGaps = req.getValuelists();
+            double[][] actualPredict = new double[numClass][yTrainSub.length];
+            double[][] predictGaps = jsonData.getValuelists();
             for (int i = 0; i < numClass; i++) {
                 int finalI = i;
-                predActuals[i] = IntStream.range(0, predGaps[i].length).mapToDouble(p -> (predGaps[finalI][p] - yTrainSubs[finalI][p]) * (-1)).toArray();
+                actualPredict[i] = IntStream.range(0, predictGaps[i].length).mapToDouble(p -> (predictGaps[finalI][p] - yTrainSubs[finalI][p]) * (-1)).toArray();
             }
             if (numClassRound + 1 == parameter.getNumClass()) {
-                double[] predTrans = Arrays.stream(predActuals).flatMapToDouble(Arrays::stream).toArray();
+                kernelDispatchJavaPhaseType = KernelDispatchJavaPhaseType.VALIDATION_INIT;
+                double[] predictTrans = Arrays.stream(actualPredict).flatMapToDouble(Arrays::stream).toArray();
                 if (numClass > 1) {
                     if (numClass == 2) {
-                        predTrans = predActuals[1];
+                        predictTrans = actualPredict[1];
                     } else {
-                        predTrans = transform(predActuals);
+                        predictTrans = transform(actualPredict);
                     }
-                    predTrans = Arrays.stream(predTrans).map(p -> clip(p)).toArray();
+                    predictTrans = Arrays.stream(predictTrans).map(KernelLinearRegressionJavaModel::clip).toArray();
                     this.yTrainSub = Arrays.stream(yTrain).map(l -> multiClassUniqueLabelList.indexOf(l)).toArray();
                 }
-                updateMetric(predTrans, yTrainSub);
-                tmp = DataUtils.toSmpMatrix(DataUtils.arrayToVector(req.getValuelists()[numClassRound]));
+                updateMetric(predictTrans, yTrainSub);
+                tmp = DataUtils.toSmpMatrix(DataUtils.arrayToVector(jsonData.getValuelists()[numClassRound]));
                 innerProd = xsTrainTransSub.mult(DataUtils.toSmpMatrix(modelParas[numClassRound]));
             } else {
-                tmp = DataUtils.toSmpMatrix(DataUtils.arrayToVector(req.getValuelists()[numClassRound]));
+                tmp = DataUtils.toSmpMatrix(DataUtils.arrayToVector(jsonData.getValuelists()[numClassRound]));
                 innerProd = xsTrainTransSub.mult(DataUtils.toSmpMatrix(modelParas[numClassRound]));
                 numClassRound++;
             }
         }
         if (isUpdate) {
             if (!isActive) {
-                tmp = DataUtils.toSmpMatrix(DataUtils.arrayToVector(req.getValuelists()[numClassRound]));
+                tmp = DataUtils.toSmpMatrix(DataUtils.arrayToVector(jsonData.getValuelists()[numClassRound]));
                 innerProd = xsTrainTransSub.mult(DataUtils.toSmpMatrix(modelParas[numClassRound]));
             }
             Vector y = DataUtils.toVector(innerProd.plus(tmp));
@@ -666,141 +723,103 @@ public class KernelLinearRegressionJavaModel implements Model {
                     modelParas[numClassRound] = DataUtils.allzeroVector((int) mapdim);
                 }
             }
-            res = new TrainRes(client, numClassRound, isActive);
+            res = new TrainRes(client, numClassRound, isActive, kernelDispatchJavaPhaseType);
             logger.info("Phase 2 finish.");
         } else {
-            res = new TrainRes(client, numClassRound, isActive);
+            res = new TrainRes(client, numClassRound, isActive, kernelDispatchJavaPhaseType);
         }
         return res;
     }
 
 
-    private void updateMetric(double[] pred, double[] label) {
+    /**
+     * 更新训练指标
+     *
+     * @param predict 预测值
+     * @param label   真实值
+     */
+    private void updateMetric(double[] predict, double[] label) {
         if (!this.isActive || (metricMap == null && metricMapArr == null)) {
             return;
         }
         Map<MetricType, Double> trainMetric = new HashMap<>();
         Map<MetricType, Double[][]> trainMetricArr = new HashMap<>();
         MetricType[] evalMetric = parameter.getMetricType();
-        String[] arr = {"confusion", "RocCurve", "KSCurve", "mAuc", "tpr", "fpr"};
+        String[] arr = MetricType.getArrayMetrics();
         for (MetricType t : evalMetric) {
             if (Arrays.asList(arr).contains(t.getMetric())) {
-                trainMetricArr.put(t, Metric.calculateMetricArr(t, pred, label, multiClassUniqueLabelList));
+                trainMetricArr.put(t, Metric.calculateMetricArr(t, predict, label, multiClassUniqueLabelList));
             } else {
-                trainMetric.put(t, Metric.calculateMetric(t, pred, label));
+                trainMetric.put(t, Metric.calculateMetric(t, predict, label));
             }
         }
         trainMetric.forEach((key, value) -> metricMap.get(key).add(value));
         trainMetricArr.forEach((key, value) -> metricMapArr.get(key).add(value));
     }
 
-    private void updateMetricVali(double[] pred, double[] label) {
-        if (!this.isActive || (metricMapVali == null && metricMapArrVali == null)) {
-            return;
-        }
-        Map<MetricType, Double> trainMetric = new HashMap<>();
-        Map<MetricType, Double[][]> trainMetricArr = new HashMap<>();
-        MetricType[] evalMetric = parameter.getMetricType();
-        String[] arr = {"confusion", "RocCurve", "KSCurve", "mAuc", "tpr", "fpr"};
-        for (MetricType t : evalMetric) {
-            if (Arrays.asList(arr).contains(t.getMetric())) {
-                trainMetricArr.put(t, Metric.calculateMetricArr(t, pred, label, multiClassUniqueLabelList));
-            } else {
-                trainMetric.put(t, Metric.calculateMetric(t, pred, label));
-            }
-        }
-        trainMetric.forEach((key, value) -> metricMapVali.get(key).add(value));
-        trainMetricArr.forEach((key, value) -> metricMapArrVali.get(key).add(value));
+
+    /**
+     * 验证初始化
+     *
+     * @param uidList        需要验证的uid
+     * @param validationData 验证数据
+     * @return 过滤结果
+     */
+    public Message validInit(String[] uidList, String[][] validationData) {
+        return InferenceFilter.filter(uidList, validationData);
     }
 
-    // 推理初始化，
-    public Message inferenceInit(String[] uidList, String[][] inferenceCacheFile, Map<String, Object> others) {
-        return InferenceFilter.filter(uidList, inferenceCacheFile);
-    }
 
-    public Message inference(int phase, Message jsonData, InferenceData Data) {
-        logger.info(String.format("Inference process, phase %s start", phase) + splitLine);
-        if (jsonData == null) {
-            return null;
-        }
-        CommonInferenceData inferenceData = (CommonInferenceData) Data;
-        InferenceReqAndRes res = null;
-        if (phase == -1) {
-            res = inference1((InferenceInit) jsonData, inferenceData);
-        }
-        if (phase == -2) {
-            inference2(xsTest.numRows(), xsTest.numRows(), 1);
-        }
-        if (phase == -3) {
-            res = inference3((InferenceReqAndRes) jsonData, xsTest.numRows(), xsTest.numRows(), 1);
-        }
-        logger.info(String.format("Inference process, phase %s end", phase) + splitLine);
-        return res;
-    }
-
-    public Message validation(int phase, Message jsonData, InferenceData Data) {
-        logger.info(String.format("Inference process, phase %s start", phase) + splitLine);
-        if (jsonData == null) {
-            return null;
-        }
-        CommonInferenceData inferenceData = (CommonInferenceData) Data;
+    /**
+     * 验证阶段：对验证数据进行核变换并计算验证结果
+     *
+     * @param jsonData  中间数据
+     * @param numSample 样本量
+     * @param batchSize 批次大小
+     * @param numBatch  批次
+     * @return
+     */
+    private Message validateResult(Message jsonData, int numSample, int batchSize, int numBatch) {
         Message res = null;
-        if (phase == 4) {
-            res = inference1((InferenceInit) jsonData, inferenceData);
-        }
-        if (phase == 5) {
-            inference2(xsTest.numRows(), xsTest.numRows(), 1);
-        }
-        if (phase == 6) {
-            res = inference3((InferenceReqAndRes) jsonData, xsTest.numRows(), xsTest.numRows(), 1);
-        }
-        if (phase == 7) {
-            res = valid(jsonData);
-        }
-        logger.info(String.format("Inference process, phase %s end", phase) + splitLine);
-        return res;
-    }
-
-
-    private InferenceReqAndRes inference3(InferenceReqAndRes jsonData, int numsample, int batchSize, int numbatch) {
-        InferenceReqAndRes res;
-        InferenceReqAndRes req = jsonData;
-        ClientInfo client = req.getClient();
-        //todo inference
-        double[] predict = new double[numsample];
-        double[][] results = new double[numsample][numClass];
-        if (hasFeature) {
-            for (int i = 0; i < numbatch; i++) {
-                int start = i * batchSize;
-                int end = Math.min(numsample, (i + 1) * batchSize);
-                SimpleMatrix temp = xsTestTrans.rows(start, end);
-                for (int m = 0; m < modelParas.length; m++) {
-                    Vector innerProd = kernelLinearRegressionInferencePhase1(temp, modelParas[m]);
-                    for (int j = start; j < end; j++) {
-                        if (hasFeature) {
+        if (jsonData instanceof InferenceReqAndRes) {
+            InferenceReqAndRes req = (InferenceReqAndRes) jsonData;
+            ClientInfo client = req.getClient();
+            //todo inference
+            double[] predict = new double[numSample];
+            double[][] results = new double[numSample][numClass];
+            if (hasFeature) {
+                for (int i = 0; i < numBatch; i++) {
+                    int start = i * batchSize;
+                    int end = Math.min(numSample, (i + 1) * batchSize);
+                    SimpleMatrix temp = xsTestTrans.rows(start, end);
+                    for (int m = 0; m < modelParas.length; m++) {
+                        Vector innerProd = computePredict(temp, modelParas[m]);
+                        for (int j = start; j < end; j++) {
                             results[j][m] = innerProd.getValues(j - start);
                             predict[j] = innerProd.getValues(j - start);
-                        } else {
-                            results[j][m] = 0;
-                            predict[j] = 0;
                         }
                     }
                 }
             }
+            logger.info("Inner product result");
+            res = new InferenceReqAndRes(client, predict, results, numClass - 1, isActive, numClass, testUid, KernelDispatchJavaPhaseType.VALIDATION_RESULT);
         }
-        logger.info("Inner product result");
-        res = new InferenceReqAndRes(client, predict, results, numClass - 1, isActive, numClass);
         return res;
     }
 
-    private TrainRes valid(Message jsonData) {
+    /**
+     * 更新验证指标
+     *
+     * @param jsonData 请求数据
+     * @return 更新之后的指标
+     */
+    private TrainRes updateValidationMetric(Message jsonData) {
         TrainReq trainReq = (TrainReq) jsonData;
         TrainRes res;
         modelParasRounds.put(tmpRound, modelParas);
         tmpRound++;
         if (!isActive) {
-            res = new TrainRes(trainReq.getClient(), numClassRound, isActive);
-            return res;
+            res = new TrainRes(trainReq.getClient(), numClassRound, isActive, KernelDispatchJavaPhaseType.UPDATE_METRIC);
         } else {
             double[][] predRes = trainReq.getPredictRes().getPredicts();
             double[][] predResTrans = MathExt.transpose(predRes);
@@ -812,36 +831,140 @@ public class KernelLinearRegressionJavaModel implements Model {
                     predTrans = transform(predResTrans);
                     this.yValiSub = Arrays.stream(yValiSub).map(l -> multiClassUniqueLabelList.indexOf(l)).toArray();
                 }
-                predTrans = Arrays.stream(predTrans).map(p -> clip(p)).toArray();
+                predTrans = Arrays.stream(predTrans).map(KernelLinearRegressionJavaModel::clip).toArray();
             }
-            updateMetricVali(predTrans, yValiSub);
+            updateMetricValidation(predTrans, yValiSub);
             numClassRound = 0;
-            res = new TrainRes(trainReq.getClient(), numClassRound, isActive, metricMap, metricMapArr, metricMapVali, metricMapArrVali);
+            res = new TrainRes(trainReq.getClient(), numClassRound, isActive, metricMap, metricMapArr, metricMapVali, metricMapArrVali, KernelDispatchJavaPhaseType.UPDATE_METRIC);
             //TODO
-            return res;
         }
+        return res;
     }
 
-
-    private void inference2(int numsample, int batchSize, int numbatch) {
-        int i;
-        if (hasFeature) {
-            xsTestTrans = new SimpleMatrix(numsample, (int) mapdim);
-            for (i = 0; i < numbatch; i++) {
-                int start = i * batchSize;
-                int end = Math.min(numsample, (i + 1) * batchSize);
-                logger.info(String.format("Processing block %s, from sample %s to sample %s.", i, start, end));
-                SimpleMatrix temp = xsTest.rows(start, end);
-                SimpleMatrix xsTestTransSub = kernelApproximationPhase2(temp, transMat, bias);
-                xsTestTrans = setSmpMatValue(xsTestTrans, xsTestTransSub, start, end);
+    /**
+     * 更新指标
+     *
+     * @param predict 预测值
+     * @param label   真实值
+     */
+    private void updateMetricValidation(double[] predict, double[] label) {
+        if (!this.isActive || (metricMapVali == null && metricMapArrVali == null)) {
+            return;
+        }
+        Map<MetricType, Double> trainMetric = new HashMap<>();
+        Map<MetricType, Double[][]> trainMetricArr = new HashMap<>();
+        MetricType[] evalMetric = parameter.getMetricType();
+        String[] arr = MetricType.getArrayMetrics();
+        for (MetricType t : evalMetric) {
+            if (Arrays.asList(arr).contains(t.getMetric())) {
+                trainMetricArr.put(t, Metric.calculateMetricArr(t, predict, label, multiClassUniqueLabelList));
+            } else {
+                trainMetric.put(t, Metric.calculateMetric(t, predict, label));
             }
-        } else {
-            xsTestTrans = null;
+        }
+        trainMetric.forEach((key, value) -> metricMapVali.get(key).add(value));
+        trainMetricArr.forEach((key, value) -> metricMapArrVali.get(key).add(value));
+    }
+
+    /**
+     * 推理初始化
+     *
+     * @param uidList       需要推理的uid
+     * @param inferenceData 推理数据
+     * @param others        自定义参数，安全推理时包括安全推理的信息
+     * @return 过滤结果，安全推理时完成安全推理秘钥初始化等
+     */
+    public Message inferenceInit(String[] uidList, String[][] inferenceData, Map<String, Object> others) {
+        if (others.containsKey("pubKeyStr") && others.containsKey("privKeyStr")) {
+            String pubKeyStr = others.get("pubKeyStr").toString();
+            String privKeyStr = others.get("privKeyStr").toString();
+            useDistributedPillar = true;
+            int numP = (int) others.get("numP");
+            int encBits = (int) others.get("ENC_BITS");
+            // Standalone version, master generates Keys, clients receive.
+            //是否时debug模式
+            this.pheKeys = new HomoEncryptionUtil(numP, encBits, useFakeDec);
+            int thisPartyID = (Integer) others.get("thisPartyID");
+            DistributedPaillier.DistPaillierPubkey pubkey = new DistributedPaillier.DistPaillierPubkey();
+            DistributedPaillier.DistPaillierPrivkey privkey = new DistributedPaillier.DistPaillierPrivkey();
+            pubkey.parseJson(pubKeyStr);
+            privkey.parseJson(privKeyStr);
+            if (!useFakeDec) {
+                this.pheKeys.setPk(pubkey);
+                this.pheKeys.setSk(privkey);
+                this.pheKeys.getSk().setRank(thisPartyID);
+            }
+        }
+        return InferenceFilter.filter(uidList, inferenceData);
+    }
+
+    /**
+     * 推理阶段：
+     * 推理1：推理数据归一化；
+     * 推理2：推理数据核变换；
+     * 推理3：本地推理，安全推理时需完成加密，解密部分推理结果，解密最终推理结果。
+     *
+     * @param phase    阶段
+     * @param jsonData 中间数据
+     * @param data     推理数据
+     * @return 各推理阶段计算结果
+     */
+    public Message inference(int phase, Message jsonData, InferenceData data) {
+        logger.info(String.format("Inference process, phase %s start", phase));
+        if (jsonData == null) {
+            return null;
+        }
+        CommonInferenceData inferenceData = (CommonInferenceData) data;
+        switch (KernelJavaModelPhaseType.valueOf(phase)) {
+            case INFERENCE_INIT:
+                return inference1(phase, (InferenceInit) jsonData, inferenceData);
+            case INFERENCE_NORMALIZATION:
+                inference2(xsTest.numRows(), xsTest.numRows(), 1);
+                return null;
+            case INFERENCE_RESULT:
+                return inference3(jsonData, xsTest.numRows(), xsTest.numRows(), 1);
+            default:
+                throw new UnsupportedOperationException("unsupported phase in kernel model");
         }
     }
 
-    private InferenceReqAndRes inference1(InferenceInit jsonData, CommonInferenceData inferenceData) {
-        InferenceReqAndRes res = null;
+    /**
+     * 推理数据归一化
+     * phase为-1时，需要过滤数据，只保留需要预测的数据
+     *
+     * @param phase         阶段
+     * @param jsonData      初始化结果
+     * @param inferenceData 推理数据
+     * @return 类别数量
+     */
+    private InferenceReqAndRes inference1(int phase, InferenceInit jsonData, CommonInferenceData inferenceData) {
+        KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType = KernelDispatchJavaPhaseType.EMPTY_REQUEST;
+        if (phase == -1) {
+            String[] newUidIndex = jsonData.getUid();
+            inferenceData.filterOtherUid(newUidIndex);
+            kernelDispatchJavaPhaseType = KernelDispatchJavaPhaseType.INFERENCE_EMPTY_REQUEST;
+        }
+        InferenceReqAndRes res;
+        inferenceDataNormalization(inferenceData);
+        logger.info(String.format("Data dimension: %s", inferenceData.getFeatureDim()));
+        if (inferenceData.getFeatureDim() == 0) {
+            xsTest = DataUtils.toSmpMatrix(DataUtils.zeroMatrix(inferenceData.getDatasetSize(), 1));
+            hasFeature = false;
+        }
+        if (isActive) {
+            res = new InferenceReqAndRes(multiClassUniqueLabelList, true, numClass, kernelDispatchJavaPhaseType);
+        } else {
+            res = new InferenceReqAndRes(new ArrayList<>(), false, numClass, kernelDispatchJavaPhaseType);
+        }
+        return res;
+    }
+
+    /**
+     * 推理数据归一化
+     *
+     * @param inferenceData 推理数据
+     */
+    private void inferenceDataNormalization(CommonInferenceData inferenceData) {
         if (inferenceData.getFeatureDim() > 0) {
             // normalization
             double[][] mxSample;
@@ -864,20 +987,91 @@ public class KernelLinearRegressionJavaModel implements Model {
                     break;
             }
         }
-        logger.info(String.format("Data dimension: %s", inferenceData.getFeatureDim()));
-        if (inferenceData.getFeatureDim() == 0) {
-            xsTest = DataUtils.toSmpMatrix(DataUtils.zeroMatrix(inferenceData.getDatasetSize(), 1));
-            hasFeature = false;
-        }
-        if (isActive) {
-            res = new InferenceReqAndRes(multiClassUniqueLabelList, isActive, numClass);
+    }
+
+
+    /**
+     * 推理数据核变换
+     *
+     * @param numSample 推理数量
+     * @param batchSize 推理批次大小
+     * @param numBatch  推理批次
+     */
+    private void inference2(int numSample, int batchSize, int numBatch) {
+        if (!hasFeature) {
+//            xsTestTrans = null;
+            xsTestTrans = DataUtils.toSmpMatrix(DataUtils.zeroMatrix(numSample, 1));
         } else {
-            res = new InferenceReqAndRes(new ArrayList<>(), isActive, numClass);
+            xsTestTrans = new SimpleMatrix(numSample, (int) mapdim);
+            for (int i = 0; i < numBatch; i++) {
+                int start = i * batchSize;
+                int end = Math.min(numSample, (i + 1) * batchSize);
+                logger.info(String.format("Processing block %s, from sample %s to sample %s.", i, start, end));
+                SimpleMatrix temp = xsTest.rows(start, end);
+                SimpleMatrix xsTestTransSub = kernelApproximation(temp, transMat, bias);
+                setSmpMatValue(xsTestTrans, xsTestTransSub, start, end);
+            }
+        }
+    }
+
+
+    /**
+     * 推理阶段：
+     * 正常模式：计算本地推理结果；
+     * 安全推理：计算本地推理结果并加密；解密部分推理结果；解密最终结果；
+     *
+     * @param jsonData  推理请求
+     * @param numSample 推理样本数
+     * @param batchSize 推理批次
+     * @param numBatch  批次数量
+     * @return 推理结果
+     */
+    private Message inference3(Message jsonData, int numSample, int batchSize, int numBatch) {
+        Message res = null;
+        if (jsonData instanceof InferenceReqAndRes) {
+            //todo inference
+            double[][] results = new double[numSample][numClass];
+            if (hasFeature) {
+                for (int i = 0; i < numBatch; i++) {
+                    int start = i * batchSize;
+                    int end = Math.min(numSample, (i + 1) * batchSize);
+                    SimpleMatrix temp = xsTestTrans.rows(start, end);
+                    for (int m = 0; m < modelParas.length; m++) {
+                        Vector innerProd = computePredict(temp, modelParas[m]);
+                        for (int j = start; j < end; j++) {
+                            results[j][m] = innerProd.getValues(j - start);
+                        }
+                    }
+                }
+            }
+            logger.info("Inner product result");
+            if (useDistributedPillar) {
+                DistributedPaillierNative.signedByteArray[][] predEnc = new DistributedPaillierNative.signedByteArray[results.length][results[0].length];
+                for (int i = 0; i < results.length; i++) {
+                    for (int j = 0; j < results[0].length; j++) {
+                        predEnc[i][j] = pheKeys.encryption(results[i][j], pheKeys.getPk());
+                    }
+                }
+                return new CypherMessage2D(predEnc);
+            }
+            res = new InferenceReqAndRes(((InferenceReqAndRes) jsonData).getClient(), new double[0], results, numClass - 1, isActive, numClass, null);
+        } else if (jsonData instanceof CypherMessage2D) {
+            return decryptsPartialScores((CypherMessage2D) jsonData);
+        } else if (jsonData instanceof CypherMessage2DList) {
+            return decryptsFinalScores((CypherMessage2DList) jsonData);
         }
         return res;
     }
 
-    public Vector kernelLinearRegressionInferencePhase1(SimpleMatrix simpleMatrix, Vector vector) {
+
+    /**
+     * 客户端本地推理
+     *
+     * @param simpleMatrix 完成核变换的推理数据
+     * @param vector       变换向量
+     * @return 变换结果 客户端本地推理结果
+     */
+    public Vector computePredict(SimpleMatrix simpleMatrix, Vector vector) {
         int num = simpleMatrix.numRows();
         int col = simpleMatrix.numCols();
         double[] res = new double[num];
@@ -887,160 +1081,119 @@ public class KernelLinearRegressionJavaModel implements Model {
             }
         }
         return DataUtils.arrayToVector(res);
+    }
 
+    /**
+     * 数据转换
+     *
+     * @param mat 加密状态数据转换
+     * @return 转换后的数据
+     */
+    public static DistributedPaillierNative.signedByteArray[][] transpose(DistributedPaillierNative.signedByteArray[][] mat) {
+        DistributedPaillierNative.signedByteArray[][] res = new DistributedPaillierNative.signedByteArray[mat[0].length][mat.length];
+        for (int i = 0; i < mat.length; i++) {
+            for (int j = 0; j < mat[0].length; j++) {
+                res[j][i] = mat[i][j];
+            }
+        }
+        return res;
+    }
+
+    /**
+     * 解密部分推理结果：客户端解密协调端发送过来的加密状态的推理结果
+     *
+     * @param message 请求数据
+     * @return 部分解密结果
+     */
+    private Message decryptsPartialScores(CypherMessage2D message) {
+        partialSum = message.getBody();
+        decPartialSum = new DistributedPaillierNative.signedByteArray[partialSum.length][partialSum[0].length];
+        for (int i = 0; i < partialSum.length; i++) {
+            decPartialSum[i] = pheKeys.decryptPartial(partialSum[i], pheKeys.getSk());
+        }
+        List<DistributedPaillierNative.signedByteArray[][]> diffResultType = new ArrayList<>();
+        diffResultType.add(decPartialSum);
+        return new CypherMessage2DList(diffResultType);
+    }
+
+    /**
+     * 解密最终推理结果：客户端解密最终的推理结果
+     *
+     * @param message 请求数据
+     * @return 最终推理结果
+     */
+    private Message decryptsFinalScores(CypherMessage2DList message) {
+        List<DistributedPaillierNative.signedByteArray[][]> othersDec = message.getBody();
+        List<DistributedPaillierNative.signedByteArray[][]> othersDecTrans = new ArrayList<>();
+        othersDec.stream().map(x -> othersDecTrans.add(transpose(x))).collect(Collectors.toList());
+        DistributedPaillierNative.signedByteArray[][] partialSumTrans = transpose(partialSum);
+        DistributedPaillierNative.signedByteArray[][] decPartialSumTrans = transpose(decPartialSum);
+        double[][] finalSocres = new double[partialSum[0].length][partialSum.length];
+        for (int i = 0; i < numClass; i++) {
+            DistributedPaillierNative.signedByteArray[][] subPred = new DistributedPaillierNative.signedByteArray[othersDec.size() + 1][partialSum.length];
+            subPred[0] = decPartialSumTrans[i];
+            for (int j = 0; j < othersDec.size(); j++) {
+                subPred[j + 1] = othersDecTrans.get(j)[i];
+            }
+            finalSocres[i] = pheKeys.decryptFinal(subPred, partialSumTrans[i], pheKeys.getSk());
+        }
+        return new InferenceReqAndRes(MathExt.transpose(finalSocres));
     }
 
     public void deserialize(String content) {
-        String[] lines = content.split("\n");
-        int lineNum = 0;
-        String modelToken = lines[lineNum].split("=")[1];
-        this.modelToken = modelToken;
-        lineNum++;
-        this.numClass = Integer.parseInt(lines[lineNum].split("=")[1]);
-        modelParas = new Vector[numClass];
-        lineNum++;
-        String csvWeight = lines[lineNum].split("=")[1];
-        String[] csvWeights = csvWeight.split(", \\|\\| ");
-        for (int n = 0; n < numClass; n++) {
-            String[] tmp = csvWeights[n].replace(" ||", "").split(",");
-            double[] modelweight = new double[tmp.length];
-            int i, j;
-            logger.info("parsing model weight");
-            for (i = 0; i < tmp.length; i++) {
-                modelweight[i] = Double.parseDouble(tmp[i]);
-            }
-            modelParas[n] = DataUtils.arrayToVector(modelweight);
-        }
-        lineNum++;
-        String matSize = lines[lineNum].split("=")[1];
-        lineNum++;
-        int numRow = Integer.parseInt(matSize.split(",")[0]);
-        int numCol = Integer.parseInt(matSize.split(",")[1]);
-        if (numRow != 0 && numCol != 0) {
-            String matWeight = lines[lineNum].split("=")[1];
-            lineNum++;
-            String[] tmp = matWeight.split(",");
-            double[][] matweight = new double[numRow][numCol];
-            int k = 0;
-            logger.info("Parsing weight matrix");
-            for (int i = 0; i < numRow; i++) {
-                for (int j = 0; j < numCol; j++) {
-                    matweight[i][j] = Double.parseDouble(tmp[k]);
-                    k += 1;
-                }
-            }
-            this.transMat = new SimpleMatrix(matweight);
-            this.mapdim = numCol;
-            String biasWeight = lines[lineNum].split("=")[1];
-            lineNum++;
-            tmp = biasWeight.split(",");
-            double[] biasweight = new double[tmp.length];
-            logger.info("Parsing bias weight");
-            for (int i = 0; i < tmp.length; i++) {
-                biasweight[i] = Double.parseDouble(tmp[i]);
-            }
-            this.bias = DataUtils.arrayToVector(biasweight);
-        }
-        // load normalization parameters
-        normalizationType = NormalizationType.valueOf(lines[lineNum].split("=")[1]);
-        lineNum++;
-        String strNormParams1 = lines[lineNum].split("=")[1];
-        String[] tmp = strNormParams1.split(",");
-        normParams1 = new double[tmp.length];
-        for (int i = 0; i < tmp.length; i++) {
-            normParams1[i] = Double.parseDouble(tmp[i]);
-        }
-        lineNum++;
-        String strNormParams2 = lines[lineNum].split("=")[1];
-        tmp = strNormParams2.split(",");
-        normParams2 = new double[tmp.length];
-        for (int i = 0; i < tmp.length; i++) {
-            normParams2[i] = Double.parseDouble(tmp[i]);
-        }
-        lineNum++;
-        String isActive = lines[lineNum].split("=")[1];
-        this.isActive = Boolean.parseBoolean(isActive);
-        lineNum++;
-        if (this.isActive && numClass > 1) {
-            String labelList = lines[lineNum].split("=")[1];
-            tmp = labelList.split(",");
-            multiClassUniqueLabelList = new ArrayList<>();
-            for (int i = 0; i < tmp.length; i++) {
-                multiClassUniqueLabelList.add(Double.parseDouble(tmp[i]));
-            }
-        }
+        KernelJavaSerializer kernelJavaSerializer = new KernelJavaSerializer();
+        kernelJavaSerializer.parseJson(content);
+        this.modelToken = kernelJavaSerializer.getModelToken();
+        this.numClass = kernelJavaSerializer.getNumClass();
+        this.mapdim = kernelJavaSerializer.getMapdim();
+        this.modelParas = DataUtils.arraysToVectors(kernelJavaSerializer.getModelParas());
+        this.transMat = DataUtils.arraysToSimpleMatrix(kernelJavaSerializer.getMatweight());
+        this.normalizationType = kernelJavaSerializer.getNormalizationType();
+        this.bias = DataUtils.arrayToVector(kernelJavaSerializer.getBias());
+        this.normParams1 = kernelJavaSerializer.getNormParams1();
+        this.normParams2 = kernelJavaSerializer.getNormParams2();
+        this.isActive = kernelJavaSerializer.isActive();
+        this.multiClassUniqueLabelList = kernelJavaSerializer.getMultiClassUniqueLabelList();
     }
 
-    public String serialize() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("modelToken=").append(modelToken).append("\n");
-        StringBuilder classNum = new StringBuilder();
-        classNum.append(numClass);
-        sb.append("numClass=").append(classNum).append("\n");
-        StringBuilder csvWeight = new StringBuilder();
-        for (int i = 0; i < numClass; i++) {
-            for (double w : DataUtils.vectorToArray(modelParas[i])) {
-                csvWeight.append(w).append(",");
-            }
-            csvWeight.append(" || ");
+    public void deserialize1(String content) {
+        KernelJavaSerializer kernelJavaSerializer = null;
+        try {
+            kernelJavaSerializer = (KernelJavaSerializer) SerializerUtils.deserialize(content);
+        } catch (IOException | ClassNotFoundException e) {
+            throw new DeserializeException("kernelJava deserialize exception");
         }
-        csvWeight = new StringBuilder(csvWeight.substring(0, csvWeight.length() - 1));
-        sb.append("weight=").append(csvWeight).append("\n");
-        int numRow, numCol;
-        if (transMat != null) {
-            numRow = transMat.numRows();
-            numCol = transMat.numCols();
-        } else {
-            numRow = 0;
-            numCol = 0;
-        }
-        sb.append("matsize=").append(numRow).append(',').append(numCol).append("\n");
-        if (numRow != 0 && numCol != 0) {
-            StringBuilder matWeight = new StringBuilder();
-            for (int i = 0; i < numRow; i++) {
-                for (int j = 0; j < numCol; j++) {
-                    matWeight.append(transMat.get(i, j)).append(',');
-                }
-            }
-            matWeight = new StringBuilder(matWeight.substring(0, matWeight.length() - 1));
-            sb.append("matweight=").append(matWeight);
-            sb.append("\n");
-            StringBuilder biasWeight = new StringBuilder();
-            for (double w : DataUtils.vectorToArray(bias)) {
-                biasWeight.append(w).append(',');
-            }
-            biasWeight = new StringBuilder(biasWeight.substring(0, biasWeight.length() - 1));
-            sb.append("biasweight=").append(biasWeight);
-            sb.append("\n");
-        }
-        sb.append("norm_type=").append(normalizationType.toString()).append("\n");
-        StringBuilder strNormParams1 = new StringBuilder("");
-        for (int i = 0; i < normParams1.length; i++) {
-            strNormParams1.append(normParams1[i]).append(',');
-        }
-        StringBuilder strNormParams2 = new StringBuilder("");
-        for (int i = 0; i < normParams2.length; i++) {
-            strNormParams2.append(normParams2[i]).append(',');
-        }
-        if (strNormParams1.length() > 0) {
-            strNormParams1 = new StringBuilder(strNormParams1.substring(0, strNormParams1.length() - 1));
-            strNormParams2 = new StringBuilder(strNormParams2.substring(0, strNormParams2.length() - 1));
-        }
-        sb.append("norm_params_1=").append(strNormParams1);
-        sb.append("\n");
-        sb.append("norm_params_2=").append(strNormParams2);
-        sb.append("\n");
-        StringBuilder isActive = new StringBuilder();
-        isActive.append(this.isActive);
-        sb.append("isActive=").append(isActive).append("\n");
-        StringBuilder labelList = new StringBuilder();
-        for (int i = 0; i < multiClassUniqueLabelList.size(); i++) {
-            labelList.append(multiClassUniqueLabelList.get(i)).append(",");
-        }
-        sb.append("multiClassUniqueLabelList=").append(labelList);
-        sb.append("\n");
-        return sb.toString();
+        assert kernelJavaSerializer != null;
+        this.modelToken = kernelJavaSerializer.getModelToken();
+        this.numClass = kernelJavaSerializer.getNumClass();
+        this.mapdim = kernelJavaSerializer.getMapdim();
+        this.modelParas = DataUtils.arraysToVectors(kernelJavaSerializer.getModelParas());
+        this.transMat = DataUtils.arraysToSimpleMatrix(kernelJavaSerializer.getMatweight());
+        this.normalizationType = kernelJavaSerializer.getNormalizationType();
+        this.bias = DataUtils.arrayToVector(kernelJavaSerializer.getBias());
+        this.normParams1 = kernelJavaSerializer.getNormParams1();
+        this.normParams2 = kernelJavaSerializer.getNormParams2();
+        this.isActive = kernelJavaSerializer.isActive();
+        this.multiClassUniqueLabelList = kernelJavaSerializer.getMultiClassUniqueLabelList();
     }
+
+
+    public String serialize() {
+        KernelJavaSerializer kernelJavaSerializer = new KernelJavaSerializer(modelToken, numClass, mapdim, DataUtils.vectorsToArrays(modelParas), DataUtils.smpmatrixToArray(transMat), DataUtils.vectorToArray(bias), normalizationType, normParams1, normParams2, isActive, multiClassUniqueLabelList);
+        return kernelJavaSerializer.toJson();
+    }
+
+
+    public String serialize1() {
+        KernelJavaSerializer kernelJavaSerializer = new KernelJavaSerializer(modelToken, numClass, mapdim, DataUtils.vectorsToArrays(modelParas), DataUtils.smpmatrixToArray(transMat), DataUtils.vectorToArray(bias), normalizationType, normParams1, normParams2, isActive, multiClassUniqueLabelList);
+        try {
+            return SerializerUtils.serialize(kernelJavaSerializer);
+        } catch (IOException e) {
+            logger.error("");
+        }
+        return null;
+    }
+
 
     public AlgorithmType getModelType() {
         return AlgorithmType.KernelBinaryClassificationJava;
@@ -1051,11 +1204,11 @@ public class KernelLinearRegressionJavaModel implements Model {
         xsTrain = new SimpleMatrix(trainData.getFeature());
         this.mapdim = parameter.getMapdim();
         this.batchSize = xsTrain.numRows();
-        this.numsample = xsTrain.numRows();
+        this.numSample = xsTrain.numRows();
         this.kernelType = parameter.getKernelType();
         this.numClass = numClass;
-        this.yTrainSubs = new double[numClass][numsample];
-        this.preds = new double[numClass][numsample];
+        this.yTrainSubs = new double[numClass][numSample];
+        this.predicts = new double[numClass][numSample];
         if (trainData.hasLabel) {
             isActive = true;
             yTrain = trainData.getLabel();
@@ -1069,18 +1222,26 @@ public class KernelLinearRegressionJavaModel implements Model {
         }
         this.parameter = parameter;
         this.modelParas = modelParas;
-        this.xsTrainTransSub = KernelApproximationTrain(xsTrain);
-        this.xsTrainTrans = setSmpMatValue(new SimpleMatrix(numsample, (int) mapdim), xsTrainTransSub, 0, xsTrain.numRows());
+        this.xsTrainTransSub = initKernelApproximation(xsTrain);
+        this.xsTrainTrans = setSmpMatValue(new SimpleMatrix(numSample, (int) mapdim), xsTrainTransSub, 0, xsTrain.numRows());
     }
 
     public void setForInferTest(InferenceData inferenceData, int numClass) {
         xsTest = new SimpleMatrix(inferenceData.getSample());
-        this.numsample = xsTest.numRows();
-        xsTestTrans = new SimpleMatrix(numsample, (int) mapdim);
+        this.numSample = xsTest.numRows();
+        xsTestTrans = new SimpleMatrix(numSample, (int) mapdim);
         SimpleMatrix temp = xsTest.rows(0, inferenceData.getDatasetSize());
-        SimpleMatrix Xs_test_trans_sub = kernelApproximationPhase2(temp, transMat, bias);
-        xsTestTrans = setSmpMatValue(xsTestTrans, Xs_test_trans_sub, 0, inferenceData.getDatasetSize());
+        SimpleMatrix Xs_test_trans_sub = kernelApproximation(temp, transMat, bias);
+        setSmpMatValue(xsTestTrans, Xs_test_trans_sub, 0, inferenceData.getDatasetSize());
         this.numClass = numClass;
+    }
+
+    public KernelLinearRegressionJavaModel(String modelToken, SimpleMatrix transMat, Vector bias, int mapdim, Vector[] modelParas) {
+        this.modelToken = modelToken;
+        this.transMat = transMat;
+        this.bias = bias;
+        this.mapdim = mapdim;
+        this.modelParas = modelParas;
     }
 
 }

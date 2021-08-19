@@ -34,7 +34,7 @@ public class OkHttpUtil {
                 .retryOnConnectionFailure(false)
                 .connectionPool(connectionPool)
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(300, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
 //                .addInterceptor(new GzipRequestInterceptor())
                 .build();

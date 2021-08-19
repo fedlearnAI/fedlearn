@@ -22,26 +22,9 @@ import java.io.IOException;
  * 查询数据源的请求实体，包含用户名，客户端url，任务id，任务密码四方面信息
  */
 public class FeatureReq {
-
-    private String username;
-    private String clientUrl;
-    private String taskId;
-    private String taskPwd;
+    private String url;
 
     public FeatureReq() {
-    }
-
-//    public FeatureReq(String username, String clientUrl) {
-//        this.username = username;
-//        this.clientUrl = clientUrl;
-//    }
-
-
-    public FeatureReq(String username, String clientUrl, String taskId, String taskPwd) {
-        this.username = username;
-        this.clientUrl = clientUrl;
-        this.taskId = taskId;
-        this.taskPwd = taskPwd;
     }
 
     public FeatureReq(String jsonStr) {
@@ -53,44 +36,20 @@ public class FeatureReq {
         FeatureReq p3r = null;
         try {
             p3r = mapper.readValue(jsonStr, FeatureReq.class);
-            this.username = p3r.username;
-            this.clientUrl = p3r.clientUrl;
-            this.taskPwd = p3r.taskPwd;
-            this.taskId = p3r.taskId;
+            this.url = p3r.url;
         } catch (IOException e) {
             throw new DeserializeException(e.getMessage());
         }
     }
 
-    public String getUsername() {
-        return username;
+
+    public String getUrl() {
+        return url;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setUrl(String url) {
+        this.url = url;
     }
 
-    public String getClientUrl() {
-        return clientUrl;
-    }
 
-    public void setClientUrl(String clientUrl) {
-        this.clientUrl = clientUrl;
-    }
-
-    public String getTaskPwd() {
-        return taskPwd;
-    }
-
-    public void setTaskPwd(String taskPwd) {
-        this.taskPwd = taskPwd;
-    }
-
-    public String getTaskId() {
-        return taskId;
-    }
-
-    public void setTaskId(String taskId) {
-        this.taskId = taskId;
-    }
 }

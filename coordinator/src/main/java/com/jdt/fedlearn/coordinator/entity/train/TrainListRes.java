@@ -14,7 +14,7 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.entity.train;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jdt.fedlearn.coordinator.type.RunningType;
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.core.exception.DeserializeException;
 
 import java.io.IOException;
@@ -24,16 +24,14 @@ import java.io.IOException;
  */
 public class TrainListRes {
     private String taskId;
-    private String taskName;
     private RunningType runningStatus;
     private String modelToken;
 
     public TrainListRes() {
     }
 
-    public TrainListRes(String taskId, String taskName, com.jdt.fedlearn.coordinator.type.RunningType runningStatus, String modelToken) {
+    public TrainListRes(String taskId,  RunningType runningStatus, String modelToken) {
         this.taskId = taskId;
-        this.taskName = taskName;
         this.runningStatus = runningStatus;
         this.modelToken = modelToken;
     }
@@ -45,10 +43,6 @@ public class TrainListRes {
 
     public String getTaskId() {
         return this.taskId;
-    }
-
-    public String getTaskName() {
-        return taskName;
     }
 
     public RunningType getRunningStatus() {
@@ -66,7 +60,6 @@ public class TrainListRes {
             p3r = mapper.readValue(jsonStr, TrainListRes.class);
             this.modelToken = p3r.getModelToken();
             this.taskId = p3r.getTaskId();
-            this.taskName = p3r.getTaskName();
             this.runningStatus = p3r.runningStatus;
         } catch (IOException e) {
             throw new DeserializeException(e.getMessage());

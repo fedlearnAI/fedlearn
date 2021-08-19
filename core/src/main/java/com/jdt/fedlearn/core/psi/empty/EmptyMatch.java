@@ -16,7 +16,7 @@ package com.jdt.fedlearn.core.psi.empty;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
-import com.jdt.fedlearn.core.psi.MappingReport;
+import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.psi.Prepare;
 
 import java.util.ArrayList;
@@ -37,9 +37,9 @@ public class EmptyMatch implements Prepare {
      * @param responses 各个返回结果
      * @return 预测结果
      */
-    public MappingReport postMaster(List<CommonResponse> responses) {
+    public MatchResult postMaster(List<CommonResponse> responses) {
         String report = "Match type is EMPTY!! \n ";
-        return new MappingReport(report, 0);
+        return new MatchResult(0, report);
 
     }
 

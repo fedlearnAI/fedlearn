@@ -15,12 +15,12 @@ package com.jdt.fedlearn.coordinator.entity.inference;
 
 public class SingleInferenceRes {
     private String uid;
-    private double score;
+    private double[] score;
 
     public SingleInferenceRes() {
     }
 
-    public SingleInferenceRes(String uid, double score) {
+    public SingleInferenceRes(String uid, double[] score) {
         this.uid = uid;
         this.score = score;
     }
@@ -29,15 +29,8 @@ public class SingleInferenceRes {
         return uid;
     }
 
-    public void setUid(String uid) {
-        this.uid = uid;
-    }
-
-    public double getScore() {
+    public double[] getScore() {
         return score;
     }
 
-    public void setScore(double score) {
-        this.score = score;
-    }
 }

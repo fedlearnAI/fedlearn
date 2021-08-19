@@ -13,11 +13,13 @@ limitations under the License.
 package com.jdt.fedlearn.common.util;
 
 import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.Task;
 import com.jdt.fedlearn.common.entity.WorkerUnit;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
 import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
+import com.jdt.fedlearn.common.network.INetWorkService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +32,7 @@ import java.util.Map;
 public class WorkerCommandUtil {
     private static final Logger logger = LoggerFactory.getLogger(WorkerCommandUtil.class);
 
-
+    private static INetWorkService netWorkService = INetWorkService.getNetWorkService();
     /**
      * http调用worker
      * @param baseUrl baseurl
@@ -41,14 +43,14 @@ public class WorkerCommandUtil {
     public static CommonResultStatus request(String baseUrl, WorkerCommandEnum workerCommandEnum, Object param) {
         String url = baseUrl + "/" + workerCommandEnum.getCode();
         logger.info("请求url:{}",url);
-        String postDataStr = HttpClientUtil.doHttpPost(url, param);
-        String str = HttpClientUtil.unCompress(postDataStr);
+        String postDataStr = netWorkService.sendAndRecv(url, param);
+        String str = GZIPCompressUtil.unCompress(postDataStr);
         CommonResultStatus commonResultStatus = JsonUtil.json2Object(str, CommonResultStatus.class);
         Map<String, Object> data = commonResultStatus.getData();
 
         if (commonResultStatus.getResultTypeEnum() != ResultTypeEnum.SUCCESS) {
             RuntimeException exception = new RuntimeException("调用worker 执行异常");
-            logger.error(data.get(AppConstant.MESSAGE).toString(), exception);
+            logger.error(data.get(ResponseConstant.MESSAGE).toString(), exception);
             throw exception;
         }
         return commonResultStatus;
@@ -73,7 +75,7 @@ public class WorkerCommandUtil {
      * @return
      */
     public static String buildUrl(WorkerUnit workerUnit) {
-        String url = "http://" + workerUnit.getIp() + ":"
+        String url = AppConstant.HTTP_PREFIX + workerUnit.getIp() + AppConstant.COLON
                 + workerUnit.getPort() + "/";
         logger.info("buildUrl:{}",url);
         return url;
@@ -88,10 +90,10 @@ public class WorkerCommandUtil {
      * @return 处理结果
      * @throws IOException 异常
      */
-    public static <T> T processTaskRequestData(Task task, WorkerCommandEnum workerCommandEnum, Class<T> clazz) throws IOException {
+    public static <T> T processTaskRequestData(Task task, WorkerCommandEnum workerCommandEnum, Class<T> clazz){
         CommonResultStatus commonResultStatus = processTaskRequest(task, workerCommandEnum);
         Map<String, Object> map = commonResultStatus.getData();
-        Object data = map.get(AppConstant.DATA);
+        Object data = map.get(ResponseConstant.DATA);
         if (data == null) {
             return null;
         }

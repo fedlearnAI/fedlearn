@@ -20,7 +20,7 @@ import java.util.*;
 
 
 /**
- * Paillier核心算法
+ * Paillier核心算法，参考维基百科和Pascal Paillier 的相关论文
  * 公钥是n, 私钥是lambda 和 n
  */
 public class PaillierCore {
@@ -51,7 +51,7 @@ public class PaillierCore {
      * generate the public key and private key.
      * <p>
      *
-     * @param bitLengthVal number of bits of modulus from user
+     * @param bitLengthVal 密钥长度，比特数，一般选512/1024/2048/4096等2的整数倍
      * @param certainty    The probability that the new BigInteger represents a prime number will exceed (1 - 2^(-certainty)).
      *                     The execution time of this constructor is proportional to the value of this parameter.
      * @param gVal         a random integer g
@@ -63,7 +63,7 @@ public class PaillierCore {
         BigInteger p = new BigInteger(bitLength / 2, certainty, new Random());
         BigInteger q = new BigInteger(bitLength / 2, certainty, new Random());
 
-        // 计算n = p*q，并提前计算 n的平方
+        // 计算 n = p*q，并提前计算 n的平方
         BigInteger n = p.multiply(q);
         BigInteger nSquare = n.multiply(n);
 
@@ -80,10 +80,10 @@ public class PaillierCore {
 
     /**
      *
-     * @param m         plaintext as a BigInteger
-     * @param publicKey public key as a BigInteger, is n
-     * @param r         随机数
-     * @return ciphertext as a BigInteger
+     * @param m         需要加密的整数
+     * @param publicKey 公钥
+     * @param r         随机整数
+     * @return 密文
      */
     public static BigInteger encrypt(BigInteger m, BigInteger publicKey, BigInteger r) {
         BigInteger nSquare = publicKey.multiply(publicKey);

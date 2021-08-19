@@ -1,10 +1,9 @@
 package com.jdt.fedlearn.coordinator.service.validate;
 
 import com.jdt.fedlearn.coordinator.allocation.ResourceManager;
-import com.jdt.fedlearn.coordinator.dao.db.PartnerMapper;
 import com.jdt.fedlearn.coordinator.entity.table.PartnerProperty;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
-import com.jdt.fedlearn.coordinator.entity.train.SingleParameter;
+import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.coordinator.entity.validate.ValidateRequest;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
@@ -59,7 +58,7 @@ public class ValidateServiceTest {
         C2 = new PartnerProperty("", "http", "127.0.0.1", 81, 2, "train1.csv");
         C3 = new PartnerProperty("", "http", "127.0.0.1", 82, 3, "train2.csv");
         // mock get client from database
-        this.partnerPropertyList = mockGetClientInfoFromDb(C1, C2, C3);
+//        this.partnerPropertyList = mockGetClientInfoFromDb(C1, C2, C3);
         // mock send
         mockPostClientInfo();
         // mock config
@@ -123,22 +122,22 @@ public class ValidateServiceTest {
         };
     }
 
-
-    private static List<PartnerProperty> mockGetClientInfoFromDb(PartnerProperty c1, PartnerProperty c2, PartnerProperty c3) {
-        List<PartnerProperty> clientInfos = new ArrayList<>();
-        clientInfos.add(c1);
-        clientInfos.add(c2);
-        clientInfos.add(c3);
-        // 将PartnerMapper传入MockUp类
-        new MockUp<PartnerMapper>() {
-            @Mock
-            public List<PartnerProperty> selectPartnerList(String taskId, String username) {
-                return clientInfos;
-            }
-        };
-        return clientInfos;
-
-    }
+//
+//    private static List<PartnerProperty> mockGetClientInfoFromDb(PartnerProperty c1, PartnerProperty c2, PartnerProperty c3) {
+//        List<PartnerProperty> clientInfos = new ArrayList<>();
+//        clientInfos.add(c1);
+//        clientInfos.add(c2);
+//        clientInfos.add(c3);
+//        // 将PartnerMapper传入MockUp类
+//        new MockUp<PartnerMapper>() {
+//            @Mock
+//            public List<PartnerProperty> selectPartnerList(String taskId, String username) {
+//                return clientInfos;
+//            }
+//        };
+//        return clientInfos;
+//
+//    }
 
     // mock doValidate
 //    private void MockDoValidate() {
@@ -238,8 +237,8 @@ public class ValidateServiceTest {
             fullRet.add(cr255Three);
         } else if (phase == -1) {
             ArrayList<Tree> trees = new ArrayList<>();
-            TreeNode root1 = new TreeNode(1, 4, new ClientInfo(null, 0, "null", 3), 1, 1.0);
-            TreeNode root2 = new TreeNode(1, 4, new ClientInfo(null, 0, "null", 3), 2, 1.0);
+            TreeNode root1 = new TreeNode(1, 4, new ClientInfo(null, 0, "null", ""), 1, 1.0);
+            TreeNode root2 = new TreeNode(1, 4, new ClientInfo(null, 0, "null", ""), 2, 1.0);
             // left
             TreeNode left1 = new TreeNode(2, -0.6666666666666666);
             TreeNode left2 = new TreeNode(2, -0.5590094712505657);

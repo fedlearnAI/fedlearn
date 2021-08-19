@@ -16,11 +16,10 @@ public class TestMatchInitRes {
     @Test
     public void jsonSerialize(){
         Serializer serializer = new JsonSerializer();
-        MatchInitRes matchInitRes = new MatchInitRes(new ClientInfo("127.0.0.1", 8092, "http", 1), new String[]{"a", "b"});
+        MatchInitRes matchInitRes = new MatchInitRes(new ClientInfo("127.0.0.1", 8092, "http", "","1"), new String[]{"a", "b"});
         String str = serializer.serialize(matchInitRes);
         System.out.println(str);
-
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.psi.MatchInitRes\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8092,\"protocol\":\"http\",\"uniqueId\":1},\"ids\":[\"a\",\"b\"],\"length\":0}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.psi.MatchInitRes\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8092,\"path\":\"\",\"protocol\":\"http\",\"uniqueId\":\"1\"},\"ids\":[\"a\",\"b\"],\"length\":0}}";
         Assert.assertEquals(str, content);
     }
 
@@ -31,7 +30,7 @@ public class TestMatchInitRes {
         Message message = serializer.deserialize(content);
 
         MatchInitRes boostP3Req = (MatchInitRes) message;
-        Assert.assertEquals(boostP3Req.getClient(), new ClientInfo("127.0.0.1", 8092, "http", 1));
+        Assert.assertEquals(boostP3Req.getClient(), new ClientInfo("127.0.0.1", 8092, "http", "","1"));
         Assert.assertEquals(boostP3Req.getIds(), new String[]{"a", "b"});
     }
 
@@ -39,13 +38,13 @@ public class TestMatchInitRes {
     public void javaSerializeDeserialize(){
         Serializer serializer = new JavaSerializer();
 
-        MatchInitRes matchInit = new MatchInitRes(new ClientInfo("127.0.0.1", 8092, "http", 1), new String[]{"a", "b"});
+        MatchInitRes matchInit = new MatchInitRes(new ClientInfo("127.0.0.1", 8092, "http", "","1"), new String[]{"a", "b"});
         String str = serializer.serialize(matchInit);
 
         Message restore = serializer.deserialize(str);
         MatchInitRes init = (MatchInitRes) restore;
 
-        Assert.assertEquals(init.getClient(), new ClientInfo("127.0.0.1", 8092, "http", 1));
+        Assert.assertEquals(init.getClient(), new ClientInfo("127.0.0.1", 8092, "http", "","1"));
         Assert.assertEquals(init.getIds(), new String[]{"a", "b"});
     }
 }

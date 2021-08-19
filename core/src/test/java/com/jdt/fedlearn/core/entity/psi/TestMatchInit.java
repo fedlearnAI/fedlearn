@@ -15,22 +15,22 @@ public class TestMatchInit {
     @Test
     public void jsonSerialize(){
         Serializer serializer = new JsonSerializer();
-        MatchInit matchInit = new MatchInit(MappingType.VERTICAL_DH, "uid",new HashMap<>());
+        MatchInit matchInit = new MatchInit(MappingType.DH, "uid",new HashMap<>());
         String str = serializer.serialize(matchInit);
         System.out.println(str);
 
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.psi.MatchInit\",\"DATA\":{\"type\":\"VERTICAL_DH\",\"uidName\":\"uid\",\"others\":{}}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.psi.MatchInit\",\"DATA\":{\"type\":\"DH\",\"uidName\":\"uid\",\"others\":{}}}";
         Assert.assertEquals(str, content);
     }
 
     @Test
     public void jsonDeserialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.psi.MatchInit\",\"DATA\":{\"type\":\"VERTICAL_MD5\",\"uidName\":\"uid\",\"others\":{}}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.psi.MatchInit\",\"DATA\":{\"type\":\"MD5\",\"uidName\":\"uid\",\"others\":{}}}";
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
 
         MatchInit matchInit = (MatchInit) message;
-        Assert.assertEquals(matchInit.getType(), MappingType.VERTICAL_MD5);
+        Assert.assertEquals(matchInit.getType(), MappingType.MD5);
         Assert.assertEquals(matchInit.getOthers(), new HashMap<>());
         Assert.assertEquals(matchInit.getUidName(), "uid");
     }
@@ -40,13 +40,13 @@ public class TestMatchInit {
         Serializer serializer = new JavaSerializer();
         Map<String,Object> others = new HashMap<>();
         others.put("p", 12);
-        MatchInit matchInit = new MatchInit(MappingType.VERTICAL_DH, "specialUid", others);
+        MatchInit matchInit = new MatchInit(MappingType.DH, "specialUid", others);
         String str = serializer.serialize(matchInit);
 
         Message restore = serializer.deserialize(str);
         MatchInit init = (MatchInit) restore;
 
-        Assert.assertEquals(init.getType(), MappingType.VERTICAL_DH);
+        Assert.assertEquals(init.getType(), MappingType.DH);
         Assert.assertEquals(init.getOthers(), others);
         Assert.assertEquals(init.getUidName(), "specialUid");
     }

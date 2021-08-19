@@ -149,7 +149,7 @@ public class CommonRun {
      * @return 对齐结果
      */
     //TODO 根据最新的match修改
-    public static Tuple2<MappingReport, String[]> match(MappingType mappingType,
+    public static Tuple2<MatchResult, String[]> match(MappingType mappingType,
                                              List<ClientInfo> clientInfos, Map<ClientInfo, String[][]> trainDataMap) {
         System.out.println("mappingType:" + mappingType);
         Prepare uidMatch = CommonPrepare.construct(mappingType);
@@ -188,9 +188,8 @@ public class CommonRun {
                     matchResponses.add(new CommonResponse(client, restoreBody));
                 }
             }
-            if (uidMatch.isContinue()) {
-                matchRequests = uidMatch.master(matchResponses);
-            }
+            matchRequests = uidMatch.master(matchResponses);
+
         }
         for (ClientInfo clientInfo : clientInfos) {
             PrepareClient uidMatchClient = matchClientMap.get(clientInfo);
@@ -199,7 +198,7 @@ public class CommonRun {
             System.out.println("Id对齐结果： " + Arrays.toString(commonIds));
         }
         // MappingReport来自于master端，commonIDs来自于client端
-        Tuple2<MappingReport, String[]> result = new Tuple2<>(uidMatch.postMaster(matchResponses), matchClientMap.get(clientInfos.get(0)).getCommonIds());
+        Tuple2<MatchResult, String[]> result = new Tuple2<>(uidMatch.postMaster(matchResponses), matchClientMap.get(clientInfos.get(0)).getCommonIds());
         return result;
     }
 

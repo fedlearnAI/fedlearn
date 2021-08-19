@@ -2,13 +2,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <artifactId>all</artifactId>
         <groupId>com.jdt.fedlearn</groupId>
-        <version>0.8.1</version>
+        <version>0.9.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
+
     <artifactId>client</artifactId>
     <name>fedlearn-client</name>
 
@@ -47,23 +49,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
-        <!--引入dubbo -->
-        <!--        <dependency>-->
-        <!--            <groupId>org.apache.dubbo</groupId>-->
-        <!--            <artifactId>dubbo</artifactId>-->
-        <!--            <version>2.7.6</version>-->
-        <!--            <exclusions>-->
-        <!--                <exclusion>-->
-        <!--                    <artifactId>spring-context</artifactId>-->
-        <!--                    <groupId>org.springframework</groupId>-->
-        <!--                </exclusion>-->
-        <!--                <exclusion>-->
-        <!--                    <artifactId>snakeyaml</artifactId>-->
-        <!--                    <groupId>org.yaml</groupId>-->
-        <!--                </exclusion>-->
-        <!--            </exclusions>-->
-        <!--        </dependency>-->
 
         <!-- jdchain 相关依赖 start-->
         <dependency>
@@ -159,24 +144,6 @@
                     <source>${jdk.version}</source>
                     <target>${jdk.version}</target>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution><!-- 配置执行器 -->
-                        <id>make-assembly</id>
-                        <phase>package</phase><!-- 绑定到package生命周期阶段上 -->
-                        <goals>
-                            <goal>single</goal><!-- 只运行一次 -->
-                        </goals>
-                        <configuration>
-                            <finalName>${project.name}</finalName>
-                            <descriptor>src/main/assembly/assembly.xml</descriptor><!--配置描述文件路径-->
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

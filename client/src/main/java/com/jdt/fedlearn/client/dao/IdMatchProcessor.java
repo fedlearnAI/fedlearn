@@ -16,7 +16,7 @@ public class IdMatchProcessor {
     private static final Logger logger = LoggerFactory.getLogger(IdMatchProcessor.class);
 
     public static Boolean saveResult(String matchToken, String[] matchedId) throws IOException {
-        String idPath = ConfigUtil.getIdMatchDir() + generateFileName(matchToken);
+        String idPath = ConfigUtil.getClientConfig().getMatchDir() + generateFileName(matchToken);
         FileUtil.writeList(matchedId, idPath);
         logger.info("id对齐结果储存成功，matchToken:" + matchToken);
         return true;
@@ -25,7 +25,7 @@ public class IdMatchProcessor {
     public static String[] loadResult(String matchToken) {
         String[] idMatchRes = null;
         try {
-            String idPath = ConfigUtil.getIdMatchDir() + generateFileName(matchToken);
+            String idPath = ConfigUtil.getClientConfig().getMatchDir() + generateFileName(matchToken);
             idMatchRes = FileUtil.readAsList(idPath);
             assert idMatchRes != null;
         } catch (IOException e) {

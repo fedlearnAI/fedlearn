@@ -24,9 +24,9 @@ public enum AlgorithmType {
     LinearRegression("LinearRegression"),
     FederatedGB("FederatedGB"),
     MixGBoost("MixGBoost"),
-    RandomForest("RandomForest"),
+//    RandomForest("RandomForest"),
     RandomForestJava("RandomForestJava"),
-//    KernelLinearRegression("KernelLinearRegression"),
+    //KernelLinearRegression("KernelLinearRegression"),
     KernelBinaryClassification("KernelBinaryClassification"),
     KernelBinaryClassificationJava("KernelBinaryClassificationJava"),
     HorizontalFedAvg("HorizontalFedAvg"),
@@ -34,6 +34,7 @@ public enum AlgorithmType {
     DistributedRandomForest("DistributedRandomForest"),
     VerticalFDNN("VerticalFDNN"),
     TreeInference("TreeInference"),
+    DelphiInference("DelphiInference")
     ;
 
     private final String type;
@@ -47,20 +48,22 @@ public enum AlgorithmType {
     }
 
     public static AlgorithmType[] getAlgorithmTypes() {
-        return new AlgorithmType[]{
-                VerticalLinearRegression,
-                LinearRegression,
-                FederatedGB,
-                RandomForestJava,
-                KernelBinaryClassificationJava,
-                VerticalLR,
-                DistributedRandomForest,
-        };
+        return AlgorithmType.values();
     }
 
 
     public static String[] getAlgorithms() {
-        return Arrays.stream(getAlgorithmTypes()).map(AlgorithmType::getAlgorithm).toArray(String[]::new);
+        return Arrays.stream(AlgorithmType.values()).map(AlgorithmType::getAlgorithm).toArray(String[]::new);
     }
+
+    public static AlgorithmType[] getAlgorithmTypesWithResearch() {
+        return AlgorithmType.values();
+    }
+
+
+    public static String[] getAlgorithmsWithResearch() {
+        return Arrays.stream(AlgorithmType.values()).map(AlgorithmType::getAlgorithm).toArray(String[]::new);
+    }
+
 
 }

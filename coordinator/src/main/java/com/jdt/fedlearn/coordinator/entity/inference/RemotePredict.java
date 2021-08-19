@@ -15,10 +15,12 @@ package com.jdt.fedlearn.coordinator.entity.inference;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jdt.fedlearn.common.entity.project.PartnerInfoNew;
 import com.jdt.fedlearn.core.exception.DeserializeException;
 
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 远端推理请求
@@ -32,17 +34,19 @@ public class RemotePredict implements Serializable {
      */
     private String path;
     /**
-     * 用户名
+     * 文件所在参与放地址
      */
-    private String username;
+    private String userAddress;
     private String modelToken;
+    private List<PartnerInfoNew> clientList;
+    private boolean secureMode;
+
 
     public RemotePredict() {
     }
 
-    public RemotePredict(String path, String username, String modelToken) {
+    public RemotePredict(String path, String modelToken) {
         this.path = path;
-        this.username = username;
         this.modelToken = modelToken;
     }
 
@@ -51,8 +55,10 @@ public class RemotePredict implements Serializable {
         try {
             RemotePredict query = mapper.readValue(jsonStr, this.getClass());
             path = query.path;
-            username = query.username;
+            userAddress = query.userAddress;
             modelToken = query.modelToken;
+            clientList = query.clientList;
+            this.secureMode = query.secureMode;
         } catch (RuntimeException | JsonProcessingException e) {
             throw new DeserializeException("remote predict");
         }
@@ -62,11 +68,31 @@ public class RemotePredict implements Serializable {
         return this.modelToken;
     }
 
-    public String getUsername() {
-        return this.username;
+    public String getPath() {
+        return this.path;
     }
 
-    public Object getPath() {
-        return this.path;
+    public List<PartnerInfoNew> getClientList() {
+        return clientList;
+    }
+
+    public void setClientList(List<PartnerInfoNew> clientList) {
+        this.clientList = clientList;
+    }
+
+    public String getUserAddress() {
+        return userAddress;
+    }
+
+    public void setUserAddress(String userAddress) {
+        this.userAddress = userAddress;
+    }
+
+    public boolean isSecureMode() {
+        return secureMode;
+    }
+
+    public void setSecureMode(boolean secureMode) {
+        this.secureMode = secureMode;
     }
 }

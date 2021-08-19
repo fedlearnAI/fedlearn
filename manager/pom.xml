@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.jdt.fedlearn</groupId>
         <artifactId>all</artifactId>
-        <version>0.8.1</version>
+        <version>0.9.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -97,24 +97,42 @@
 
                 </executions>
             </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-assembly-plugin</artifactId>-->
+<!--                <executions>-->
+<!--                    <execution>&lt;!&ndash; 配置执行器 &ndash;&gt;-->
+<!--                        <id>make-assembly</id>-->
+<!--                        <phase>package</phase>&lt;!&ndash; 绑定到package生命周期阶段上 &ndash;&gt;-->
+<!--                        <goals>-->
+<!--                            <goal>single</goal>&lt;!&ndash; 只运行一次 &ndash;&gt;-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <finalName>${project.name}</finalName>-->
+<!--                            <descriptor>src/main/assembly/assembly.xml</descriptor>&lt;!&ndash;配置描述文件路径&ndash;&gt;-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
+                <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
-                    <execution><!-- 配置执行器 -->
-                        <id>make-assembly</id>
-                        <phase>package</phase><!-- 绑定到package生命周期阶段上 -->
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>prepare-package</phase>
                         <goals>
-                            <goal>single</goal><!-- 只运行一次 -->
+                            <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <finalName>${project.name}</finalName>
-                            <descriptor>src/main/assembly/assembly.xml</descriptor><!--配置描述文件路径-->
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>false</overWriteSnapshots>
+                            <overWriteIfNewer>true</overWriteIfNewer>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>

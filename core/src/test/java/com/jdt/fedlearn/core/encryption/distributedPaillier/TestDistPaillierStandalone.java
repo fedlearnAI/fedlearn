@@ -32,7 +32,7 @@ public class TestDistPaillierStandalone {
         }
     }
     public void test_debug_util() {
-        key.generateKeys();
+        key.generateKeyStandalone();
         HomoEncryptionDebugUtil decHelper = new HomoEncryptionDebugUtil(key.getPk(), key.getSkAll(), key.n, maxNegAbs);
         decHelper.saveToFile(keyFilePath);
         HomoEncryptionDebugUtil dec_helper2 = new HomoEncryptionDebugUtil();
@@ -54,7 +54,7 @@ public class TestDistPaillierStandalone {
             prg.nextBytes(bb);
             signedByteArray j_in = new signedByteArray(bb, bll);
             signedByteArray c_out = new signedByteArray();
-            DistributedPaillierNative.test_IO(j_in, c_out);
+            DistributedPaillierNative.testIO(j_in, c_out);
             assert(toJsons(c_out).equals(toJsons(j_in)));
 
             signedByteArray[] java_in = new signedByteArray[M];
@@ -67,7 +67,7 @@ public class TestDistPaillierStandalone {
                 java_in[j] = new signedByteArray(b, bl);
                 cout[i] = new signedByteArray();
             }
-            DistributedPaillierNative.test_IO(java_in, cout);
+            DistributedPaillierNative.testIOVec(java_in, cout);
             assert(toJsons(cout).equals(toJsons(java_in)));
         }
     }
@@ -108,7 +108,7 @@ public class TestDistPaillierStandalone {
             throw new WrongValueException("a and b are too large. Inner product larger than Long.Max...");
         }
 
-        key.generateKeys();
+        key.generateKeyStandalone();
         HomoEncryptionDebugUtil decHelper = new HomoEncryptionDebugUtil(key.getPk(), key.getSkAll(), key.n, maxNegAbs);
 //        HomoEncryptionDebugUtil decHelper = new HomoEncryptionDebugUtil();
 //        decHelper.loadClassFromFile(key_file_path);
@@ -232,7 +232,7 @@ public class TestDistPaillierStandalone {
         }
 
         double precision = (1d/SCALE)*(1E7/1000);
-        key.generateKeys();
+        key.generateKeyStandalone();
         HomoEncryptionDebugUtil dec_helper = new HomoEncryptionDebugUtil(key.getPk(), key.getSkAll(), key.n, maxNegAbs);
 
         // enc list
@@ -292,7 +292,7 @@ public class TestDistPaillierStandalone {
 
     public void test_special_numbers() {
 
-        key.generateKeys();
+        key.generateKeyStandalone();
         HomoEncryptionDebugUtil dec_helper = new HomoEncryptionDebugUtil(key.getPk(), key.getSkAll(), key.n, maxNegAbs);
 
         int N = 20;
@@ -319,8 +319,10 @@ public class TestDistPaillierStandalone {
     }
 
     public static void main(String[] args) {
+
         TestDistPaillierStandalone newTest = new TestDistPaillierStandalone();
 //        newTest.test_debug_util();
+//        newTest.testJniIo();
         newTest.testMore();
     }
 }

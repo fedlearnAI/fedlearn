@@ -84,6 +84,8 @@ public class ManagerLocalApp {
     private void initTaskForJob(Job job) {
         TaskTypeEnum taskTypeEnum=TaskTypeEnum.INIT;
         Task task = new Task(job, RunStatusEnum.INIT, taskTypeEnum);
+        task.setSubRequest(job.getJobReq().getSubRequest());
+        job.getJobReq().setSubRequest(null);//删除较大的data，因为task中已经有了 不重复传递
         List<Task> tasks = Lists.newArrayList(task);
         taskManager.addTasks(tasks);
     }

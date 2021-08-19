@@ -4,8 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public enum LocalUrlType {
     MODEL_DOWNLOAD("/local/model/download", "下载模型"),
-    MODEL_UPLOAD( "/local/model/upload", "上传模型"),
-    CONFIG_RELOAD("/local/config/reload", "重新加载配置"),
+    MODEL_UPLOAD("/local/model/upload", "上传模型"),
     CONFIG_QUERY("/local/config/query", "查询现有配置"),
     CONFIG_UPDATE("/local/config/update", "更新现有配置"),
     LOCAL_INFERENCE("/local/inference", "本地推理");

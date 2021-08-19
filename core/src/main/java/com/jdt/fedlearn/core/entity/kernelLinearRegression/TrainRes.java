@@ -15,6 +15,7 @@ package com.jdt.fedlearn.core.entity.kernelLinearRegression;
 
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.type.KernelDispatchJavaPhaseType;
 import com.jdt.fedlearn.core.type.MetricType;
 
 import java.util.List;
@@ -35,6 +36,9 @@ public class TrainRes implements Message {
     private Map<MetricType, List<Double>> metricVali;
     private Map<MetricType, List<Double[][]>> metricArrVali;
     private int round;
+    private int clientInd;
+    private List<ClientInfo> clientInfoList;
+    private KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType;
 
 
     public TrainRes(ClientInfo clientInfo, String body, boolean isActive) {
@@ -46,49 +50,6 @@ public class TrainRes implements Message {
         this.trainingloss = Double.POSITIVE_INFINITY;
     }
 
-    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive, Map<MetricType, List<Double>> metricVali, Map<MetricType, List<Double[][]>> metricArrVali) {
-        this.client = clientInfo;
-        this.numClassRound = numClassRound;
-        this.isActive = isActive;
-        this.metricVali = metricVali;
-        this.metricArrVali = metricArrVali;
-    }
-
-    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive, Map<MetricType, List<Double>> metric, Map<MetricType, List<Double[][]>> metricArr, Map<MetricType, List<Double>> metricVali, Map<MetricType, List<Double[][]>> metricArrVali) {
-        this.client = clientInfo;
-        this.numClassRound = numClassRound;
-        this.isActive = isActive;
-        this.metric = metric;
-        this.metricArr = metricArr;
-        this.metricVali = metricVali;
-        this.metricArrVali = metricArrVali;
-    }
-
-    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive, Map<MetricType, List<Double>> metric, Map<MetricType, List<Double[][]>> metricArr, Map<MetricType, List<Double>> metricVali, Map<MetricType, List<Double[][]>> metricArrVali, int round) {
-        this.client = clientInfo;
-        this.numClassRound = numClassRound;
-        this.isActive = isActive;
-        this.metric = metric;
-        this.metricArr = metricArr;
-        this.metricVali = metricVali;
-        this.metricArrVali = metricArrVali;
-        this.round = round;
-    }
-
-    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive) {
-        this.client = clientInfo;
-        this.numClassRound = numClassRound;
-        this.isActive = isActive;
-        this.paraNorm = 0.0;
-        //TODO
-        this.trainingloss = Double.POSITIVE_INFINITY;
-    }
-
-    public TrainRes(ClientInfo clientInfo, int round) {
-        this.client = clientInfo;
-        this.round = round;
-    }
-
     public TrainRes(ClientInfo clientInfo, double[] vector, double paraNorm, boolean isActive) {
         this.client = clientInfo;
         this.vector = vector;
@@ -96,18 +57,48 @@ public class TrainRes implements Message {
         this.isActive = isActive;
     }
 
-    public TrainRes(ClientInfo clientInfo, double[][] vectors, double paraNorm, boolean isActive) {
+
+    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive, Map<MetricType, List<Double>> metric, Map<MetricType, List<Double[][]>> metricArr, Map<MetricType, List<Double>> metricVali, Map<MetricType, List<Double[][]>> metricArrVali,KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
+        this.client = clientInfo;
+        this.numClassRound = numClassRound;
+        this.isActive = isActive;
+        this.metric = metric;
+        this.metricArr = metricArr;
+        this.metricVali = metricVali;
+        this.metricArrVali = metricArrVali;
+        this.kernelDispatchJavaPhaseType=kernelDispatchJavaPhaseType;
+    }
+
+
+    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive) {
+        this.client = clientInfo;
+        this.numClassRound = numClassRound;
+        this.isActive = isActive;
+    }
+
+    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive,KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
+        this.client = clientInfo;
+        this.numClassRound = numClassRound;
+        this.isActive = isActive;
+        this.kernelDispatchJavaPhaseType=kernelDispatchJavaPhaseType;
+    }
+
+    public TrainRes(ClientInfo clientInfo, int round,KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
+        this.client = clientInfo;
+        this.round = round;
+        this.kernelDispatchJavaPhaseType=kernelDispatchJavaPhaseType;
+    }
+
+
+    public TrainRes(ClientInfo clientInfo, double[][] vectors, double paraNorm, boolean isActive, int clientInd,int numClassRound, List<ClientInfo> clientInfoList,KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
         this.client = clientInfo;
         this.vectors = vectors;
         this.paraNorm = paraNorm;
         this.isActive = isActive;
-    }
-
-    public TrainRes(ClientInfo clientInfo, Map<MetricType, List<Double>> metric, double paraNorm, boolean isActive) {
-        this.client = clientInfo;
-        this.metric = metric;
-        this.paraNorm = paraNorm;
-        this.isActive = isActive;
+        this.clientInd = clientInd;
+        this.numClassRound = numClassRound;
+        this.clientInfoList = clientInfoList;
+        this.kernelDispatchJavaPhaseType = kernelDispatchJavaPhaseType;
     }
 
     public TrainRes(ClientInfo clientInfo, double[] vector, Map<MetricType, List<Double>> metric, double paraNorm, boolean isActive) {
@@ -116,23 +107,6 @@ public class TrainRes implements Message {
         this.metric = metric;
         this.paraNorm = paraNorm;
         this.isActive = isActive;
-    }
-
-    public TrainRes(ClientInfo clientInfo, double[][] vectors, Map<MetricType, List<Double>> metric, double paraNorm, boolean isActive) {
-        this.client = clientInfo;
-        this.vectors = vectors;
-        this.metric = metric;
-        this.paraNorm = paraNorm;
-        this.isActive = isActive;
-    }
-
-    public TrainRes(ClientInfo clientInfo, double[][] vectors, Map<MetricType, List<Double>> metric, Map<MetricType, List<Double[][]>> metricArr, double paraNorm, boolean isActive) {
-        this.client = clientInfo;
-        this.vectors = vectors;
-        this.metric = metric;
-        this.paraNorm = paraNorm;
-        this.isActive = isActive;
-        this.metricArr = metricArr;
     }
 
     public ClientInfo getClient() {
@@ -189,6 +163,18 @@ public class TrainRes implements Message {
 
     public int getRound() {
         return round;
+    }
+
+    public int getClientInd() {
+        return clientInd;
+    }
+
+    public List<ClientInfo> getClientInfoList() {
+        return clientInfoList;
+    }
+
+    public KernelDispatchJavaPhaseType getKernelDispatchJavaPhaseType() {
+        return kernelDispatchJavaPhaseType;
     }
 }
 

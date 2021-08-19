@@ -17,13 +17,12 @@ public class CommonInferenceData extends AbstractInferenceData {
 
     @Deprecated
     public CommonInferenceData(String[][] rawData) {
-        super.scan(rawData);
+        super.scan(rawData, "uid", null);
     }
 
     /**
-     *
-     * @param rawData 需要推理的数据
-     * @param idColumnName uid 列的名称
+     * @param rawData        需要推理的数据
+     * @param idColumnName   uid 列的名称
      * @param featureInTrain 训练中的特征顺序
      */
     public CommonInferenceData(String[][] rawData, String idColumnName, String[] featureInTrain) {

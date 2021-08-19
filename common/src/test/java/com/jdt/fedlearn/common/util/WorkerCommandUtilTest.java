@@ -12,7 +12,7 @@ limitations under the License.
 */
 package com.jdt.fedlearn.common.util;
 
-import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.JobReq;
 import com.jdt.fedlearn.common.entity.WorkerUnit;
@@ -55,12 +55,12 @@ public class WorkerCommandUtilTest {
         jobReq.setJobId("1");
         jobReq.setUsername("test");
         Map map = new HashMap();
-        map.put(AppConstant.DATA,jobReq);
+        map.put(ResponseConstant.DATA,jobReq);
         commonResultStatus.setData(map);
         String jsonStr = JsonUtil.object2json(commonResultStatus);
 
         MockServerClient mockClient = new MockServerClient(ip, port);
-        String expected = HttpClientUtil.compress(jsonStr);
+        String expected = GZIPCompressUtil.compress(jsonStr);
         /* 现在返回的编码不是utf-8的 后期建议统一*/
         String body = new String(expected.getBytes("UTF-8"),"ISO-8859-1");
         mockClient.when(
@@ -81,13 +81,13 @@ public class WorkerCommandUtilTest {
         jobReq.setJobId("1");
         jobReq.setUsername("test");
         Map map = new HashMap();
-        map.put(AppConstant.DATA,jobReq);
-        map.put(AppConstant.MESSAGE,"error");
+        map.put(ResponseConstant.DATA,jobReq);
+        map.put(ResponseConstant.MESSAGE,"error");
         commonResultStatus.setData(map);
         String jsonStr = JsonUtil.object2json(commonResultStatus);
 
         MockServerClient mockClient = new MockServerClient(ip, port);
-        String expected = HttpClientUtil.compress(jsonStr);
+        String expected = GZIPCompressUtil.compress(jsonStr);
         /* 现在返回的编码不是utf-8的 后期建议统一*/
         String body = new String(expected.getBytes("UTF-8"),"ISO-8859-1");
         mockClient.when(

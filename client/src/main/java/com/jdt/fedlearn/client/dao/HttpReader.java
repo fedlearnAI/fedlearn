@@ -17,8 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.jdt.fedlearn.client.entity.HttpResp;
 import com.jdt.fedlearn.client.entity.source.DataSourceConfig;
-import com.jdt.fedlearn.client.util.ConfigUtil;
-import com.jdt.fedlearn.common.util.HttpClientUtil;
+import com.jdt.fedlearn.client.entity.source.HttpSourceConfig;
+import com.jdt.fedlearn.common.network.INetWorkService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,12 +26,10 @@ import java.util.*;
 
 public class HttpReader implements DataReader {
     private static final Logger logger = LoggerFactory.getLogger(HttpReader.class);
-    //    private String inferenceTableName = ConfigUtil.getProperty("inference.table");
     //TODO
     public static final String UID = "uid";
     public static final String FEATURE = "feature";
-
-//    public HttpReader(){}
+    private static INetWorkService netWorkService = INetWorkService.getNetWorkService();
 
     @Override
     public String[][] loadTrain(DataSourceConfig config) {
@@ -39,10 +37,11 @@ public class HttpReader implements DataReader {
     }
 
     @Override
-    public String[][] loadInference(String[] uid) {
+    public String[][] loadInference(DataSourceConfig config, String[] uid) {
+        HttpSourceConfig sourceConfig = (HttpSourceConfig) config;
+        String url = sourceConfig.getUrl();
         Map<String, Object> context = bulidRequest(uid);
-        //result = "{\"code\": 0,\"status\": \"success\",\"message\": \"success\",\"data\": {\"header\": [\"md042m\", \"md000g\"],\"result\": [{\"uid\": \"test\",\"feature\": [\"-1\", \"20\"]}, { \"uid\": \"test1\", \"feature\": [\"-1\", \"20\"]}]}}";
-        String result = HttpClientUtil.doHttpPost(ConfigUtil.getHttpUrl(), context);
+        String result = netWorkService.sendAndRecv(url, context);
         ObjectMapper mapper = new ObjectMapper();
         try {
             final HttpResp response = mapper.readValue(result, HttpResp.class);
@@ -57,10 +56,12 @@ public class HttpReader implements DataReader {
     }
 
     @Override
-    public String[][] loadValidate(String[] uid) {
+    public String[][] loadValidate(DataSourceConfig config, String[] uid) {
+        HttpSourceConfig sourceConfig = (HttpSourceConfig) config;
+        String url = sourceConfig.getUrl();
+
         Map<String, Object> context = bulidRequest(uid);
-        //result = "{\"code\": 0,\"status\": \"success\",\"message\": \"success\",\"data\": {\"header\": [\"md042m\", \"md000g\"],\"result\": [{\"uid\": \"test\",\"feature\": [\"-1\", \"20\"]}, { \"uid\": \"test1\", \"feature\": [\"-1\", \"20\"]}]}}";
-        String result = HttpClientUtil.doHttpPost(ConfigUtil.getHttpUrl(), context);
+        String result = netWorkService.sendAndRecv(url, context);
         ObjectMapper mapper = new ObjectMapper();
         try {
             final HttpResp response = mapper.readValue(result, HttpResp.class);

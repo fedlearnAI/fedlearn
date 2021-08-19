@@ -1,15 +1,18 @@
 package com.jdt.fedlearn.core.integratedTest.linearRegression;
 
+import com.jdt.fedlearn.core.dispatch.DistributedKeyGeneCoordinator;
 import com.jdt.fedlearn.core.dispatch.mixLinear.LinearRegression;
+import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillier;
+import com.jdt.fedlearn.core.encryption.nativeLibLoader;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.feature.SingleFeature;
 import com.jdt.fedlearn.core.example.CommonRun;
+import com.jdt.fedlearn.core.example.CommonRunKeyGene;
 import com.jdt.fedlearn.core.model.Model;
 import com.jdt.fedlearn.core.model.mixLinear.LinearRegressionModel;
 import com.jdt.fedlearn.core.parameter.LinearParameter;
-import com.jdt.fedlearn.core.psi.MappingReport;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.MappingType;
@@ -34,14 +37,34 @@ public class TestMixedLinearRegression {
     private final Map<ClientInfo, Features> trainFeatureList = new HashMap<>();
     private String[] inferIdList;
 
+    private String[] allAddr;
+    private final int bitLen = 1024;
+    private final DistributedPaillier.DistPaillierPubkey  pubkey   = new DistributedPaillier.DistPaillierPubkey();
+    private final DistributedPaillier.DistPaillierPrivkey privkey1 = new DistributedPaillier.DistPaillierPrivkey();
+    private final DistributedPaillier.DistPaillierPrivkey privkey2 = new DistributedPaillier.DistPaillierPrivkey();
+    private final DistributedPaillier.DistPaillierPrivkey privkey3 = new DistributedPaillier.DistPaillierPrivkey();
+    private final DistributedPaillier.DistPaillierPrivkey[] allSk = new DistributedPaillier.DistPaillierPrivkey[3];
+
+
     public void setUp(int dataSetID) throws Exception {
+        try {
+            nativeLibLoader.load();
+        } catch (UnsatisfiedLinkError e) {
+            System.exit(1);
+        }
 
         final String dataBase = "./src/test/resources/";
 
-        ClientInfo party1 = new ClientInfo("127.0.0.1", 80, "http", 0);
-        ClientInfo party2 = new ClientInfo("127.0.0.2", 80, "http", 1);
-        ClientInfo party3 = new ClientInfo("127.0.0.3", 80, "http", 2);
+        ClientInfo party1 = new ClientInfo("127.0.0.1", 80, "http", "", "0");
+        ClientInfo party2 = new ClientInfo("127.0.0.2", 80, "http", "", "1");
+        ClientInfo party3 = new ClientInfo("127.0.0.3", 80, "http", "", "2");
         this.clientList = Arrays.asList(party1, party2, party3);
+
+        allAddr = new String[clientList.size()];
+        int cnt = 0;
+        for(ClientInfo client: clientList) {
+            allAddr[cnt++] = client.getIp()+client.getPort();
+        }
 
         String baseData;
         String label_name;
@@ -56,32 +79,11 @@ public class TestMixedLinearRegression {
             fNameListTrain = new String[]{"reg0_train.csv", "reg1_train.csv", "reg2_train.csv"};
             fNameListTest = new String[]{"reg0_test.csv", "reg1_test.csv", "reg2_test.csv"};
             inferId = new String[]{"42NL", "8637999yz"};
-            inferId = new String[]{"asdfasdfasdf"};
+//            inferId = new String[]{"asdfasdfasdf"};
 
             label_name = "y";
             fNameSuffix = "";
         } else if (dataSetID == 2) {
-            // vertical data
-            baseData = dataBase + "housing_yifei_mix_v2/";
-            fNameListTrain = new String[]{"train_veri0.csv", "train_veri1.csv", "train_veri2.csv"};
-            fNameListTest = new String[]{"test_veri0.csv", "test_veri1.csv", "test_veri2.csv"};
-            label_name = "y";
-            fNameSuffix = "";
-        } else if (dataSetID == 3) {
-            //mixed data
-            baseData = dataBase + "housing_yifei_mix_v2/";
-            fNameListTrain = new String[]{"train0.csv", "train1.csv", "train2.csv"};
-            fNameListTest = new String[]{"inference0.csv", "inference1.csv", "inference2.csv"};
-            label_name = "y";
-            fNameSuffix = "";
-        } else if (dataSetID == 4) {
-            // horizontal data
-            baseData = dataBase + "/housing_yifei_mix_v2/";
-            fNameListTrain = new String[]{"train_hori0.csv", "train_hori1.csv", "train_hori2.csv"};
-            fNameListTest = new String[]{"test_hori0.csv", "test_hori1.csv", "test_hori2.csv"};
-            label_name = "y";
-            fNameSuffix = "";
-        } else if (dataSetID == 5) {
             // mixed data
             baseData = dataBase + "/regression_7333_7333/";
             fNameListTrain = new String[]{"df_reg_0_700_train.csv", "df_reg_1_700_train.csv", "df_reg_2_700_train.csv"};
@@ -95,7 +97,7 @@ public class TestMixedLinearRegression {
             throw new Exception("no such dataset");
         }
 
-        int cnt = 0;
+        cnt = 0;
         for (ClientInfo cl : clientList) {
             rawDataMapTrain.put(cl, DataParseUtil.loadTrainFromFile(baseData + fNameListTrain[cnt] + fNameSuffix));
 
@@ -117,7 +119,20 @@ public class TestMixedLinearRegression {
                     .map(x -> x[(x.length + 1) / 2][0])
                     .toArray(String[]::new);
         }
+
+        DistributedKeyGeneCoordinator coordinator = new DistributedKeyGeneCoordinator(1000, clientList.size(),
+                bitLen, allAddr, true, "KeyGeneInMixLinear"+System.currentTimeMillis());
+        CommonRunKeyGene.generate(coordinator, clientList.toArray(new ClientInfo[0]));
+
+        pubkey.loadClassFromFile("pubKey");
+        privkey1.loadClassFromFile("privKey-" + 1);
+        privkey2.loadClassFromFile("privKey-" + 2);
+        privkey3.loadClassFromFile("privKey-" + 3);
+        allSk[0] = privkey1;
+        allSk[1] = privkey2;
+        allSk[2] = privkey3;
     }
+
 
     /*
      * =========================
@@ -126,16 +141,19 @@ public class TestMixedLinearRegression {
      */
     public void trainTestCommon() throws IOException {
         parameter.setMaxEpoch(2);
-        Tuple2<MappingReport, String[]> mappingOutput = CommonRun.match(MappingType.EMPTY, clientList, rawDataMapTrain);
+        Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(MappingType.EMPTY, clientList, rawDataMapTrain);
         String[] commonIds = mappingOutput._2();
 
         LinearRegression master = new LinearRegression(parameter);
-        MatchResult matchResult = new MatchResult(mappingOutput._1().getSize());
-        List<CommonRequest> initRequests = master.initControl(
-                clientList,
-                matchResult,
-                trainFeatureList,
-                null);
+        MatchResult matchResult = mappingOutput._1();
+        Map<String, Object> others = new HashMap<>();
+
+        others.put("pubKeyStr" , pubkey.toJson());
+        others.put("privKeyStr1", allSk[0].toJson());
+        others.put("privKeyStr2", allSk[1].toJson());
+        others.put("privKeyStr3", allSk[2].toJson());
+
+        List<CommonRequest> initRequests = master.initControl(clientList, matchResult, trainFeatureList, others);
 
         Map<ClientInfo, Model> clientMap = new HashMap<>();
         for (ClientInfo client : clientList) {
@@ -166,13 +184,16 @@ public class TestMixedLinearRegression {
         for (ClientInfo clientInfo : clientList) {
             String path = "./" + modelToken + "_" + clientInfo.getIp() + clientInfo.getPort() + ".model";
             String content = FileUtil.loadModel(path);
+
             LinearRegressionModel clientModelsFromFile = new LinearRegressionModel();
             clientModelsFromFile.deserialize(content);
             modelMap.put(clientInfo, clientModelsFromFile);
         }
 
         LinearRegression master = new LinearRegression(parameter);
-        List<CommonRequest> initRequests = master.initInference(clientList, inferIdList);
+        Map<String, Object> others = new HashMap<>();
+        others.put("pubKeyStr", pubkey.toJson());
+        List<CommonRequest> initRequests = master.initInference(clientList, inferIdList, others);
 
         double[][] finalYHat;
         finalYHat = CommonRun.inference(master, initRequests, modelMap, rawDataMapInfer).getPredicts();

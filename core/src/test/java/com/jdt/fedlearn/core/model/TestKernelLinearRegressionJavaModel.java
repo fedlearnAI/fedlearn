@@ -12,8 +12,8 @@ import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.loader.kernelLinearRegression.KernelLinearRegressionTrainData;
 import com.jdt.fedlearn.core.math.MathExt;
+import com.jdt.fedlearn.core.model.serialize.KernelJavaSerializer;
 import com.jdt.fedlearn.core.parameter.KernelLinearRegressionParameter;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.NormalizationType;
 import com.jdt.fedlearn.core.type.data.Tuple3;
@@ -23,11 +23,10 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.*;
-import java.util.stream.IntStream;
 
 
 public class TestKernelLinearRegressionJavaModel {
-    private static final String modelId = "123-FederatedGB-2103012220";
+    private static final String modelId = "123-KernelLinearRegressionJava-2103012220";
 
     @Test
     public void trainInit() {
@@ -84,7 +83,7 @@ public class TestKernelLinearRegressionJavaModel {
         sampleIndex.add(2);
         double[][] valuelist = new double[][]{{0,0,0}};
         boolean isUpdate = false;
-        Message trainReq = new TrainReq(clientInfos.get(0),valuelist,sampleIndex,isUpdate);
+        Message trainReq = new TrainReq(clientInfos.get(0),valuelist,isUpdate);
         int p = 2;
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
@@ -114,7 +113,7 @@ public class TestKernelLinearRegressionJavaModel {
         sampleIndex.add(2);
         double[][] valuelist = new double[][]{{0,0,0}};
         boolean isUpdate = true;
-        Message trainReq = new TrainReq(clientInfos.get(0),valuelist,sampleIndex,isUpdate);
+        Message trainReq = new TrainReq(clientInfos.get(0),valuelist,isUpdate);
         int p = 2;
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
@@ -135,36 +134,7 @@ public class TestKernelLinearRegressionJavaModel {
     }
 
 
-    @Test
-    public void generateNormal(){
-        KernelLinearRegressionJavaModel model = new KernelLinearRegressionJavaModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        KernelLinearRegressionTrainData trainData = model.trainInit(raw, result, new int[0],new KernelLinearRegressionParameter(), features, new HashMap<>());
-        int m =3;
-        int n =2;
-        double[][] res = model.generateNormal(m,n);
-        System.out.println("res : " + Arrays.deepToString(res));
-        double[][] normal = new double[][]{{0.08452060657049848, 0.09128761787534406}, {-0.028707863647499533, 0.07518594314874759}, {0.1335473668231534, -0.09499789372646104}};
-        Assert.assertEquals(res,normal);
-    }
 
-    @Test
-    public void generateUniform(){
-        KernelLinearRegressionJavaModel model = new KernelLinearRegressionJavaModel();
-        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
-        String[][] raw = compoundInput._1().get();
-        String[] result = compoundInput._2().get();
-        Features features = compoundInput._3().get();
-        KernelLinearRegressionTrainData kernelLinearRegressionTrainData = new KernelLinearRegressionTrainData(raw,result,features);
-        int m = 3;
-        double[] res = model.generateUniform(m);
-        System.out.println("res: " + Arrays.toString(res));
-        double[] uniform = new double[]{4.591117485041855, 4.707171442994805, 2.188494408434079};
-        Assert.assertEquals(res,uniform);
-    }
 
 
 
@@ -176,10 +146,11 @@ public class TestKernelLinearRegressionJavaModel {
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
         KernelLinearRegressionParameter kernelLinearRegressionParameter =  new KernelLinearRegressionParameter(3, 100, 5, 100, 0.005, 200, new MetricType[]{MetricType.TRAINLOSS}, NormalizationType.STANDARD);
+
         KernelLinearRegressionTrainData trainData = model.trainInit(raw, result, new int[0],kernelLinearRegressionParameter, features, new HashMap<>());
         double[][] data = new double[][]{{1,2,3},{4,5,6}};
         SimpleMatrix simpleMatrix = new SimpleMatrix(data);
-        SimpleMatrix res = model.KernelApproximationTrain(simpleMatrix);
+        SimpleMatrix res = model.initKernelApproximation(simpleMatrix);
         double[][] resD = DataUtils.smpmatrixToArray(res);
         System.out.println("resD: " + Arrays.deepToString(resD));
         double[][] targetD = new double[][]{{-0.38220433023675404, 0.0026063820944554365, -0.5448879755955053, 0.606147993418652, -0.24644290381559317}, {-0.5643657928856695, 0.1601091497445988, -0.6317011034901413, 0.565267939736407, -0.21451641758115533}};
@@ -196,7 +167,7 @@ public class TestKernelLinearRegressionJavaModel {
         SimpleMatrix transMatrix = new SimpleMatrix(trans);
         double[] bias = new double[]{4.1,2.1,1,2};
         Vector vector = DataUtils.arrayToVector(bias);
-        SimpleMatrix res = model.kernelApproximationPhase2(simpleMatrix,transMatrix,vector);
+        SimpleMatrix res = model.kernelApproximation(simpleMatrix,transMatrix,vector);
         double[][] resD = DataUtils.smpmatrixToArray(res);
         System.out.println("resD : " + Arrays.deepToString(resD));
         double[][] targetD = new double[][]{{0.48404758988035423, -0.7064952400800761, -0.7000304076699752, 0.6789429207843051}, {0.6087953328757344, 0.6952757805494589, -0.64426638672293, -0.5371804747679276}};
@@ -211,7 +182,7 @@ public class TestKernelLinearRegressionJavaModel {
         SimpleMatrix simpleMatrix = new SimpleMatrix(data);
         double[] bias = new double[]{4.1,2.1,1};
         Vector vector = DataUtils.arrayToVector(bias);
-        Vector res = model.kernelLinearRegressionInferencePhase1(simpleMatrix,vector);
+        Vector res = model.computePredict(simpleMatrix,vector);
         double[] target = new double[]{11.3, 32.9};
         Vector targetVector = DataUtils.arrayToVector(target);
         Assert.assertEquals(res,targetVector);
@@ -309,7 +280,7 @@ public class TestKernelLinearRegressionJavaModel {
         KernelLinearRegressionJavaModel model = new KernelLinearRegressionJavaModel();
         String content = "modelToken=62_KernelLinearRegression\n" +
                 "numClass=1\n"+
-                "weight=-12.91338388635032,-491.6280181664785,160.26338717786908,199.487545938004,2.2567552519226552,513.3587616657517,298.1833558164752,88.98096546798264,12.077925742461701,-46.8863860865105, ||\n" +
+                "weight=-12.91338388635032,-491.6280181664785,160.26338717786908,199.487545938004,2.2567552519226552,513.3587616657517,298.1833558164752,88.98096546798264,12.077925742461701,-46.8863860865105\n" +
                 "matsize=2,10\n" +
                 "matweight=0.08452060657049848,0.09128761787534406,-0.028707863647499533,0.07518594314874759,0.1335473668231534,-0.09499789372646104,0.0599049892177836,0.1204570743449295,0.24820093995603615,-0.07539501059617072,-0.140721021116148,-0.06725299844022434,0.0694659525199853,-0.07186670909137784,-0.04007984801098624,0.07859301876719066,-0.09296545644893407,-0.013778888246642598,0.005442869656443446,-0.09561780298677987\n" +
                 "biasweight=4.591117485041855,4.707171442994805,2.188494408434079,5.637758559745272,4.449608312623372,2.2111457602866462,0.7586069841437223,5.340161507623025,0.5228849046590456,5.835496245229808\n" +
@@ -318,11 +289,26 @@ public class TestKernelLinearRegressionJavaModel {
                 "norm_params_2=0.2937062123684964,0.29909706583021484\n"+
                 "isActive=false\n"+
                 "multiClassUniqueLabelList=\n";
-        model.deserialize(content);
+        double[][] modelParas = new double[][]{{0.1,0.2},{0.2,0.3}};
+        double[][] matweight=new double[][]{{0.1,0.2},{0.2,0.3}};
+        String modelToken="62_KernelLinearRegression";
+        int numClass=1;
+        double mapdim=2.0;
+        double[] bias=new double[]{0.1,0.2};
+        double[] normParams1=new double[]{0.1,0.2};
+        double[] normParams2=new double[]{0.1,0.2};
+        boolean isActive=true;
+        List<Double> multiClassUniqueLabelList = new ArrayList<>();
+        multiClassUniqueLabelList.add(1D);
+        NormalizationType normalizationType = NormalizationType.STANDARD;
+        KernelJavaSerializer kernelJavaSerializer = new KernelJavaSerializer(modelToken, numClass,  mapdim, modelParas, matweight, bias, normalizationType, normParams1, normParams2,  isActive, multiClassUniqueLabelList);
+        String str = kernelJavaSerializer.toJson();
+        System.out.println(str);
+        model.deserialize(str);
         String modelStr = model.serialize();
-        System.out.println("content " + content);
+        System.out.println("content " + str);
         System.out.println("modeS " + modelStr);
-        Assert.assertEquals(modelStr,content);
+        Assert.assertEquals(modelStr,str);
     }
 
 }

@@ -41,8 +41,8 @@ public class KernelLinearRegressionParameter implements SuperParameter {
     private MetricType[] metricType;
     private NormalizationType normalizationType; // 0: no training normalization; 1: minmax; 2: standard.
     private int numClass;
-    private double differentialPrivacy=0;
-    private int earlyStoppingRounds=10;
+    private double differentialPrivacy = 0;
+    private int earlyStoppingRounds = 10;
 
     public KernelLinearRegressionParameter() {
         this.kernelType = 3; //rbf kernel by default
@@ -53,7 +53,93 @@ public class KernelLinearRegressionParameter implements SuperParameter {
         this.batchSize = 100000;
         this.metricType = new MetricType[]{MetricType.TRAINLOSS};
         this.normalizationType = NormalizationType.NONE;
+        this.numClass = 1;
         this.differentialPrivacy = 0;
+        this.earlyStoppingRounds = 5;
+    }
+
+    public KernelLinearRegressionParameter(Builder builder) {
+        this.numClass = builder.numClass;
+        this.metricType = builder.metricType;
+
+        this.kernelType = builder.kernelType;
+        this.seed = builder.seed;
+        this.mapdim = builder.mapdim;
+        this.maxIter = builder.maxIter;
+        this.scale = builder.scale;
+        this.batchSize = builder.batchSize;
+        this.normalizationType = builder.normalizationType;
+        this.differentialPrivacy = builder.differentialPrivacy;
+        this.earlyStoppingRounds = builder.earlyStoppingRounds;
+    }
+
+    public static class Builder {
+        private double kernelType;
+        private double seed;
+        private double mapdim; //the dimension of kernel mapping feature for each party
+        private double scale;
+        private int maxIter;
+        private int batchSize;
+        private MetricType[] metricType;
+        private NormalizationType normalizationType; // 0: no training normalization; 1: minmax; 2: standard.
+        private int numClass;
+        private double differentialPrivacy = 0;
+        private int earlyStoppingRounds = 10;
+
+        public Builder(MetricType[] metricType, int numClass) {
+            this.metricType = metricType;
+            this.numClass = numClass;
+        }
+
+        public Builder kernelType(double kernelType) {
+            this.kernelType = kernelType;
+            return this;
+        }
+
+        public Builder seed(double seed) {
+            this.seed = seed;
+            return this;
+        }
+
+        public Builder mapdim(double mapdim) {
+            this.mapdim = mapdim;
+            return this;
+        }
+
+        public Builder scale(double scale) {
+            this.scale = scale;
+            return this;
+        }
+
+        public Builder maxIter(int maxIter) {
+            this.maxIter = maxIter;
+            return this;
+        }
+
+        public Builder batchSize(int batchSize) {
+            this.batchSize = batchSize;
+            return this;
+        }
+
+        public Builder normalizationType(NormalizationType normalizationType) {
+            this.normalizationType = normalizationType;
+            return this;
+
+        }
+
+        public Builder differentialPrivacy(double differentialPrivacy) {
+            this.differentialPrivacy = differentialPrivacy;
+            return this;
+        }
+
+        public Builder earlyStoppingRounds(int earlyStoppingRounds) {
+            this.earlyStoppingRounds = earlyStoppingRounds;
+            return this;
+        }
+
+        public KernelLinearRegressionParameter build(){
+            return new KernelLinearRegressionParameter(this);
+        }
     }
 
     public KernelLinearRegressionParameter(double kernelType, double seed, double mapdim, int maxIter, double scale, int batchSize, MetricType[] metricType, NormalizationType normalizationType) {
@@ -67,7 +153,7 @@ public class KernelLinearRegressionParameter implements SuperParameter {
         this.normalizationType = normalizationType;
     }
 
-    public KernelLinearRegressionParameter(double kernelType, double seed, double mapdim, int maxIter, double scale, int batchSize, MetricType[] metricType, NormalizationType normalizationType,int numClass) {
+    public KernelLinearRegressionParameter(double kernelType, double seed, double mapdim, int maxIter, double scale, int batchSize, MetricType[] metricType, NormalizationType normalizationType, int numClass) {
         this.kernelType = kernelType; //rbf kernel by default
         this.seed = seed;
         this.mapdim = mapdim;
@@ -76,10 +162,10 @@ public class KernelLinearRegressionParameter implements SuperParameter {
         this.batchSize = batchSize;
         this.metricType = metricType;
         this.normalizationType = normalizationType;
-        this.numClass=numClass;
+        this.numClass = numClass;
     }
 
-    public KernelLinearRegressionParameter(double kernelType, double seed, double mapdim, int maxIter, double scale, int batchSize, MetricType[] metricType, NormalizationType normalizationType,int numClass,double differentialPrivacy) {
+    public KernelLinearRegressionParameter(double kernelType, double seed, double mapdim, int maxIter, double scale, int batchSize, MetricType[] metricType, NormalizationType normalizationType, int numClass, double differentialPrivacy) {
         this.kernelType = kernelType; //rbf kernel by default
         this.seed = seed;
         this.mapdim = mapdim;
@@ -88,11 +174,11 @@ public class KernelLinearRegressionParameter implements SuperParameter {
         this.batchSize = batchSize;
         this.metricType = metricType;
         this.normalizationType = normalizationType;
-        this.numClass=numClass;
+        this.numClass = numClass;
         this.differentialPrivacy = differentialPrivacy;
     }
 
-    public KernelLinearRegressionParameter(double kernelType, double seed, double mapdim, int maxIter, double scale, int batchSize, MetricType[] metricType, NormalizationType normalizationType,int numClass,double differentialPrivacy, int earlyStoppingRounds) {
+    public KernelLinearRegressionParameter(double kernelType, double seed, double mapdim, int maxIter, double scale, int batchSize, MetricType[] metricType, NormalizationType normalizationType, int numClass, double differentialPrivacy, int earlyStoppingRounds) {
         this.kernelType = kernelType; //rbf kernel by default
         this.seed = seed;
         this.mapdim = mapdim;
@@ -101,10 +187,11 @@ public class KernelLinearRegressionParameter implements SuperParameter {
         this.batchSize = batchSize;
         this.metricType = metricType;
         this.normalizationType = normalizationType;
-        this.numClass=numClass;
+        this.numClass = numClass;
         this.differentialPrivacy = differentialPrivacy;
         this.earlyStoppingRounds = earlyStoppingRounds;
     }
+
     public List<ParameterField> obtainPara() {
         List<ParameterField> res = new ArrayList<>();
         res.add(new NumberParameter("batchSize", "随机样本采样个数", 100000, new String[]{"1000", "5000000"}, ParameterType.NUMS));
@@ -112,7 +199,7 @@ public class KernelLinearRegressionParameter implements SuperParameter {
         res.add(new NumberParameter("seed", "种子点", 100, new String[]{"0", "2000"}, ParameterType.NUMS));
         res.add(new NumberParameter("mapdim", "核函数映射维数", 400, new String[]{"0", "1000"}, ParameterType.NUMS));
         res.add(new NumberParameter("maxIter", "训练迭代次数", 100, new String[]{"10", "1000"}, ParameterType.NUMS));
-        res.add(new MultiParameter("metricType", "metricType", "TRAINLOSS", new String[]{"TRAINLOSS", "RMSE", "MAE", "MAPE", "MAAPE", "F1", "ACC", "AUC", "RECALL", "PRECISION","MACC","MERROR","MAUC","MF1"}, ParameterType.MULTI));
+        res.add(new MultiParameter("metricType", "metricType", "TRAINLOSS", new String[]{"TRAINLOSS", "RMSE", "MAE", "MAPE", "MAAPE", "F1", "ACC", "AUC", "RECALL", "PRECISION", "MACC", "MERROR", "MAUC", "MF1"}, ParameterType.MULTI));
         res.add(new CategoryParameter("normalizationType", "归一化类型", "NONE", new String[]{"NONE", "MINMAX", "STANDARD"}, ParameterType.STRING));
         res.add(new NumberParameter("numClass", "(仅多分类问题)类别数量", 1, new String[]{"1", "100"}, ParameterType.NUMS));
         res.add(new NumberParameter("differentialPrivacy", "differentialPrivacy", 0, new String[]{"0.0", "1.0"}, ParameterType.NUMS));
@@ -154,7 +241,9 @@ public class KernelLinearRegressionParameter implements SuperParameter {
         return scale;
     }
 
-    public NormalizationType getNormalizationType() {return normalizationType;}
+    public NormalizationType getNormalizationType() {
+        return normalizationType;
+    }
 
     public MetricType[] getMetricType() {
         return metricType;

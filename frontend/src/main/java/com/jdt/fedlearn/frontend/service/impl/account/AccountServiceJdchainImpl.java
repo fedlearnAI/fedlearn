@@ -14,9 +14,9 @@ limitations under the License.
 package com.jdt.fedlearn.frontend.service.impl.account;
 
 import com.jdt.fedlearn.frontend.jdchain.config.JdChainCondition;
-import com.jdt.fedlearn.frontend.mapper.entity.Account;
+import com.jdt.fedlearn.frontend.entity.table.AccountDO;
 import com.jdt.fedlearn.frontend.mapper.account.AccountJdchainMapper;
-import com.jdt.fedlearn.frontend.service.AccountService;
+import com.jdt.fedlearn.frontend.service.IAccountService;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Service;
 
@@ -25,48 +25,48 @@ import java.util.List;
 
 @Conditional(JdChainCondition.class)
 @Service
-public class AccountServiceJdchainImpl implements AccountService {
+public class AccountServiceJdchainImpl implements IAccountService {
     @Resource
     AccountJdchainMapper accountJdchainMapper;
     @Override
-    public boolean createAccount(Account account) {
-        boolean flag = accountJdchainMapper.insertAccount(account);
+    public boolean createAccount(AccountDO accountDO) {
+        boolean flag = accountJdchainMapper.insertAccount(accountDO);
         return flag;
     }
 
     @Override
-    public Account queryAccount(String userName) {
-        Account account = accountJdchainMapper.queryAccount(userName);
-        return account;
+    public AccountDO queryAccount(String userName) {
+        AccountDO accountDO = accountJdchainMapper.queryAccount(userName);
+        return accountDO;
     }
 
     @Override
-    public List<Account> queryAllAccount() {
-        List<Account> accounts = accountJdchainMapper.queryAllAccount();
-        return accounts;
+    public List<AccountDO> queryAllAccount() {
+        List<AccountDO> accountDOS = accountJdchainMapper.queryAllAccount();
+        return accountDOS;
     }
 
     /***
     * @description: 更新区块链相当于插入一个新版本
-    * @param account
+    * @param accountDO
     * @return: boolean
     * @author: geyan29
     * @date: 2021/3/9 5:16 下午
     */
     @Override
-    public boolean updateAccount(Account account) {
-        return this.createAccount(account);
+    public boolean updateAccount(AccountDO accountDO) {
+        return this.createAccount(accountDO);
     }
 
     @Override
-    public List<Account> queryAllAccountByMerCode(String merCode) {
-        List<Account> accounts = accountJdchainMapper.queryAllAccountByMerCode(merCode);
-        return accounts;
+    public List<AccountDO> queryAllAccountByMerCode(String merCode) {
+        List<AccountDO> accountDOS = accountJdchainMapper.queryAllAccountByMerCode(merCode);
+        return accountDOS;
     }
 
     @Override
     public void updateAccountByMerCode(String merCode ,String status) {
-        List<Account> list = this.queryAllAccountByMerCode(merCode);
+        List<AccountDO> list = this.queryAllAccountByMerCode(merCode);
         if(list != null){
             list.stream().forEach(account -> {
                 account.setStatus(status);

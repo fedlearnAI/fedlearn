@@ -14,16 +14,19 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.service.train.jdchain;
 
 import com.google.common.collect.Maps;
+import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.constant.JdChainConstant;
 import com.jdt.fedlearn.common.entity.jdchain.JdchainTask;
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.common.util.TimeUtil;
+import com.jdt.fedlearn.coordinator.entity.jdchain.JdChainTrainRequest;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdchainTrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.exception.UnknownInterfaceException;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
 import com.jdt.fedlearn.core.dispatch.common.Control;
-import com.jdt.fedlearn.core.dispatch.common.CommonControl;
+import com.jdt.fedlearn.core.dispatch.common.DispatcherFactory;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
@@ -34,11 +37,10 @@ import com.jdt.fedlearn.core.entity.serialize.Serializer;
 import com.jdt.fedlearn.core.parameter.SuperParameter;
 import com.jdt.fedlearn.core.parameter.common.CommonParameter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTaskMapper;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTrainMapper;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdChainTaskStatus;
-import com.jdt.fedlearn.coordinator.entity.train.SingleParameter;
+import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.coordinator.service.CommonService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
 import org.apache.commons.lang3.StringUtils;
@@ -86,27 +88,20 @@ public class ChainTrainRandomServiceImpl implements TrainService {
      * @author: geyan29
      * @date: 2021/01/07 15:29
      **/
-    private static final String MODEL_TOKEN = "modelToken";
-    private static final String CLIENT_INFO = "clientInfo";
-    private static final String DATA = "data";
-    private static final String PHASE = "phase";
-    private static final String INIT_SUCCESS = "init_success";
-    private static final String REQUEST_NUM = "reqNum";
-
     private void randomTrain(String content) {
-       Map<String,Object> jsonObject = JsonUtil.parseJson(content);
-        ClientInfo clientInfo = JsonUtil.json2Object((String) jsonObject.get(CLIENT_INFO), ClientInfo.class);
-        String modelToken = (String) jsonObject.get(MODEL_TOKEN);
-        String data = (String) jsonObject.get(DATA);
+        JdChainTrainRequest jdChainTrainRequest = JsonUtil.json2Object(content,JdChainTrainRequest.class);
+        ClientInfo clientInfo = jdChainTrainRequest.getClientInfo();
+        String modelToken = jdChainTrainRequest.getModelToken();
+        String data = jdChainTrainRequest.getData();
         Message message;
-        if (INIT_SUCCESS.equals(data)) {
+        if (AppConstant.INIT_SUCCESS.equals(data)) {
             message = new SingleElement(data);
         } else {
             message = serializer.deserialize(data);
         }
-        int p = (int) jsonObject.get(PHASE);
+        int p = jdChainTrainRequest.getPhase();
+        String requestNum = jdChainTrainRequest.getReqNum();
         String key = modelToken + JdChainConstant.SEPARATOR + p;
-        String requestNum = (String) jsonObject.get(REQUEST_NUM);
         CommonResponse commonResponse = new CommonResponse(clientInfo, message);
         synchronized (PHASE_RESPONSE_MAP) {
             if (PHASE_RESPONSE_MAP.containsKey(key)) {
@@ -155,7 +150,7 @@ public class ChainTrainRandomServiceImpl implements TrainService {
         List<SingleParameter> algorithmParams = trainInfo.getParameterFieldList();
         Map<String, Object> algorithmParamMap = algorithmParams.stream().collect(Collectors.toMap(SingleParameter::getField, SingleParameter::getValue));
         SuperParameter parameter = CommonParameter.parseParameter(algorithmParamMap, trainInfo.getAlgorithm());
-        Control algorithm = CommonControl.dispatchConstruct(supportedAlgorithm, parameter);
+        Control algorithm = DispatcherFactory.getDispatcher(supportedAlgorithm, parameter);
 
         List<CommonRequest> requests = algorithm.control(responses);
         boolean flag = algorithm.isContinue();

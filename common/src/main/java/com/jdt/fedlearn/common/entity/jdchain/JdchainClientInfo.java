@@ -13,6 +13,8 @@ limitations under the License.
 
 package com.jdt.fedlearn.common.entity.jdchain;
 
+import com.jdt.fedlearn.core.entity.ClientInfo;
+
 public class JdchainClientInfo {
     private String ip;
     private int port;
@@ -21,6 +23,17 @@ public class JdchainClientInfo {
     private boolean hasLabel;
     private String dataset;
     private String username;
+
+    public JdchainClientInfo() {
+    }
+
+    public JdchainClientInfo(String ip, int port, String protocol, int token, String dataset) {
+        this.ip = ip;
+        this.port = port;
+        this.protocol = protocol;
+        this.token = token;
+        this.dataset = dataset;
+    }
 
     public String getIp() {
         return ip;
@@ -77,4 +90,9 @@ public class JdchainClientInfo {
     public void setUsername(String username) {
         this.username = username;
     }
+
+    public ClientInfo toClientInfo() {
+        return new ClientInfo(ip, port, protocol, "");
+    }
+    
 }

@@ -15,7 +15,6 @@ package com.jdt.fedlearn.client.dao;
 
 import com.jdt.fedlearn.client.entity.source.DataSourceConfig;
 import com.jdt.fedlearn.client.entity.source.DbSourceConfig;
-import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.client.util.DbUtil;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import org.slf4j.Logger;
@@ -27,11 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MysqlReader implements DataReader {
-
     private static final Logger logger = LoggerFactory.getLogger(MysqlReader.class);
-    //    private String trainTableName = ConfigUtil.getProperty("train.table");
-    private String inferenceTableName = ConfigUtil.getInferenceTable("inference.table");
-
 
     public String[][] loadTrain(DataSourceConfig config) {
         logger.info("enter mysql load train data");
@@ -45,7 +40,8 @@ public class MysqlReader implements DataReader {
         featureAnswers.add(columns);
         PreparedStatement ps = null;
         ResultSet resultSet = null;
-        Connection conn = DbUtil.getConnection(config);
+        DbSourceConfig dbSourceConfig = (DbSourceConfig)config;
+        Connection conn = DbUtil.getConnection(dbSourceConfig);
         try {
 //            String mysql = "select uid,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13 from " + trainTableName;
             String column = String.join(",", columns);
@@ -86,10 +82,11 @@ public class MysqlReader implements DataReader {
     }
 
 
-    public String[][] loadInference(String[] uid) {
+    public String[][] loadInference(DataSourceConfig config, String[] uid) {
         List<String[]> featureAnswers = new ArrayList<>();
-        String tableName = "";
-        String[] headers = getColumnNames(inferenceTableName, null).toArray(new String[0]);
+        DbSourceConfig sourceConfig = (DbSourceConfig)config;
+        String tableName = sourceConfig.getTable();
+        String[] headers = getColumnNames(tableName, null).toArray(new String[0]);
         String[] columns = Arrays.copyOfRange(headers, 1, headers.length);
         String column = String.join(",", columns);
         String condition = "where uid in (";
@@ -99,11 +96,12 @@ public class MysqlReader implements DataReader {
             conditions[i] = " ? ";
         }
         queryBuilder.append(String.join(",", conditions)).append(")");
-        String mysql = "select " + column + " from " + inferenceTableName + "  " + queryBuilder.toString();
+        String mysql = "select " + column + " from " + tableName + "  " + queryBuilder.toString();
         logger.info("inference load query:" + mysql);
         PreparedStatement ps = null;
         ResultSet resultSet = null;
-        Connection conn = DbUtil.getConnection(null);
+        DbSourceConfig dbSourceConfig = (DbSourceConfig)config;
+        Connection conn = DbUtil.getConnection(dbSourceConfig);
         try {
             if (conn != null) {
                 ps = conn.prepareStatement(mysql);
@@ -121,11 +119,11 @@ public class MysqlReader implements DataReader {
                     featureAnswers.add(answer);
                 }
                 ps.close();
-                logger.info("select click method: messageId={},数据=【{}】", inferenceTableName, JsonUtil.object2json(featureAnswers));
+                logger.info("select click method: messageId={},数据=【{}】", tableName, JsonUtil.object2json(featureAnswers));
 //                logger.info("select click method: messageId=" + trainTableName);
             }
         } catch (SQLException e) {
-            logger.error("select click error with: messageId=" + inferenceTableName);
+            logger.error("select click error with: messageId=" + tableName);
             logger.error(e.toString());
         } catch (Exception e) {
             logger.error("select error: ", e);
@@ -136,10 +134,11 @@ public class MysqlReader implements DataReader {
         return featureAnswers.toArray(new String[0][]);
     }
 
-    public String[][] loadValidate(String[] uid) {
+    public String[][] loadValidate(DataSourceConfig config, String[] uid) {
         List<String[]> featureAnswers = new ArrayList<>();
-        String tableName = "";
-        String[] headers = getColumnNames(inferenceTableName, null).toArray(new String[0]);
+        DbSourceConfig sourceConfig = (DbSourceConfig)config;
+        String tableName = sourceConfig.getTable();
+        String[] headers = getColumnNames(tableName, null).toArray(new String[0]);
         String[] columns = Arrays.copyOfRange(headers, 1, headers.length);
         String column = String.join(",", columns);
         String condition = "where uid in (";
@@ -149,7 +148,7 @@ public class MysqlReader implements DataReader {
             conditions[i] = " ? ";
         }
         queryBuilder.append(String.join(",", conditions)).append(")");
-        String mysql = "select " + column + " from " + inferenceTableName + "  " + queryBuilder.toString();
+        String mysql = "select " + column + " from " + tableName + "  " + queryBuilder.toString();
         logger.info("inference load query:" + mysql);
         PreparedStatement ps = null;
         ResultSet resultSet = null;
@@ -171,11 +170,11 @@ public class MysqlReader implements DataReader {
                     featureAnswers.add(answer);
                 }
                 ps.close();
-                logger.info("select click method: messageId={},数据=【{}】", inferenceTableName, JsonUtil.object2json(featureAnswers));
+                logger.info("select click method: messageId={},数据=【{}】", tableName, JsonUtil.object2json(featureAnswers));
 //                logger.info("select click method: messageId=" + trainTableName);
             }
         } catch (SQLException e) {
-            logger.error("select click error with: messageId=" + inferenceTableName);
+            logger.error("select click error with: messageId=" + tableName);
             logger.error(e.toString());
         } catch (Exception e) {
             logger.error("select error: ", e);
@@ -205,7 +204,8 @@ public class MysqlReader implements DataReader {
         List<String> columnNames = new ArrayList<>();
         //与数据库的连接
         PreparedStatement pStemt = null;
-        Connection conn = DbUtil.getConnection(config);
+        DbSourceConfig dbSourceConfig = (DbSourceConfig)config;
+        Connection conn = DbUtil.getConnection(dbSourceConfig);
         String tableSql = "SELECT * FROM " + tableName + " LIMIT 1";
         try {
             pStemt = conn.prepareStatement(tableSql);

@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
  * Controller类
+ * 用于前端登录和刷新重定向
  */
-
 @Conditional(JdChainFalseCondition.class)
 @Controller
 @RequestMapping("app")

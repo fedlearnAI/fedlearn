@@ -37,6 +37,10 @@ public enum WorkerCommandEnum {
     API_SYSTEM_CONFIG_RELOAD("api/system/config/reload", "....."),
     API_SYSTEM_METADATA_FETCH("api/system/metadata/fetch", "...."),
     API_TRAIN_RESULT_QUERY("api/train/result/query", "训练结果查询"),
+    API_MODEL_DATA_QUERY("api/train/modelAndTrainData/query", "保存的model及trainData查询"),
+    API_MODEL_QUERY("api/train/model/query", "查询本地所有的model"),
+    API_MODEL_UPDATE("api/train/model/update", "更新model"),
+    API_TRAIN_DATA_UPDATE("api/train/trainData/update", "更新trainData"),
     //原始的command, 转化为businessTypeEnum in worker
 
     ;

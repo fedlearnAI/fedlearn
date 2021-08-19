@@ -14,8 +14,9 @@ package com.jdt.fedlearn.manager;
 
 import com.jdt.fedlearn.common.entity.JobResult;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
-import com.jdt.fedlearn.common.util.HttpClientUtil;
+import com.jdt.fedlearn.common.util.GZIPCompressUtil;
 import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.common.network.INetWorkService;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -31,8 +32,8 @@ public class ManagerHttpAppTest {
     @Test
     public void testMain() throws Exception {
         Thread.sleep(3000L);
-        String s = HttpClientUtil.doHttpPost("http://127.0.0.1:9090/demo", "");
-        String result = HttpClientUtil.unCompress(s);
+        String s = INetWorkService.getNetWorkService().sendAndRecv("http://127.0.0.1:9090/demo", "");
+        String result = GZIPCompressUtil.unCompress(s);
         JobResult jobResult = JsonUtil.json2Object(result, JobResult.class);
         Assert.assertEquals(jobResult.getResultTypeEnum(), ResultTypeEnum.SUCCESS);
     }

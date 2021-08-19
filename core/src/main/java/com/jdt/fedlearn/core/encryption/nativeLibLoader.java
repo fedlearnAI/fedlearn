@@ -1,17 +1,19 @@
-/* Copyright 2020 The FedLearn Authors. All Rights Reserved.
-
+/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-*/
+==============================================================================*/
 
 package com.jdt.fedlearn.core.encryption;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -23,6 +25,7 @@ import java.io.InputStream;
  * Loading native library (code adapted from TensorFlow's NativeLibrary class)
  */
 public final class nativeLibLoader {
+        private static final Logger logger = LoggerFactory.getLogger(nativeLibLoader.class);
         private static final boolean DEBUG = false;
         private static final String JNI_LIBNAME = "Distpaillier";
 
@@ -51,8 +54,7 @@ public final class nativeLibLoader {
                     getVersionedLibraryName(System.mapLibraryName(jniLibName));
             final String frameworkResourceName = makeResourceName(frameworkLibName);
             log("frameworkResourceName: " + frameworkResourceName);
-            final InputStream frameworkResource = nativeLibLoader.class.getClassLoader().getResourceAsStream(frameworkResourceName);
-            // Do not complain if the framework resource wasn't found. This may just mean that we're
+                        // Do not complain if the framework resource wasn't found. This may just mean that we're
             // building with --config=monolithic (in which case it's not needed and not included).
             if (jniResource == null) {
                 throw new UnsatisfiedLinkError(
@@ -67,8 +69,10 @@ public final class nativeLibLoader {
                 // deleted first, so that it is empty when the request is fulfilled.
                 tempPath.deleteOnExit();
                 final String tempDirectory = tempPath.getCanonicalPath();
+                final InputStream frameworkResource = nativeLibLoader.class.getClassLoader().getResourceAsStream(frameworkResourceName);
                 if (frameworkResource != null) {
                     extractResource(frameworkResource, frameworkLibName, tempDirectory);
+                    frameworkResource.close();
                 } else {
                     log(
                             frameworkResourceName
@@ -81,6 +85,12 @@ public final class nativeLibLoader {
                 throw new UnsatisfiedLinkError(
                         String.format(
                                 "Unable to extract native library into a temporary file (%s)", e.toString()));
+            } finally {
+                try {
+                    jniResource.close();
+                } catch (IOException e) {
+                    logger.error("nativeLibLoader error", e);
+                }
             }
         }
 

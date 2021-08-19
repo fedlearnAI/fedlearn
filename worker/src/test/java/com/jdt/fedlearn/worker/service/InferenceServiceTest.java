@@ -12,12 +12,14 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.service;
 
+import com.google.common.collect.Lists;
+import com.jdt.fedlearn.client.cache.TrainDataCache;
+import com.jdt.fedlearn.client.entity.inference.FetchRemote;
+import com.jdt.fedlearn.client.entity.inference.PutRemote;
+import com.jdt.fedlearn.client.entity.inference.SingleInference;
+import com.jdt.fedlearn.client.service.InferenceService;
 import com.jdt.fedlearn.worker.cache.ManagerCache;
-import com.jdt.fedlearn.worker.cache.TrainDataCache;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.worker.entity.inference.FetchRemote;
-import com.jdt.fedlearn.worker.entity.inference.PutRemote;
-import com.jdt.fedlearn.worker.entity.inference.SingleInference;
 import com.jdt.fedlearn.common.util.ManagerCommandUtil;
 import com.jdt.fedlearn.core.model.common.CommonModel;
 
@@ -64,7 +66,7 @@ public class InferenceServiceTest extends PowerMockTestCase {
         PutRemote putRemote = new PutRemote();
         putRemote.setPath(path);
         List<SingleInference> list = new ArrayList<>();
-        SingleInference singleInference = new SingleInference("19393tA", "1.0");
+        SingleInference singleInference = new SingleInference("19393tA", Lists.newArrayList("1.0"));
         list.add(singleInference);
         putRemote.setPredict(list);
         String push = inferenceService.push(putRemote);

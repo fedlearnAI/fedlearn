@@ -20,7 +20,8 @@ import com.jdt.fedlearn.core.encryption.paillier.PaillierCiphertext;
 import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
 
 public class LogisticLoss extends Loss {
-    EncryptionTool encryptionTool = new PaillierTool();
+    private static final long serialVersionUID = 7329721029421498541L;
+    transient EncryptionTool encryptionTool = new PaillierTool();
     private double clip(double val) {
         if (val < 0.00001) {
             return 0.00001;
@@ -93,7 +94,7 @@ public class LogisticLoss extends Loss {
     }
 
     // Clients do not have priv-key, so we only compute 0.5 + 0.25 * wx.
-    // After that we send it back to master to decrypt.
+    // After that we mockSend it back to master to decrypt.
     // If the value is smaller than -1 or larger than 1, we clap them into -1 or 1.
     public Ciphertext sigmoidApproxEnc(Ciphertext wx, PublicKey pubKey) {
         return encryptionTool.add(

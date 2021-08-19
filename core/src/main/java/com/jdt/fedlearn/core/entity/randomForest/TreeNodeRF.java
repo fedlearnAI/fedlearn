@@ -13,34 +13,29 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.entity.randomForest;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.grpc.federatedlearning.Matrix;
-import com.jdt.fedlearn.grpc.federatedlearning.PaillierVector;
-import com.jdt.fedlearn.grpc.federatedlearning.Vector;
-import org.ejml.simple.SimpleMatrix;
 
 import java.util.List;
 
 /**
  * 联邦随机森林的树节点类 TreeNodeRF
  */
-public class TreeNodeRF {
+public class TreeNodeRF implements Serializable {
     // 基础信息：节点id，树id，左子树，右子树
-    public long nodeId;
-    public long treeId;
+    public int nodeId;
+    public int treeId;
     public TreeNodeRF left;
     public TreeNodeRF right;
 
-    // 训练时需要的信息，特征矩阵 Xs 和 label y（raw data以及同态加密后的结果）
-//    public Matrix[] Xs;
-//    public PaillierVector y_pvec;
-
     // 节点信息，是否为叶节点，以及节点存储的json信息（分裂信息或预测信息）
     public boolean isLeaf;
-    public JsonObject referenceJson;
+//    public JsonObject referenceJson;
+    public String referenceJsonStr;
 
     // 分裂阈值
     public Double thres;
@@ -48,24 +43,17 @@ public class TreeNodeRF {
     // 叶节点预测值
     public Double prediction;
 
-    // 以下为尚未梳理的变量
     public Integer featureId;
-    public ArrayList<Integer> sampleIds;
+    public List<Integer> sampleIds;
     public Double score;
     public Double percentile;
     public int numSamples;
     public List<ClientInfo> Y1ClientMapping;
-    public ClientInfo party;
+    public String party;
 
-    public int getNumSamples() {
-        return numSamples;
-    }
 
-    public Double getScore() {
-        return score;
-    }
 
-    public TreeNodeRF(ArrayList<Integer> sampleIds, long nodeId, long treeId) {
+    public TreeNodeRF(List<Integer> sampleIds, int nodeId, int treeId) {
         this.nodeId = nodeId;
         this.treeId = treeId;
         this.left = null;
@@ -78,31 +66,13 @@ public class TreeNodeRF {
         this.percentile = null;
         this.thres = null;
         this.prediction = null;
-        this.referenceJson = new JsonObject();
         this.numSamples = sampleIds.size();
+        this.referenceJsonStr = null;
     }
 
     public TreeNodeRF() {
     }
 
-    @Override
-    public String toString() {
-        return "TreeNode{" +
-                " treeId=" + treeId +
-                ", nodeId=" + nodeId +
-                ", level=" + level() +
-                ", isLeaf=" + isLeaf +
-                ", party=" + party +
-                ", featureId=" + featureId +
-                ", thres=" + thres +
-                ", percentile=" + percentile +
-                ", prediction=" + prediction +
-                ", score=" + score +
-                ", numTreeNodes=" + numTreeNodes() +
-                ", referenceJson=" + referenceJson +
-                ", numSample=" + numSamples +
-                " }";
-    }
 
     public long level() {
         long i = 0;
@@ -127,16 +97,27 @@ public class TreeNodeRF {
         return 1 + numDescendants();
     }
 
-    public void makeLeaf(ClientInfo client) {
+    public void makeLeaf(String client) {
         // make a leaf
         isLeaf = true;
-        //prediction = DataUtils.mean(DataUtils.toSmpMatrix(y));
+        JsonObject referenceJson = new JsonObject();
+        if (referenceJsonStr != null) {
+            referenceJson = JsonParser.parseString(referenceJsonStr).getAsJsonObject();
+        }
         referenceJson.addProperty("is_leaf", 1);
         referenceJson.addProperty("prediction", prediction);
         party = client;
+        referenceJsonStr =referenceJson.toString();
+
     }
 
+    public int getNumSamples() {
+        return numSamples;
+    }
 
+    public Double getScore() {
+        return score;
+    }
 }
 
 

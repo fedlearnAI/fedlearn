@@ -22,6 +22,7 @@ import com.jdt.fedlearn.client.dao.ModelDao;
 import com.jdt.fedlearn.client.entity.inference.FetchRemote;
 import com.jdt.fedlearn.client.entity.inference.InferenceRequest;
 import com.jdt.fedlearn.client.entity.inference.PutRemote;
+import com.jdt.fedlearn.client.entity.prepare.KeyGenerateRequest;
 import com.jdt.fedlearn.client.entity.prepare.MatchRequest;
 import com.jdt.fedlearn.client.entity.local.ConfigUpdateReq;
 import com.jdt.fedlearn.client.entity.train.QueryProgress;
@@ -34,9 +35,11 @@ import com.jdt.fedlearn.client.util.*;
 import com.jdt.fedlearn.client.util.PacketUtil;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.enums.LocalUrlType;
+import com.jdt.fedlearn.common.tool.ResponseHandler;
+import com.jdt.fedlearn.common.tool.internel.ResponseConstruct;
 import com.jdt.fedlearn.common.util.*;
+import com.jdt.fedlearn.core.entity.Message;
 import org.apache.commons.cli.*;
-import org.checkerframework.checker.units.qual.A;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
@@ -107,33 +110,35 @@ public class HttpApp extends AbstractHandler {
                 return ResponseConstruct.errorJson(-2, "ipCheckPass failed");
             }
             //TODO 使用更高效率的方案替代，分布式系统系统内部交互无需用json
-            String remoteIP = HttpClientUtil.getRemoteIP(request);
+            String remoteIP = IpAddressUtil.getRemoteIP(request);
             Map<String, Object> modelMap = dispatch(url, content, remoteIP);
             String res = JsonUtil.object2json(modelMap);
-            return HttpClientUtil.compress(res);
+            return GZIPCompressUtil.compress(res);
         }
     }
 
     private Map<String, Object> localDispatch(String url, String content) throws JsonProcessingException {
         LocalUrlType urlType = LocalUrlType.urlOf(url);
-        assert urlType != null;
         switch (urlType) {
             // 模型下载
             case MODEL_DOWNLOAD: {
-                Map<String, Object> modelMap = new HashMap<>();
                 ObjectMapper mapper = new ObjectMapper();
                 Map json = mapper.readValue(content, Map.class);
                 String modelToken = (String) json.get("modelToken");
                 String modelString = ModelDao.downloadModel(modelToken);
                 if (modelString != null) {
+                    Map<String, Object> modelMap = new HashMap<>();
                     modelMap.put(ResponseConstant.CODE, 0);
                     modelMap.put(ResponseConstant.STATUS, "success");
+                    modelMap.put("modelString", modelString);
+                    return modelMap;
                 } else {
+                    Map<String, Object> modelMap = new HashMap<>();
                     modelMap.put(ResponseConstant.CODE, -1);
                     modelMap.put(ResponseConstant.STATUS, "fail");
+                    modelMap.put("modelString", modelString);
+                    return modelMap;
                 }
-                modelMap.put("modelString", modelString);
-                return modelMap;
             }
             // 模型上传
             case MODEL_UPLOAD: {
@@ -152,11 +157,6 @@ public class HttpApp extends AbstractHandler {
                 }
                 return modelMap;
             }
-            case CONFIG_RELOAD: {
-                ObjectMapper mapper = new ObjectMapper();
-                Map json = mapper.readValue(content, Map.class);
-                return LOCAL_SERVICE.reloadConfig(json);
-            }
             case CONFIG_UPDATE: {
                 ConfigUpdateReq configUpdateReq = JsonUtil.json2Object(content, ConfigUpdateReq.class);
                 if (configUpdateReq == null) {
@@ -166,15 +166,15 @@ public class HttpApp extends AbstractHandler {
             }
             case CONFIG_QUERY: {
                 Map<String, Object> data = LOCAL_SERVICE.queryConfig();
-                return ResponseConstruct.success(data);
+                return ResponseHandler.success(data);
             }
             case LOCAL_INFERENCE: {
                 InferenceStart inferenceStart = JsonUtil.json2Object(content, InferenceStart.class);
                 Map<String, Object> data = LOCAL_SERVICE.inference(inferenceStart);
-                return ResponseConstruct.success(data);
+                return ResponseHandler.success(data);
             }
             default: {
-                return ResponseConstruct.error("not exist path:" + url);
+                return ResponseHandler.error("not exist path:" + url);
             }
         }
     }
@@ -182,14 +182,6 @@ public class HttpApp extends AbstractHandler {
     private Map<String, Object> dispatch(String url, String content, String remoteIP) throws IOException {
 //        UrlType urlType = UrlType.valueOf(url);
         switch (url) {
-            // 接口测试
-            case "/co/test": {
-                Map<String, Object> modelMap = new HashMap<>();
-                modelMap.put("data", content);
-                modelMap.put(ResponseConstant.STATUS, "success");
-                modelMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
-                return modelMap;
-            }
             //训练相关
             case "/co/train/start": {
                 Map<String, Object> modelMap = new HashMap<>();
@@ -294,7 +286,7 @@ public class HttpApp extends AbstractHandler {
                     modelMap.put(ResponseConstant.STATUS, ResponseConstant.SUCCESS);
                 } catch (Exception e) {
                     logger.error("inference fetch api error :", e);
-                    modelMap = ResponseConstruct.error(e.getMessage());
+                    return ResponseConstruct.error(e.getMessage());
                 }
                 return modelMap;
             }
@@ -325,44 +317,43 @@ public class HttpApp extends AbstractHandler {
                 logger.info("request: " + LogUtil.logLine(content));
                 return prepareService.match(request);
             }
+            case "/co/prepare/key/generate": {
+                KeyGenerateRequest request = new KeyGenerateRequest();
+                request.parseJson(content);
+                logger.info("request: " + LogUtil.logLine(content));
+                Message retData = prepareService.generateKey(request);
+                return ResponseConstruct.success(retData);
+            }
             case "/api/system/model/delete": {
-                Map<String, Object> modelMap = new HashMap<>();
                 ObjectMapper mapper = new ObjectMapper();
                 Map json = mapper.readValue(content, Map.class);
                 String modelToken = (String) json.get("modelToken");
                 boolean status = systemService.deleteModel(modelToken);
                 if (status) {
-                    modelMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
-                    modelMap.put(ResponseConstant.STATUS, ResponseConstant.SUCCESS);
+                    return ResponseConstruct.success();
                 } else {
-                    modelMap.put(ResponseConstant.CODE, ResponseConstant.FAIL_CODE);
-                    modelMap.put(ResponseConstant.STATUS, ResponseConstant.FAIL);
+                    return ResponseConstruct.error(-2, "internal process error");
                 }
-                return modelMap;
             }
 
             case "/api/system/metadata/fetch": {
                 //无需参数
-                Map<String, Object> modelMap = new HashMap<>();
                 Map<String, Object> data = systemService.fetchMetadata();
-                String dataStr = JsonUtil.object2json(data);
                 if (data == null) {
-                    modelMap.put(ResponseConstant.CODE, ResponseConstant.FAIL_CODE);
-                    modelMap.put(ResponseConstant.STATUS, ResponseConstant.FAIL);
+                    return ResponseConstruct.error(-2, "internal process error");
                 } else {
+                    //TODO 修改data类型为map
+                    String dataStr = JsonUtil.object2json(data);
+                    Map<String, Object> modelMap = new HashMap<>();
                     modelMap.put(ResponseConstant.DATA, dataStr);
                     modelMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
                     modelMap.put(ResponseConstant.STATUS, ResponseConstant.SUCCESS);
+                    return modelMap;
                 }
-                return modelMap;
             }
 
-            default: {
-                Map<String, Object> modelMap = new HashMap<>();
-                modelMap.put(ResponseConstant.CODE, ResponseConstant.FAIL_CODE);
-                modelMap.put(ResponseConstant.STATUS, "not exist path");
-                return modelMap;
-            }
+            default:
+                return ResponseConstruct.error(-3, "not exist path");
         }
     }
 
@@ -378,6 +369,7 @@ public class HttpApp extends AbstractHandler {
         try {
             CommandLine commandLine = commandLineParser.parse(OPTIONS, args);
             String configPath = commandLine.getOptionValue("config", Constant.DEFAULT_CONF);
+            logger.info("get config file:" + configPath);
             if (!ConfigUtil.init(configPath)) {
                 logger.error("配置文件加载失败");
                 return;
@@ -388,7 +380,7 @@ public class HttpApp extends AbstractHandler {
         }
 
         //参数处理
-        int port = ConfigUtil.getPortElseDefault();
+        int port = ConfigUtil.getClientConfig().getAppPort();
         QueuedThreadPool threadPool = new QueuedThreadPool(2000, 200);
         Server server = new Server(threadPool);
         server.setHandler(new HttpApp());
@@ -397,7 +389,7 @@ public class HttpApp extends AbstractHandler {
         server.addConnector(connector);
         try {
             server.start();
-            logger.info("server is start with port:" + port + " and config file:" + ConfigUtil.getConfigFile());
+            logger.info("server is start with port:" + port);
             boolean flag = ConfigUtil.getJdChainAvailable();
             if (flag) {
                 JdChainUtils.init();

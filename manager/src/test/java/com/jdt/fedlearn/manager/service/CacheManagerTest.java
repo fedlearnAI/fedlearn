@@ -31,7 +31,6 @@ public class CacheManagerTest {
     public void setUp(){
         CacheManager cacheManager = new CacheManager();
         Map<String,String> param = new HashMap();
-        param.put(AppConstant.MANAGER_CACHE_TYPE,AppConstant.FIRST_CACHE);
         param.put(AppConstant.MANAGER_CACHE_KEY,CACHE_KEY);
         param.put(AppConstant.MANAGER_CACHE_VALUE,CACHE_VALUE);
         cacheManager.putCache(param);
@@ -39,7 +38,7 @@ public class CacheManagerTest {
 
     @Test
     public void putCache() {
-        String test = CacheManager.firstCacheMap.get(CACHE_KEY);
+        String test = CacheManager.modelAddressCacheMap.get(CACHE_KEY);
         Assert.assertEquals(CACHE_VALUE,test);
     }
 
@@ -47,7 +46,6 @@ public class CacheManagerTest {
     public void getCache() {
         putCache();
         Map<String,String> param = new HashMap();
-        param.put(AppConstant.MANAGER_CACHE_TYPE,AppConstant.FIRST_CACHE);
         param.put(AppConstant.MANAGER_CACHE_KEY,CACHE_KEY);
         CacheManager cacheManager = new CacheManager();
         String test = cacheManager.getCache(param);
@@ -58,7 +56,6 @@ public class CacheManagerTest {
     public void delCache() {
         putCache();
         Map<String,String> param = new HashMap();
-        param.put(AppConstant.MANAGER_CACHE_TYPE,AppConstant.FIRST_CACHE);
         param.put(AppConstant.MANAGER_CACHE_KEY,CACHE_KEY);
         CacheManager cacheManager = new CacheManager();
         cacheManager.delCache(param);

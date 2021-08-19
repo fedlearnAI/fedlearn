@@ -13,6 +13,7 @@ limitations under the License.
 package com.jdt.fedlearn.manager.task.local.impl;
 
 import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
 import com.jdt.fedlearn.common.enums.RunStatusEnum;
@@ -38,7 +39,7 @@ public class FinishExecutorImplTest {
         task.setTaskId("1");
         CommonResultStatus commonResultStatus = finishExecutor.run(task);
         Assert.assertEquals(commonResultStatus.getResultTypeEnum(), ResultTypeEnum.OTHER_FAIL);
-        Assert.assertTrue(task.getJob().getJobResult().getData().get(AppConstant.MESSAGE).toString().contains("DAG"));
+        Assert.assertTrue(task.getJob().getJobResult().getData().get(ResponseConstant.MESSAGE).toString().contains("DAG"));
     }
 
     @Test
@@ -53,7 +54,7 @@ public class FinishExecutorImplTest {
         task.setTaskId("1");
         CommonResultStatus commonResultStatus = finishExecutor.run(task);
         Assert.assertEquals(commonResultStatus.getResultTypeEnum(), ResultTypeEnum.OTHER_FAIL);
-        Assert.assertTrue(task.getJob().getJobResult().getData().get(AppConstant.MESSAGE).toString().contains("前置任务"));
+        Assert.assertTrue(task.getJob().getJobResult().getData().get(ResponseConstant.MESSAGE).toString().contains("前置任务"));
     }
 
     @Test

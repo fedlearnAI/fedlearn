@@ -14,6 +14,7 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.service.train;
 
 import com.jdt.fedlearn.common.constant.ResponseConstant;
+import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.constant.Constant;
@@ -217,7 +218,7 @@ public class TrainParameterServiceImpl implements TrainService {
             logger.info("matchAlgorithm " + parameter.getValue());
             single.put("defaultValue", parameter.getValue());
         } else {
-            single.put("defaultValue", MappingType.VERTICAL_MD5.name());
+            single.put("defaultValue", MappingType.MD5.name());
         }
         single.put("describe", MappingType.getMappings());
         single.put("type", ParameterType.STRING);

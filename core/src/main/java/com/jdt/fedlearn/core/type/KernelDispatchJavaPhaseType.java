@@ -25,15 +25,11 @@ public enum KernelDispatchJavaPhaseType {
 
     EMPTY_REQUEST(5),
 
-    EMPTY_REQUEST_1(6),
-
     VALIDATION_RESULT(7),
 
     INFERENCE_FILTER(-1),
 
     INFERENCE_EMPTY_REQUEST(-2),
-
-    INFERENCE_EMPTY_REQUEST_1(-3),
 
     INFERENCE_RESULT(-4);
 
@@ -42,31 +38,29 @@ public enum KernelDispatchJavaPhaseType {
     private final int phaseValue;
 
     public static KernelDispatchJavaPhaseType valueOf(int value) {
-        if (value == 1) {
-            return UPDATE_METRIC;
-        } else if (value == 2) {
-            return COMPUTE_LOSS;
-        } else if (value == 3) {
-            return VALIDATION_INIT;
-        } else if (value == 4) {
-            return VALIDATION_FILTER;
-        } else if (value == 5) {
-            return EMPTY_REQUEST;
-        } else if (value == 6) {
-            return EMPTY_REQUEST_1;
-        } else if (value == 7) {
-            return VALIDATION_RESULT;
-        } else if (value == -1) {
-            return INFERENCE_FILTER;
-        } else if (value == -2) {
-            return INFERENCE_EMPTY_REQUEST;
-        } else if (value == -3) {
-            return INFERENCE_EMPTY_REQUEST_1;
-        } else if (value == -4) {
-            return INFERENCE_EMPTY_REQUEST_1;
-        }
-        else {
-            throw new NotMatchException();
+        switch (value){
+            case 1:
+                return UPDATE_METRIC;
+            case 2:
+                return COMPUTE_LOSS;
+            case 3:
+                return VALIDATION_INIT;
+            case 4:
+                return VALIDATION_FILTER;
+            case 5:
+            case 6:
+                return EMPTY_REQUEST;
+            case 7:
+                return VALIDATION_RESULT;
+            case -1:
+                return INFERENCE_FILTER;
+            case -2:
+            case -3:
+                return INFERENCE_EMPTY_REQUEST;
+            case -4:
+                return INFERENCE_RESULT;
+            default:
+                throw new NotMatchException();
         }
     }
 

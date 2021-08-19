@@ -19,39 +19,22 @@ import com.jdt.fedlearn.core.loader.common.AbstractTrainData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.preprocess.MissingValueFilling;
 
-import java.util.Map;
 
 public class KernelLinearRegressionTrainData extends AbstractTrainData implements TrainData {
-    public int featureDim;
-    public int datasetSize;
-    private double[][] feature;
-    private double[] label;
-    private String labelName;
-
+    private final double[][] feature;
 
     public KernelLinearRegressionTrainData(String[][] rawTable, String[] idMap, Features features) {
         super.scan(rawTable, idMap, features);
-        //特征维度
-        featureDim = super.featureDim;
-        datasetSize = super.datasetSize;
         this.feature = super.sample;
-        this.labelName = features.getLabel();
-        if (hasLabel) {
-            this.label = super.label;
-        }
+
         MissingValueFilling filling = new MissingValueFilling(feature);
-        if(feature.length > 0) {
+        if (feature.length > 0) {
             filling.avgFilling();
         }
     }
-    public double[] getLabel() {
-        return label;
-    }
+
     public double[][] getFeature() {
         return feature;
     }
 
-    public String getLabelName() {
-        return labelName;
-    }
 }

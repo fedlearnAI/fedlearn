@@ -15,10 +15,12 @@ package com.jdt.fedlearn.client.cache;
 
 import com.jdt.fedlearn.client.constant.Constant;
 import com.jdt.fedlearn.client.entity.local.UpdateDataSource;
+import com.jdt.fedlearn.client.entity.source.DataSourceConfig;
 import com.jdt.fedlearn.client.type.SourceType;
 import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.client.dao.*;
 import com.jdt.fedlearn.common.util.CacheUtil;
+import com.jdt.fedlearn.common.util.FileUtil;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
 import com.jdt.fedlearn.core.loader.common.CommonLoad;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
@@ -44,43 +46,48 @@ public class InferenceDataCache {
     public static Map<String, List<UpdateDataSource>> dataSourceMap = new ConcurrentHashMap<>();
 
     private static String[][] loadInferenceData(String[] uidArray) {
-        String inferenceSource = ConfigUtil.inferenceSourceType();
+        List<DataSourceConfig> inferenceConfigs = ConfigUtil.getClientConfig().getInferenceSources();
+        DataSourceConfig inferenceConfig = inferenceConfigs.get(0);
         DataReader reader;
         //TODO 以反射实现
-        if (SourceType.CSV.getSourceType().equalsIgnoreCase(inferenceSource)) {
+        SourceType sourceType = inferenceConfig.getSourceType();
+        if (SourceType.CSV.equals(sourceType)) {
             reader = new CsvReader();
-        } else if (SourceType.MYSQL.getSourceType().equalsIgnoreCase(inferenceSource)) {
+        } else if (SourceType.MYSQL.equals(sourceType)) {
             reader = new MysqlReader();
-        } else if (SourceType.HTTP.getSourceType().equalsIgnoreCase(inferenceSource)) {
+        } else if (SourceType.HTTP.equals(sourceType)) {
             reader = new HttpReader();
-        } else if (SourceType.EMPTY.getSourceType().equalsIgnoreCase(inferenceSource)) {
+        } else if (SourceType.EMPTY.equals(sourceType)) {
             reader = new EmptyReader();
-        } else if (SourceType.HDFS.getSourceType().equalsIgnoreCase(inferenceSource)) {
+        } else if (SourceType.HDFS.equals(sourceType)) {
             reader = new HdfsReader();
         } else {
             throw new UnsupportedOperationException();
         }
-        return reader.loadInference(uidArray);
+        return reader.loadInference(inferenceConfig, uidArray);
     }
 
     private static String[][] loadValidationData(String[] uidArray) {
-        String validateSource = ConfigUtil.validateSourceType();
+        List<DataSourceConfig> inferenceConfigs = ConfigUtil.getClientConfig().getInferenceSources();
+        DataSourceConfig inferenceConfig = inferenceConfigs.get(0);
+        SourceType validateSource = inferenceConfig.getSourceType();
         DataReader reader;
+        DataSourceConfig config = ConfigUtil.getClientConfig().getTestSources().get(0);
         //TODO 以反射实现
-        if (SourceType.CSV.getSourceType().equalsIgnoreCase(validateSource)) {
+        if (SourceType.CSV.equals(validateSource)) {
             reader = new CsvReader();
-        } else if (SourceType.MYSQL.getSourceType().equalsIgnoreCase(validateSource)) {
+        } else if (SourceType.MYSQL.equals(validateSource)) {
             reader = new MysqlReader();
-        } else if (SourceType.HTTP.getSourceType().equalsIgnoreCase(validateSource)) {
+        } else if (SourceType.HTTP.equals(validateSource)) {
             reader = new HttpReader();
-        } else if (SourceType.EMPTY.getSourceType().equalsIgnoreCase(validateSource)) {
+        } else if (SourceType.EMPTY.equals(validateSource)) {
             reader = new EmptyReader();
-        } else if (SourceType.HDFS.getSourceType().equalsIgnoreCase(validateSource)) {
+        } else if (SourceType.HDFS.equals(validateSource)) {
             reader = new HdfsReader();
         } else {
             throw new UnsupportedOperationException();
         }
-        return reader.loadValidate(uidArray);
+        return reader.loadValidate(config,uidArray);
     }
 
 
@@ -91,8 +98,14 @@ public class InferenceDataCache {
         return filterIndexList;
     }
 
-    public static String[][] loadAndCache(String inferenceId, AlgorithmType algorithm, String[] uid) {
-        String[][] sample = loadInferenceData(uid);
+    public static String[][] loadAndCache(String inferenceId, AlgorithmType algorithm, String[] uid, String dataset) {
+        String[][] sample;
+        if (FileUtil.isFile(dataset)) {
+            CsvReader csvReader = new CsvReader();
+            sample = csvReader.loadData(dataset, uid);
+        } else {
+            sample = loadInferenceData(uid);
+        }
         cacheInferenceData(inferenceId, algorithm, sample);
         return sample;
     }
@@ -127,7 +140,7 @@ public class InferenceDataCache {
         INFERENCE_CACHE.putValue(inferenceId, inferenceData);
     }
 
-    private static void cacheValidateData(String inferenceId, AlgorithmType algorithm, String[][] sample,  Map<String, String> labelMap) {
+    private static void cacheValidateData(String inferenceId, AlgorithmType algorithm, String[][] sample, Map<String, String> labelMap) {
         if (null == sample) {
             throw new UnsupportedOperationException("sample is null");
         }
@@ -147,7 +160,7 @@ public class InferenceDataCache {
     //
     public static List<Integer> checkUid(String inferenceId, String[] uid, String[][] inferenceCacheFile) {
         List<Integer> filterIndexList = new ArrayList<>();
-        boolean useTrainUid2Inference = ConfigUtil.useTrainUid2Inference();
+        boolean useTrainUid2Inference = ConfigUtil.getClientConfig().isAllowTrainUid();
         long s2 = System.currentTimeMillis();
         if (!useTrainUid2Inference) {
             //判断uid是否存在于训练数据,
@@ -195,12 +208,12 @@ public class InferenceDataCache {
     private static String[][] removeLabel(String[][] rawData, String labelName) {
         int labelIndex = getLabelIndex(rawData, labelName);
         String[][] res;
-        if (labelIndex == rawData[0].length)  {
+        if (labelIndex == rawData[0].length) {
             res = new String[rawData.length][rawData[0].length];
         } else {
             res = new String[rawData.length][rawData[0].length - 1];
         }
-        for (String[] resRow: res) {
+        for (String[] resRow : res) {
             Arrays.fill(resRow, "");
         }
         for (int row = 0; row < rawData.length; row++) {
@@ -211,7 +224,7 @@ public class InferenceDataCache {
                     continue;
                 }
                 if (afterLabel == 1) {
-                    res[row][col-1] = rawData[row][col];
+                    res[row][col - 1] = rawData[row][col];
                 } else {
                     res[row][col] = rawData[row][col];
                 }
@@ -219,6 +232,7 @@ public class InferenceDataCache {
         }
         return res;
     }
+
     // 获取label
     private static Map<String, String> getLabel(String[][] rawData, String labelName) {
         int labelIndex = getLabelIndex(rawData, labelName);
@@ -232,6 +246,7 @@ public class InferenceDataCache {
         }
         return labelMap;
     }
+
     // 计算label所在列
     private static int getLabelIndex(String[][] rawData, String labelName) {
         int labelIndex = rawData[0].length;

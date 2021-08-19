@@ -13,8 +13,6 @@ import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.verticalLinearRegression.*;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.parameter.VerticalLinearParameter;
-import com.jdt.fedlearn.core.psi.MappingOutput;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.MetricType;
@@ -247,7 +245,7 @@ public class TestVerticalLinearRegression {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         VerticalLinearRegression verticalLinearRegression = new VerticalLinearRegression(new VerticalLinearParameter());
         String[] predUid = new String[]{"0A", "1B", "2C"};
-        List<CommonRequest> requests = verticalLinearRegression.initInference(clientInfos, predUid);
+        List<CommonRequest> requests = verticalLinearRegression.initInference(clientInfos, predUid,new HashMap<>());
         Assert.assertEquals(clientInfos.size(), requests.size());
         CommonRequest commonRequest = requests.get(0);
         Message message = commonRequest.getBody();
@@ -284,7 +282,7 @@ public class TestVerticalLinearRegression {
 //        data[0] = new String[]{"aa", "10", "12.1"};
 //        data[1] = new String[]{"1a", "10", "12.1"};
         VerticalLinearRegression verticalLinearRegression = new VerticalLinearRegression(new VerticalLinearParameter());
-        List<CommonRequest> requests = verticalLinearRegression.initInference(clientInfos, predUid);
+        List<CommonRequest> requests = verticalLinearRegression.initInference(clientInfos, predUid,new HashMap<>());
         InferenceInitRes response1 = new InferenceInitRes(false, new int[]{0});
         InferenceInitRes response2 = new InferenceInitRes(false, new int[]{1});
         InferenceInitRes response3 = new InferenceInitRes(false, new int[]{2});
@@ -308,7 +306,7 @@ public class TestVerticalLinearRegression {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         String[] predUid = new String[]{"aa", "1a", "c3"};
         VerticalLinearRegression verticalLinearRegression = new VerticalLinearRegression(new VerticalLinearParameter());
-        List<CommonRequest> requests = verticalLinearRegression.initInference(clientInfos, predUid);
+        List<CommonRequest> requests = verticalLinearRegression.initInference(clientInfos, predUid,new HashMap<>());
         InferenceInitRes response1 = new InferenceInitRes(false, new int[]{0});
         InferenceInitRes response2 = new InferenceInitRes(false, new int[]{1});
         InferenceInitRes response3 = new InferenceInitRes(false, new int[]{});

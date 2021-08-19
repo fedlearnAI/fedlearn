@@ -21,10 +21,10 @@ public final class FgbModelSerializer implements ModelSerializer {
     private final Loss loss;
     private final double firstRoundPred;
     private final double eta;
-    private final LinkedHashMap<Integer, QueryEntry> passiveQueryTable;
+    private final List<QueryEntry> passiveQueryTable;
     private final List<Double> multiClassUniqueLabelList;
 
-    public FgbModelSerializer(List<Tree> trees, Loss loss, double firstRoundPred, double eta, LinkedHashMap<Integer, QueryEntry> passiveQueryTable, List<Double> multiClassUniqueLabelList) {
+    public FgbModelSerializer(List<Tree> trees, Loss loss, double firstRoundPred, double eta,List<QueryEntry>  passiveQueryTable, List<Double> multiClassUniqueLabelList) {
         this.trees = trees;
         this.loss = loss;
         this.firstRoundPred = firstRoundPred;
@@ -57,7 +57,7 @@ public final class FgbModelSerializer implements ModelSerializer {
         } else {
             loss = new crossEntropy();
         }
-        LinkedHashMap<Integer, QueryEntry> passiveQueryTable = deserializeQueryTable(lines[lineStart + 3].split("=")[1]);
+        List<QueryEntry>  passiveQueryTable = deserializeQueryTable(lines[lineStart + 3].split("=")[1]);
 
         List<Double> multiClassUniqueLabelList = new ArrayList<>();
         for (String label : lines[lineStart + 5].split(" ")) {
@@ -137,11 +137,11 @@ public final class FgbModelSerializer implements ModelSerializer {
         return new FgbModelSerializer(trees, loss, first_round_predict, eta, passiveQueryTable, multiClassUniqueLabelList);
     }
 
-    private static LinkedHashMap<Integer, QueryEntry> deserializeQueryTable(String content) {
+    private static List<QueryEntry>  deserializeQueryTable(String content) {
         ObjectMapper mapper = new ObjectMapper();
-        LinkedHashMap<Integer, QueryEntry> p1r;
+        List<QueryEntry>  p1r;
         try {
-            p1r = mapper.readValue(content, new TypeReference<LinkedHashMap<Integer, QueryEntry>>() {
+            p1r = mapper.readValue(content, new TypeReference<List<QueryEntry>>() {
             });
             return p1r;
         } catch (IOException e) {
@@ -188,7 +188,7 @@ public final class FgbModelSerializer implements ModelSerializer {
         return sb.toString();
     }
 
-    private static String serializeQueryTable(LinkedHashMap<Integer, QueryEntry> passiveQueryTable) {
+    private static String serializeQueryTable(List<QueryEntry>  passiveQueryTable) {
         String jsonStr = null;
         ObjectMapper objectMapper = new ObjectMapper();
         try {
@@ -204,7 +204,7 @@ public final class FgbModelSerializer implements ModelSerializer {
     }
 
     //Serialize the FederatedGB model into txt file
-    public String saveModel(double first_round_predict, double eta, Loss loss, List<Tree> trees, LinkedHashMap<Integer, QueryEntry> passiveQueryTable, List<Double> multiClassUniqueLabelList) {
+    public String saveModel(double first_round_predict, double eta, Loss loss, List<Tree> trees, List<QueryEntry>  passiveQueryTable, List<Double> multiClassUniqueLabelList) {
         StringBuilder sb = new StringBuilder();
         sb.append("first_round_predict=").append(first_round_predict).append("\n");
         sb.append("eta=").append(eta).append("\n");
@@ -271,7 +271,7 @@ public final class FgbModelSerializer implements ModelSerializer {
         return eta;
     }
 
-    public LinkedHashMap<Integer, QueryEntry> getPassiveQueryTable() {
+    public List<QueryEntry>  getPassiveQueryTable() {
         return passiveQueryTable;
     }
 

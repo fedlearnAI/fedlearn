@@ -94,6 +94,9 @@ public class JdChainBaseMapper implements InitializingBean {
     @Value("${jdchain.ledger_address}")
     private String ledgerAddress;
 
+    @Value("${jdchain.task_table_address}")
+    private String taskTableAddress;
+
     @Override
     public void afterPropertiesSet() throws Exception {
         try {
@@ -480,4 +483,5 @@ public class JdChainBaseMapper implements InitializingBean {
         }
         return true;
     }
+
 }

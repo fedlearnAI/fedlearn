@@ -13,8 +13,6 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.preprocess;
 
-import com.jdt.fedlearn.core.psi.MappingOutput;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,13 +74,13 @@ public class TrainTestSplit {
 
 
     //TODO 改为没有mappingout版本
-    public static Tuple2<MappingOutput, List<String>> trainTestSplit(MappingOutput output, double n, int randomSeed) {
-        List<String> uidList = new ArrayList<>(output.getAnyResult().getContent().values());
-        Tuple2<List<String>, List<String>> tmp = trainTestSplit(uidList, n, randomSeed);
-        List<String> train = tmp._1();
-        MappingOutput trainRes = new MappingOutput(output.getClientInfos(), new MappingResult(train), output.getReport());
-        return new Tuple2<>(trainRes, tmp._2());
-    }
+//    public static Tuple2<MappingOutput, List<String>> trainTestSplit(MappingOutput output, double n, int randomSeed) {
+//        List<String> uidList = new ArrayList<>(output.getAnyResult().getContent().values());
+//        Tuple2<List<String>, List<String>> tmp = trainTestSplit(uidList, n, randomSeed);
+//        List<String> train = tmp._1();
+//        MappingOutput trainRes = new MappingOutput(output.getClientInfos(), new MappingResult(train), output.getReport());
+//        return new Tuple2<>(trainRes, tmp._2());
+//    }
 }
 
 

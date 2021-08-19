@@ -7,7 +7,6 @@ import com.jdt.fedlearn.core.entity.common.*;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.verticalFDNN.VFDNNMessage;
 import com.jdt.fedlearn.core.parameter.VerticalFDNNParameter;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.*;
 import com.jdt.fedlearn.core.type.AlgorithmType;
@@ -103,7 +102,7 @@ public class VerticalFDNN implements Control {
     }
 
     @Override
-    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid) {
+    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid,Map<String, Object> others) {
         idArray = predictUid;
         clientInfoList = clientInfos;
         originIdArray = predictUid;

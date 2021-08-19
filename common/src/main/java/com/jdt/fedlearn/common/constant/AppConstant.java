@@ -16,47 +16,6 @@ package com.jdt.fedlearn.common.constant;
  * @Description: app常量
  */
 public class AppConstant {
-
-    /**
-     * 返回提示消息
-     */
-    public static final String MESSAGE = "msg";
-    /**
-     * 返回数据
-     */
-    public static final String DATA = "data";
-    /**
-     * 返回状态码
-     */
-    public static final String STATUS = "status";
-    /**
-     * 返回代码
-     */
-    public static final String CODE = "code";
-    /**
-     * 消息时间
-     */
-    public static final String TIMESTAMP = "timestamp";
-    /**
-     * 接口版本
-     */
-    public static final String API_VERSION = "apiversion";
-    /**
-     * 当前页
-     */
-    public static final String PAGE_NUM = "pageNum";
-    /**
-     * 每页的数量
-     */
-    public static final String PAGE_SIZE = "pageSize";
-    /**
-     * 总页数
-     */
-    public static final String PAGE_COUNT = "pageCount";
-    /**
-     * 总记录数
-     */
-    public static final String RECORD_COUNT = "recordCount";
     /**
      * @分隔符
      */
@@ -74,6 +33,10 @@ public class AppConstant {
      */
     public static final String COLON = ":";
     /**
+     * url /分隔符
+     */
+    public static final String SLASH = "/";
+    /**
      * 服务器配置
      */
 
@@ -84,6 +47,7 @@ public class AppConstant {
     public static String DEFAULT_WORKER_CONF = "/conf/worker.properties";
 
     public static final String INIT_SUCCESS = "init_success";
+
     public static final String INIT_FAILED = "init_failed";
 
     public static final String MANAGER_CACHE_TYPE = "cacheType";
@@ -92,13 +56,25 @@ public class AppConstant {
 
     public static final String MANAGER_CACHE_VALUE = "cacheValue";
 
-    public static final String MODEL_CACHE = "modelCache";
+    public static final String MODEL_ADDRESS_CACHE = "modelAddressCache";
 
-    public static final String TREE_CACHE = "treeCache";
+    public static final String MODEL_COUNT_CACHE = "modelCount";
 
-    public static final String ADDRESS_CACHE = "addressCache";
+    public static final String RESULT_ADDRESS_CACHE = "resultAddressCache";
 
-    public static final String FIRST_CACHE = "firstCache";
+    public static final String HTTP_PREFIX = "http://";
+
+    public static final String MODEL_KEY = "model";
+
+    public static final String TRAIN_DATA_KEY = "trainData";
+
+    public static final String MODEL_UPDATE_KEY = "modelUpdateKey";
+
+    public static final String MODEL_UPDATE_VALUE = "modelUpdateValue";
+
+    public static final String DATA_UPDATE_KEY = "dataUpdateKey";
+
+    public static final String DATA_UPDATE_Value = "dataUpdateValue";
 
 
 }

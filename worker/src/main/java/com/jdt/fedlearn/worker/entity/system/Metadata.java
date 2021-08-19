@@ -12,7 +12,7 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.entity.system;
 
-import com.jdt.fedlearn.worker.entity.Feature;
+import com.jdt.fedlearn.client.entity.Feature;
 
 import java.util.List;
 

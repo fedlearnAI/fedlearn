@@ -374,7 +374,7 @@ public class Metric {
 
     public static double KS(double[] pred, double[] label) {
         Double[][] ksCurve = calculateKSCurve(pred, label);
-        List<Double> ys = IntStream.range(0, ksCurve.length).mapToDouble(i -> ksCurve[i][1]).boxed().collect(Collectors.toList());
+        List<Double> ys = Arrays.stream(ksCurve).mapToDouble(doubles -> doubles[1]).boxed().collect(Collectors.toList());
         return Collections.max(ys);
     }
 

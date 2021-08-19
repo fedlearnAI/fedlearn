@@ -1,11 +1,12 @@
 package com.jdt.fedlearn.coordinator.allocation;
 
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.util.CacheUtil;
-import com.jdt.fedlearn.coordinator.entity.train.StartValues;
+import com.jdt.fedlearn.coordinator.entity.inference.RemotePredict;
+import com.jdt.fedlearn.coordinator.entity.prepare.MatchStartReq;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.entity.train.TrainStatus;
 import com.jdt.fedlearn.coordinator.service.train.TrainCommonServiceImpl;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
 import com.jdt.fedlearn.core.entity.serialize.Serializer;
 import org.slf4j.Logger;
@@ -16,8 +17,9 @@ import java.time.ZoneOffset;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
 /**
- *  @author fanmingjie
+ * @author fanmingjie
  */
 public class ResourceManager {
     private static final Logger logger = LoggerFactory.getLogger(ResourceManager.class);
@@ -66,7 +68,7 @@ public class ResourceManager {
      * @param modelToken 任务token;
      * @return 任务状态
      */
-    public static void submitChainTrain( String modelToken) {
+    public static void submitChainTrain(String modelToken) {
         try {
             POOL.execute(new ChainMultiTrain(modelToken));
         } catch (Exception e) {
@@ -80,9 +82,20 @@ public class ResourceManager {
      *
      * @param matchToken 任务token;
      */
-    public static void submitMatch(String matchToken, String userName) {
+    public static void submitMatch(String matchToken, MatchStartReq query) {
+        POOL.execute(new MultiMatch(matchToken, query));
+    }
+
+
+    /**
+     * 提交后台推理任务
+     *
+     * @param inferenceId 任务token;
+     * @param remotePredict
+     */
+    public static void submitInference(String inferenceId, RemotePredict remotePredict) {
         try {
-            POOL.execute(new MultiMatch(matchToken,userName));
+            POOL.execute(new MultiInference(inferenceId, remotePredict));
         } catch (Exception e) {
             logger.error("submit match pool execute error :", e);
         }

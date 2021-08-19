@@ -15,7 +15,7 @@ package com.jdt.fedlearn.frontend.mapper.merchant;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.jdt.fedlearn.frontend.jdchain.config.JdChainFalseCondition;
-import com.jdt.fedlearn.frontend.mapper.entity.Merchant;
+import com.jdt.fedlearn.frontend.entity.table.MerchantDO;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.context.annotation.Conditional;
@@ -23,6 +23,6 @@ import org.springframework.context.annotation.Conditional;
 
 @Conditional(JdChainFalseCondition.class)
 @Mapper
-public interface MerchantDbMapper extends BaseMapper<Merchant> {
+public interface MerchantDbMapper extends BaseMapper<MerchantDO> {
 
 }

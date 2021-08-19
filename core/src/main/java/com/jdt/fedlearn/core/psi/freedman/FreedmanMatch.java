@@ -18,7 +18,7 @@ import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.psi.*;
-import com.jdt.fedlearn.core.psi.MappingReport;
+import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.psi.Prepare;
 import com.jdt.fedlearn.core.type.FreedmanType;
 import com.jdt.fedlearn.core.type.MappingType;
@@ -26,7 +26,7 @@ import com.jdt.fedlearn.core.type.MappingType;
 import java.util.*;
 
 /**
- * 基于Freedman协议的ID对齐Master端算法，当前仅支持数字类型id，如"124545"；不支持字符类型，如"jd1232_dsf";
+ * 基于Freedman协议的ID对齐Master端算法，当前仅支持数字类型id，如"124545"；不支持字符类型，如"jd1232_dsf";且当前算法要求各方ID相乘不能超过Double的最大值
  * 基于 Freedman 协议的 ID 对齐算法一共分为五个步骤
  * <p>1：初始化阶段</p>
  * <p>master向各个client发送对齐请求，请求返回各方 ID 长度</p>
@@ -51,6 +51,17 @@ public class FreedmanMatch implements Prepare {
     private int phase = FreedmanType.SelectActiveClient.getPhase();
     // 对齐长度
     private int matchedLength;
+
+    public FreedmanMatch() {
+    }
+
+    public FreedmanMatch(List<ClientInfo> clientInfos, ClientInfo activeClient, boolean isContinue, int phase, int matchedLength) {
+        this.clientInfos = clientInfos;
+        this.activeClient = activeClient;
+        this.isContinue = isContinue;
+        this.phase = phase;
+        this.matchedLength = matchedLength;
+    }
 
     /**
      * master端向各个客户端发送请求希望收集各个客户端模糊后的id长度
@@ -173,7 +184,7 @@ public class FreedmanMatch implements Prepare {
     private List<CommonRequest> distributeIndex(List<CommonResponse> responses) {
         List<CommonRequest> requests = new ArrayList<>();
         if (!(responses.get(0).getBody() instanceof FreedmanPassiveIdxMap)) {
-            throw new UnsupportedOperationException("Freedman ID match should has type FreedmanReq3.");
+            throw new UnsupportedOperationException("Freedman ID match should has type FreedmanPassiveIdxMap.");
         }
         FreedmanPassiveIdxMap freedmanPassiveIdxMap = (FreedmanPassiveIdxMap) responses.get(0).getBody();
         Map<ClientInfo, int[]> passiveIdxMap = freedmanPassiveIdxMap.getIndexResMap();
@@ -188,9 +199,9 @@ public class FreedmanMatch implements Prepare {
     }
 
     @Override
-    public MappingReport postMaster(List<CommonResponse> responses) {
+    public MatchResult postMaster(List<CommonResponse> responses) {
         String report = "freedman mapping result is: " + matchedLength;
-        return new MappingReport(report, matchedLength);
+        return new MatchResult(matchedLength, report);
 
     }
 

@@ -13,14 +13,15 @@ limitations under the License.
 package com.jdt.fedlearn.common.enums;
 
 public enum RunningType {
-
+    READY("ready"),
     RUNNING("running"),
     SUSPEND("suspend"),
-    RESUME("resume"),
     WAITING("waiting"),
     COMPLETE("complete"),
+    VALIDATE("validate"),
     STOP("stop"),
-    FAIL("fail");
+    FAIL("fail"),
+    RESUME("resume");
 
 
     private final String runningType;

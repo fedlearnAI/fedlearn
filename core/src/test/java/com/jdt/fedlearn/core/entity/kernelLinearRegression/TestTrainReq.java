@@ -18,7 +18,7 @@ public class TestTrainReq {
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
         TrainReq trainReq = (TrainReq) message;
-        ClientInfo clientInfo = new ClientInfo();
+        ClientInfo clientInfo = new ClientInfo(null,0,null,"0","0");
         Assert.assertEquals(trainReq.getClient(),clientInfo);
         Assert.assertEquals(trainReq.isUpdate(),false);
         Assert.assertEquals(trainReq.getValueList().length,0);
@@ -27,7 +27,7 @@ public class TestTrainReq {
 
     @Test
     public void jsonSerialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainReq\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"isUpdate\":false,\"valuelist\":[],\"sampleIndex\":[],\"numClassRound\":0,\"bestRound\":0}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainReq\",\"DATA\":{\"client\":{\"port\":0},\"isUpdate\":false,\"valuelist\":[],\"sampleIndex\":[],\"numClassRound\":0,\"bestRound\":0,\"clientInd\":0}}";
         Serializer serializer = new JsonSerializer();
         ClientInfo clientInfo = new ClientInfo();
         boolean isUpdate = false;

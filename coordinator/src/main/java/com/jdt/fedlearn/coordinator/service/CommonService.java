@@ -14,12 +14,19 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.service;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
+import com.jdt.fedlearn.common.util.LogUtil;
 import com.jdt.fedlearn.coordinator.exception.ForbiddenException;
 import com.jdt.fedlearn.coordinator.exception.NotAcceptableException;
+import com.jdt.fedlearn.coordinator.exception.UnknownInterfaceException;
+import com.jdt.fedlearn.core.exception.DeserializeException;
+import com.jdt.fedlearn.core.exception.NotMatchException;
 import org.apache.commons.lang3.StringUtils;
 
+import java.text.ParseException;
+import java.io.IOException;
 import java.util.Map;
 
 
@@ -47,12 +54,22 @@ public class CommonService {
      * @return 公共异常处理结果
      */
     public static Map<String, Object> exceptionProcess(Exception ex, Map<String, Object> modelMap) {
-        if (ex instanceof NotAcceptableException || ex instanceof ForbiddenException) {
+        if (ex instanceof NotAcceptableException || ex instanceof ForbiddenException || ex instanceof IllegalArgumentException || ex instanceof NotMatchException) {
             modelMap.put(ResponseConstant.CODE, -1);
-            modelMap.put(ResponseConstant.STATUS, ex.getMessage());
+            modelMap.put(ResponseConstant.STATUS, LogUtil.logLine(ex.getMessage()));
+            return modelMap;
+        } else if (ex instanceof UnknownInterfaceException) {
+            modelMap.put(ResponseConstant.CODE, -2);
+            modelMap.put(ResponseConstant.STATUS, String.format("未知接口异常: %s ", LogUtil.logLine(ex.getMessage())));
+            return modelMap;
+        } else if (ex instanceof IOException || ex instanceof ParseException || ex instanceof DeserializeException) {
+            modelMap.put(ResponseConstant.CODE, -3);
+            modelMap.put(ResponseConstant.STATUS, String.format("反序列化异常: %s ", LogUtil.logLine(ex.getMessage())));
             return modelMap;
         } else {
-            return null;
+            modelMap.put(ResponseConstant.CODE, -4);
+            modelMap.put(ResponseConstant.STATUS, String.format("未知异常: %s ", LogUtil.logLine(ex.getMessage())));
+            return modelMap;
         }
     }
 }

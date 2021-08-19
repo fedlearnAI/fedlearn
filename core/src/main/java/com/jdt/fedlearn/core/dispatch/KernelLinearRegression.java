@@ -130,7 +130,7 @@ public class KernelLinearRegression implements Control {
 
     }
 
-    //Phase 1: master send request to ask all passive parties compute w*x on local machines.
+    //Phase 1: master mockSend request to ask all passive parties compute w*x on local machines.
     public List<CommonRequest> controlPhase1(String trainId, List<CommonResponse> response) {
         logger.info("Algo phase 0 on master machine" + splitLine);
         List<CommonRequest> commonRequests = new ArrayList<>();
@@ -189,7 +189,7 @@ public class KernelLinearRegression implements Control {
         return commonRequests;
     }
 
-    //Phase 1: master send request to ask all passive parties compute w*x on local machines.
+    //Phase 1: master mockSend request to ask all passive parties compute w*x on local machines.
     public List<CommonRequest> controlPhase2(String trainId, List<CommonResponse> response) {
         logger.info("Algo phase 2 processing on master" + splitLine);
         List<CommonRequest> commonRequests = new ArrayList<>();
@@ -204,7 +204,7 @@ public class KernelLinearRegression implements Control {
         return commonRequests;
     }
 
-    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid) {
+    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid,Map<String, Object> others) {
         phase = -255;
         originIdArray = predictUid;
         clientInfoList = clientInfos;

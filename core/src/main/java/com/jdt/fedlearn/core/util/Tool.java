@@ -16,7 +16,13 @@ package com.jdt.fedlearn.core.util;
 
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.paillier.PaillierCiphertext;
+import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.boost.Bucket;
+import com.jdt.fedlearn.core.entity.common.CommonRequest;
+import com.jdt.fedlearn.core.entity.common.CommonResponse;
+import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 
 import java.text.DecimalFormat;
@@ -26,6 +32,36 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Tool {
+    public static long factorial(long n) {
+        if (n == 0) {
+            return 1;
+        } else {
+            return (n * factorial(n - 1));
+        }
+    }
+
+    public static List<CommonRequest> geneEmptyReq(List<CommonResponse> responses, int phase) {
+        List<CommonRequest> res = new ArrayList<>();
+        for (CommonResponse entry : responses) {
+            ClientInfo client = entry.getClient();
+            CommonRequest request = new CommonRequest(client, EmptyMessage.message(), phase);
+            request.setBody(new EmptyMessage());
+            res.add(request);
+        }
+        return res;
+    }
+
+    public static List<CommonRequest> geneEmptyReq(List<CommonResponse> responses, int phase, Message msg) {
+        List<CommonRequest> res = new ArrayList<>();
+        for (CommonResponse entry : responses) {
+            ClientInfo client = entry.getClient();
+            CommonRequest request = new CommonRequest(client, EmptyMessage.message(), phase);
+            request.setBody(msg);
+            res.add(request);
+        }
+        return res;
+    }
+
     public static double[] arrayAppend(double[] a, double b) {
         double[] arr = new double[a.length + 1];//开辟新数组长度为两数组之和
         for (int i = 0; i < a.length; i++) {//拷贝a数组到目标数组arr
@@ -428,14 +464,14 @@ public class Tool {
         return (T) ts.toArray()[index];
     }
 
-    public static String getMetricArrString(Map<String, Double[][]> metricArrMap) {
+    public static String getMetricArrString(Map<MetricType, Double[][]> metricArrMap) {
         String metricArrRes = "";
         String[] metricArrString = new String[metricArrMap.size()];
         int idx = 0;
-        for (Map.Entry<String, Double[][]> matricArri : metricArrMap.entrySet()) {
+        for (Map.Entry<MetricType, Double[][]> matricArri : metricArrMap.entrySet()) {
             Double[][] metricArrValue = matricArri.getValue();
             String metricValueStr = getMetricArr(metricArrValue);
-            metricArrString[idx] = matricArri.getKey() + ": " + "[" + metricValueStr + "]";
+            metricArrString[idx] = matricArri.getKey().getMetric() + ": " + "[" + metricValueStr + "]";
             idx += 1;
         }
         metricArrRes = String.join(";;", metricArrString);

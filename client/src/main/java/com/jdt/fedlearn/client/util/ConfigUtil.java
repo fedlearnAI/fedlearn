@@ -14,11 +14,7 @@ limitations under the License.
 package com.jdt.fedlearn.client.util;
 
 import ch.qos.logback.core.joran.spi.JoranException;
-import com.jdt.fedlearn.client.cache.InferenceDataCache;
-import com.jdt.fedlearn.client.cache.ModelCache;
 import com.jdt.fedlearn.client.cache.TrainDataCache;
-import com.jdt.fedlearn.client.constant.Constant;
-import com.jdt.fedlearn.client.entity.local.UpdateDataSource;
 import com.jdt.fedlearn.client.entity.source.*;
 import com.jdt.fedlearn.common.entity.jdchain.JdChainConfig;
 import com.jdt.fedlearn.common.exception.ConfigParseException;
@@ -36,24 +32,33 @@ import java.util.*;
 
 
 /**
- *
+ * 初始化时，从文件加载配置，并赋值给FullConfig类对象，后续统一在
  */
 public class ConfigUtil {
     private static final Logger logger = LoggerFactory.getLogger(ConfigUtil.class);
     /**
      * 配置文件必须参数
      */
-    public static final String APP_NAME = "app.name";
-    public static final String APP_PORT = "app.port";
-    public static final String LOG_SETTINGS = "log.settings";
-    public static final String MASTER_ADDRESS = "master.address";
+    private static final String APP_NAME = "app.name";
+    private static final String APP_PORT = "app.port";
+    private static final String LOG_SETTINGS = "log.settings";
+    private static final String MASTER_ADDRESS = "master.address";
+    private static final String AUTH_TOKEN = "auth.token";
+    private static final String MODEL_DIR = "model.dir";
+    private static final String MATCH_DIR = "match.dir";
+    private static final String INFERENCE_ALLOW_TRAIN_UID = "inference.allowTrainUid";
+    private static final String MASTER_BELONG = "master.belong";
+
 
     /**
      * 配置相关参数
      */
-    private static FullConfig config;
+    private static ClientConfig clientConfig;
     private static Properties properties;
     private static String filePath;
+
+    private ConfigUtil() {
+    }
 
 
     public static boolean init(String filePath) throws IOException, JoranException {
@@ -63,8 +68,7 @@ public class ConfigUtil {
         properties = new Properties();
         try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8))) {
             properties.load(bufferedReader);
-            config = parse(properties);
-
+            clientConfig = parse(properties);
             if (!checkConfigValid(properties)) {
                 throw new ConfigParseException("配置文件格式校验失败");
             }
@@ -75,44 +79,25 @@ public class ConfigUtil {
         //logback配置文件加载
         LogbackConfigLoader.load(getProperty(LOG_SETTINGS));
         //
-        ModelCache.start();
-        trainConfigList();
         return isInit;
     }
 
-    public static FullConfig parse(Properties properties) {
-        String appName = properties.getProperty("app.name");
-        String appPort = properties.getProperty("app.port");
-        String logSettings = properties.getProperty("log.settings");
-        String masterAddress = properties.getProperty("master.address");
-        String token = properties.getProperty("auth.token");
+    private static ClientConfig parse(Properties properties) {
+        String appName = properties.getProperty(APP_NAME);
+        int appPort = Integer.parseInt(properties.getProperty(APP_PORT));
+        String logSettings = properties.getProperty(LOG_SETTINGS);
+        String masterAddress = properties.getProperty(MASTER_ADDRESS);
+        String token = properties.getProperty(AUTH_TOKEN);
         List<DataSourceConfig> trainSources = trainConfigList();
-        List<DataSourceConfig> testSources = trainConfigList();
-        List<DataSourceConfig> inferenceSources = trainConfigList();
+        List<DataSourceConfig> testSources = new ArrayList<>();
+        List<DataSourceConfig> inferenceSources = inferenceConfigList();
+        ClientConfig clientConfig = new ClientConfig(appName, appPort, logSettings, masterAddress, token, trainSources, testSources, inferenceSources);
+        clientConfig.setModelDir(properties.getProperty(MODEL_DIR));
+        clientConfig.setMatchDir(properties.getProperty(MATCH_DIR));
+        clientConfig.setAllowTrainUid(Boolean.parseBoolean(properties.getProperty(INFERENCE_ALLOW_TRAIN_UID)));
+        clientConfig.setMasterBelong(properties.getProperty(MASTER_BELONG));
 
-        return new FullConfig(appName, appPort, logSettings, masterAddress, token, trainSources, testSources, inferenceSources);
-    }
-
-    /**
-     * 重新加载配置，可以重新制定路径
-     *
-     * @param filePath
-     */
-    public static boolean reload(String filePath) {
-        // 如果入参为空，使用默认filepath
-        boolean isReload;
-        try {
-            if (Objects.isNull(filePath) || filePath.isEmpty()) {
-                isReload = init(ConfigUtil.filePath);
-            } else {
-                // 重新加载配置文件
-                isReload = init(filePath);
-            }
-        } catch (Exception e) {
-            isReload = false;
-            logger.error("重新加载配置文件失败", e);
-        }
-        return isReload;
+        return clientConfig;
     }
 
     /**
@@ -120,7 +105,7 @@ public class ConfigUtil {
      *
      * @return
      */
-    public static boolean checkConfigValid(Properties properties) {
+    private static boolean checkConfigValid(Properties properties) {
         final Properties filterProperties = Optional.ofNullable(properties)
                 .filter(a -> a.containsKey(APP_NAME) && Objects.nonNull(a.getProperty(APP_NAME)))
                 .filter(b -> b.containsKey(APP_PORT) && Objects.nonNull(b.getProperty(APP_PORT)))
@@ -128,10 +113,6 @@ public class ConfigUtil {
                 .filter(d -> d.containsKey(MASTER_ADDRESS) && Objects.nonNull(d.getProperty(MASTER_ADDRESS)))
                 .orElse(null);
         return Objects.nonNull(filterProperties);
-    }
-
-    public static String getConfigFile() {
-        return filePath;
     }
 
     public static String getProperty(String propertyName) {
@@ -143,134 +124,35 @@ public class ConfigUtil {
         return res.trim();
     }
 
-    // idMatch结果输出的配置文件加载 - 当前默认只用csv储存
-    public static String getIdMatchDir() {
-        return getProperty("idMatch.dir");
-    }
-
-    public static String getModelDir() {
-        return getProperty("model.dir");
-    }
-
-
-    public static String getDubboUrl() {
-        return getProperty("dubbo.url");
-    }
-
-    public static String getHttpUrl() {
-        return getProperty("http.url");
-    }
-
-    public static boolean useTrainUid2Inference() {
-        return Boolean.parseBoolean(ConfigUtil.getProperty("inference.allowTrainUid"));
-    }
-
-    public static DbConfig getInferenceDbProperties() {
-        boolean flag = hasCacheInferenceData();
-        if (!flag) {
-            return getDbProperties("inference");
-        } else {
-            DbConfig dbConfig = new DbConfig();
-            List<UpdateDataSource> dataSourceList = InferenceDataCache.dataSourceMap.get(InferenceDataCache.INFERENCE_DATA_SOURCE);
-            UpdateDataSource updateDataSource = dataSourceList.get(0);
-            dbConfig.setDriver(updateDataSource.getDriver());
-            dbConfig.setUrl(updateDataSource.getUrl());
-            dbConfig.setPassword(updateDataSource.getPassword());
-            dbConfig.setUsername(updateDataSource.getUsername());
-            return dbConfig;
+    private static final String INFERENCE = "inference";
+    private static final String SOURCE = ".source";
+    private static List<DataSourceConfig> inferenceConfigList() {
+        List<DataSourceConfig> res = new ArrayList<>();
+        //
+        for (int i = 1; i < 2; i++) {
+            String key = INFERENCE + i;
+            if (keyExist(key + SOURCE)) {
+                String sourceType = getProperty(key + SOURCE);
+                DataSourceConfig inferenceConfig = loadByType(sourceType, key);
+                res.add(inferenceConfig);
+            }
         }
+        return res;
     }
 
-    public static int getPortElseDefault() {
-        String strPort = getProperty(APP_PORT);
-        if (strPort != null) {
-            return Integer.parseInt(strPort);
-        }
-        return Constant.DEFAULT_PORT;
-    }
-
-    public static String inferenceBaseDir() {
-        boolean flag = hasCacheInferenceData();
-        if (!flag) {
-            return getProperty("inference.base");
-        } else {
-            return InferenceDataCache.dataSourceMap.get(InferenceDataCache.INFERENCE_DATA_SOURCE).get(0).getBase();
-        }
-    }
-
-    public static String getInferenceFileName() {
-        boolean flag = hasCacheInferenceData();
-        if (!flag) {
-            return getProperty("inference.dataset1");
-        } else {
-            return InferenceDataCache.dataSourceMap.get(InferenceDataCache.INFERENCE_DATA_SOURCE).get(0).getDataset();
-        }
-
-    }
-
-    public static String validateBaseDir() {
-        boolean flag = hasCacheValidationData();
-        if (!flag) {
-            return getProperty("validate.base");
-        } else {
-            return InferenceDataCache.dataSourceMap.get(InferenceDataCache.VALIDATION_DATA_SOURCE).get(0).getBase();
-        }
-    }
-
-    public static String getValidateFileName() {
-        boolean flag = hasCacheValidationData();
-        if (!flag) {
-            return getProperty("validate.dataset1");
-        } else {
-            return InferenceDataCache.dataSourceMap.get(InferenceDataCache.VALIDATION_DATA_SOURCE).get(0).getDataset();
-        }
-
-    }
-
-
-    public static DbConfig getTrainDbProperties() {
-        return getDbProperties("train");
-    }
-
-    private static DbConfig getDbProperties(String type) {
-        DbConfig dbConfig = new DbConfig();
-        dbConfig.setDriver(getProperty(type + ".driver"));
-        dbConfig.setUrl(getProperty(type + ".url"));
-        dbConfig.setUsername(getProperty(type + ".username"));
-        dbConfig.setPassword(getProperty(type + ".password"));
-        return dbConfig;
-    }
-
-    private static boolean keyExist(String key) {
+    public static boolean keyExist(String key) {
         return properties.getProperty(key) != null;
     }
 
-    public static String inferenceSourceType() {
-        boolean flag = hasCacheInferenceData();
-        if (!flag) {
-            return getProperty("inference.data.source");
-        } else {
-            return InferenceDataCache.dataSourceMap.get(InferenceDataCache.INFERENCE_DATA_SOURCE).get(0).getSource();
-        }
-    }
-
-    public static String validateSourceType() {
-        boolean flag = hasCacheValidationData();
-        if (!flag) {
-            return getProperty("validate.data.source");
-        } else {
-            return InferenceDataCache.dataSourceMap.get(InferenceDataCache.VALIDATION_DATA_SOURCE).get(0).getSource();
-        }
-    }
-
+    private static final String TRAIN = "train";
     // key 是 数据集名称，value是数据集各项配置
-    public static List<DataSourceConfig> trainConfigList() {
+    private static List<DataSourceConfig> trainConfigList() {
         List<DataSourceConfig> res = new ArrayList<>();
         //
         for (int i = 1; i < 20; i++) {
-            String key = "train" + i;
-            if (keyExist(key + ".source")) {
-                String sourceType = getProperty(key + ".source");
+            String key = TRAIN + i;
+            if (keyExist(key + SOURCE)) {
+                String sourceType = getProperty(key + SOURCE);
                 DataSourceConfig trainConfig = loadByType(sourceType, key);
                 res.add(trainConfig);
             }
@@ -291,25 +173,40 @@ public class ConfigUtil {
         }
     }
 
+    private static final String BASE = ".base";
+    private static final String DATASET = ".dataset";
+    private static final String URI = ".uri";
+    private static final String USER = ".user";
+    private static final String DRIVER = ".driver";
+    private static final String URL = ".url";
+    private static final String USERNAME = "username";
+    private static final String PASS_KEY = "password";
+    private static final String TABLE = "table";
     private static CsvSourceConfig readCsvConfig(String key) {
-        String base = getProperty(key + ".base");
-        String dataset = getProperty(key + ".dataset");
+        String base = getProperty(key + BASE);
+        String dataset = getProperty(key + DATASET);
         return new CsvSourceConfig(base, dataset);
     }
 
     private static HdfsSourceConfig readHdfsConfig(String key) {
-        String base = getProperty(key + ".base");
-        String dataset = getProperty(key + ".dataset");
-        return new HdfsSourceConfig(base, dataset);
+        String base = getProperty(key + BASE);
+        String dataset = getProperty(key + DATASET);
+        String uri = ConfigUtil.getProperty(key + URI);
+        String user = ConfigUtil.getProperty(key + USER);
+        return new HdfsSourceConfig(base, uri, user, dataset);
     }
 
     private static DbSourceConfig readDbConfig(String key) {
-        String driver = getProperty(key + ".driver");
-        String url = getProperty(key + ".url");
-        String username = getProperty(key + ".username");
-        String password = getProperty(key + ".password");
-        String table = getProperty(key + ".table");
+        String driver = getProperty(key + DRIVER);
+        String url = getProperty(key + URL);
+        String username = getProperty(key + USERNAME);
+        String password = getProperty(key + PASS_KEY);
+        String table = getProperty(key + TABLE);
         return new DbSourceConfig(driver, username, password, url, table);
+    }
+
+    public static ClientConfig getClientConfig() {
+        return clientConfig;
     }
 
     public static boolean getJdChainAvailable() {
@@ -338,35 +235,22 @@ public class ConfigUtil {
         return jdChainConfig;
     }
 
-    public static String getInferenceTable(String key) {
-        boolean flag = hasCacheInferenceData();
-        if (!flag) {
-            return getProperty(key);
-        } else {
-            List<UpdateDataSource> dataSourceList = InferenceDataCache.dataSourceMap.get(InferenceDataCache.INFERENCE_DATA_SOURCE);
-            return dataSourceList.get(0).getTable();
+    /**
+     * 获取端口号
+     * @return
+     */
+    public static int getPortElseDefault() {
+        String strPort = getProperty(APP_PORT);
+        if (strPort != null) {
+            return Integer.parseInt(strPort);
         }
+        return 0;
     }
-
-    private static boolean hasCacheInferenceData() {
-        List<UpdateDataSource> dataSourceList = InferenceDataCache.dataSourceMap.get(InferenceDataCache.INFERENCE_DATA_SOURCE);
-        if (dataSourceList == null || dataSourceList.size() < 1) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    private static boolean hasCacheValidationData() {
-        List<UpdateDataSource> dataSourceList = InferenceDataCache.dataSourceMap.get(InferenceDataCache.VALIDATION_DATA_SOURCE);
-        if (dataSourceList == null || dataSourceList.size() < 1) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    public static FullConfig getConfig() {
-        return config;
+    /**
+     * 模型保存路径
+     * @return
+     */
+    public static String getModelDir() {
+        return getProperty(MODEL_DIR);
     }
 }

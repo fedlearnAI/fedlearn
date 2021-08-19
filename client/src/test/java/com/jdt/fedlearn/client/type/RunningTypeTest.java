@@ -1,6 +1,7 @@
 package com.jdt.fedlearn.client.type;
 
 
+import com.jdt.fedlearn.common.enums.RunningType;
 import org.testng.Assert;
 import org.testng.annotations.Test;;
 

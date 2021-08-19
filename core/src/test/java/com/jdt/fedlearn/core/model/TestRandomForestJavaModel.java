@@ -1,53 +1,292 @@
 package com.jdt.fedlearn.core.model;
 
+import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
 import com.jdt.fedlearn.core.entity.common.InferenceInitRes;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.feature.SingleFeature;
-import com.jdt.fedlearn.core.entity.randomForest.Randomforestinfer2Message;
-import com.jdt.fedlearn.core.loader.randomForest.DataFrame;
+import com.jdt.fedlearn.core.entity.randomForest.DataUtils;
+import com.jdt.fedlearn.core.entity.randomForest.RandomForestTrainReq;
+import com.jdt.fedlearn.core.entity.randomForest.RandomForestTrainRes;
+import com.jdt.fedlearn.core.entity.randomForest.TreeNodeRF;
+import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.loader.randomForest.RFInferenceData;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
-import com.jdt.fedlearn.core.psi.MappingResult;
+import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.core.type.EncryptionType;
+import com.jdt.fedlearn.core.type.MetricType;
+import com.jdt.fedlearn.core.type.RFDispatchPhaseType;
 import com.jdt.fedlearn.core.util.DataParseUtil;
 import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.testng.Assert.*;
 
 public class TestRandomForestJavaModel {
+    RandomForestJavaModel model = new RandomForestJavaModel();
+    RFTrainData trainData;
+    @BeforeTest
+    public void init(){
+        List<SingleFeature> features0 = new ArrayList<>();
+        features0.add(new SingleFeature("uid", "String"));
+        features0.add(new SingleFeature("x1", "String"));
+        features0.add(new SingleFeature("x2", "String"));
+        features0.add(new SingleFeature("y", "String"));
+        Features features = new Features(features0, "y");
+
+        String[] ids = new String[]{"1B", "2A", "3A",};
+        String[] x0 = new String[]{"uid", "x1", "x2", "y"};
+        String[] x1 = new String[]{"1B", "6", "148", "1"};
+        String[] x2 = new String[]{"2A", "1", "85", "0"};
+        String[] x3 = new String[]{"3A", "8", "183", "1"};
+        String[][] input = new String[][]{x0, x1, x2, x3};
+        Map<String, Object> others  = new HashMap<>();
+        Map<Integer, String> sampleIds = new HashMap<>();
+        for (int i = 0; i < 2; i++) {
+            List<Integer> sampleId;
+            sampleId = DataUtils.choice(3, 3, new Random(666));
+            Collections.sort(sampleId);
+            String strSampleIds = DataUtils.sampleIdToString(DataUtils.asSortedList(sampleId), 400000);
+            sampleIds.put(i, strSampleIds);
+        }
+        others.put("sampleIds", sampleIds);
+        others.put("featureAllocation", "2,2");
+        MetricType[] metrics = new MetricType[]{MetricType.AUC, MetricType.ACC};
+        String loss = "Regression:MSE";
+        RandomForestParameter parameter = new RandomForestParameter(
+                2,
+                3,
+                3,
+                50,
+                0.8,
+                30,
+                30,
+                "Null",
+                10,
+                EncryptionType.IterativeAffine,
+                metrics,
+                loss,
+                666);
+        trainData = model.trainInit(input, ids, new int[0], parameter,  features, others);
+    }
     @Test
     public void testTrainInit(){
         RandomForestJavaModel model = new RandomForestJavaModel();
-
         List<SingleFeature> features0 = new ArrayList<>();
         features0.add(new SingleFeature("uid", "String"));
-        features0.add(new SingleFeature("HouseAge", "String"));
-        features0.add(new SingleFeature("Longitude", "String"));
-        features0.add(new SingleFeature("label", "String"));
-        Features features = new Features(features0, "label");
-        Map<Long, String> idMap = new HashMap<>();
-        idMap.put(0L,"1");
-        idMap.put(1L,"100");
-        String[] x0 = new String[]{"uid", "HouseAge", "Longitude", "label"};
-        String[] x1 = new String[]{"1", "0", "1", "1.0"};
-        String[] x2 = new String[]{"100", "1", "0", "0.0"};
-        String[][] input = new String[][]{x0, x1, x2};
-        Map<String, Object> others  = new HashMap<>();
-        others.put("featureAllocation", "1,1,1,1,1,1,1,1,1,1");
-        DataFrame trainData = model.trainInit(input, new MappingResult(idMap).getContent().values().toArray(new String[0]),new int[0],new RandomForestParameter(),  features, others);
+        features0.add(new SingleFeature("x1", "String"));
+        features0.add(new SingleFeature("x2", "String"));
+        features0.add(new SingleFeature("y", "String"));
+        Features features = new Features(features0, "y");
 
+        String[] ids = new String[]{"1B", "2A", "3A",};
+        String[] x0 = new String[]{"uid", "x1", "x2", "y"};
+        String[] x1 = new String[]{"1B", "6", "148", "1"};
+        String[] x2 = new String[]{"2A", "1", "85", "0"};
+        String[] x3 = new String[]{"3A", "8", "183", "1"};
+        String[][] input = new String[][]{x0, x1, x2, x3};
+        Map<String, Object> others  = new HashMap<>();
+        Map<Integer, String> sampleIds = new HashMap<>();
+        for (int i = 0; i < 2; i++) {
+            List<Integer> sampleId;
+            sampleId = DataUtils.choice(3, 3, new Random(666));
+            Collections.sort(sampleId);
+            String strSampleIds = DataUtils.sampleIdToString(DataUtils.asSortedList(sampleId), 400000);
+            sampleIds.put(i, strSampleIds);
+        }
+        others.put("sampleIds", sampleIds);
+        others.put("featureAllocation", "2,2");
+        MetricType[] metrics = new MetricType[]{MetricType.AUC, MetricType.ACC};
+        String loss = "Regression:MSE";
+        RandomForestParameter parameter = new RandomForestParameter(
+                2,
+                3,
+                3,
+                50,
+                0.8,
+                30,
+                30,
+                "Null",
+                10,
+                EncryptionType.IterativeAffine,
+                metrics,
+                loss,
+                666);
+        RFTrainData trainData = model.trainInit(input, ids, new int[0], parameter,  features, others);
         Assert.assertEquals(trainData.numCols(), 2);
-        Assert.assertEquals(trainData.numRows(), 2);
+        Assert.assertEquals(trainData.numRows(), 3);
         //TODO add more Assert
     }
+
+    @Test
+    public void testTrainPhase1Init(){
+        RandomForestTrainReq randomForestTrainReq = new RandomForestTrainReq();
+        model.setInitTrain(true);
+        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(1, randomForestTrainReq,trainData);
+        assertEquals(randomForestTrainRes.getBody(), "");
+        assertEquals(randomForestTrainRes.getEncryptionLabel().length, 3);
+        randomForestTrainRes = (RandomForestTrainRes)model.train(1, randomForestTrainReq,trainData);
+        assertEquals(randomForestTrainRes.getBody(), "");
+    }
+
+    @Test
+    public void testTrainPhase1(){
+        RandomForestTrainReq randomForestTrainReq = new RandomForestTrainReq(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        model.setInitTrain(false);
+        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(1, randomForestTrainReq,trainData);
+    }
+
+    @Test
+    public void testTrainPhase2Active(){
+        init();
+        RandomForestTrainReq randomForestTrainReq = new RandomForestTrainReq(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        randomForestTrainReq.setClientFeatureMap(new HashMap<>());
+        Map<Integer, TreeNodeRF> currentNodeMap = new HashMap<>();
+        List<Integer> sampleIds = new ArrayList<>();
+        sampleIds.add(1);
+        currentNodeMap.put(0, new TreeNodeRF(sampleIds, 0, 1));
+        model.setCurrentNodeMap(currentNodeMap);
+        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(2, randomForestTrainReq, trainData);
+//        Assert.assertEquals(randomForestTrainRes.getTrainMetric().get(MetricType.ACC).get(0).toString(), "1=0.6666666666666666")
+    }
+
+    @Test
+    public void testTrainPhase2Passive(){
+        RandomForestTrainReq randomForestTrainReq = new RandomForestTrainReq(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        randomForestTrainReq.setClientFeatureMap(new HashMap<>());
+        Map<Integer, TreeNodeRF> currentNodeMap = new HashMap<>();
+        List<Integer> sampleIds = new ArrayList<>();
+        sampleIds.add(1);
+        currentNodeMap.put(0, new TreeNodeRF(sampleIds, 0, 1));
+        Map<Integer, List<Integer>> tidToSampleID = new HashMap<>();
+        List<Integer> list = new ArrayList<>();
+        list.add(0);
+        tidToSampleID.put(0, list);
+        randomForestTrainReq.setTidToSampleID(tidToSampleID);
+        randomForestTrainReq.setEncryptY(new String[]{"273528226727648925423170667841758849463700135880489494825533923025024880259788:63455457545184325638614290698892501826867760554590297940153703143543331363464199167661252644065086782867228673307273467237084074922033318461128466682579785891095097603442017943526080021558872370124591800005450175413005098612111991774119926700449193788087689780656730490782485010375387424102729547719578258174:92107868912499681809813834703129068392570839898502438937010495023204930248090080865859505101124126475992987573575847275655252567537864685238781976656902641966408470686445589766976138653634849670333899288796819026407362409703046040230876159580198409013324761920634222736578148823043046811641741332726171899503:1125899906842624:1125899906842624:0:1125899906842624"});
+        randomForestTrainReq.setPublickey("{a1\u0003830780530034885498861952145659012758497346332380048319425236632933107256860100539089363151039829892868103060126445793512249735944758756184008547050311729893342957966341195251508067219720143358582879200840058501987803501608753813875777149758407\u0002n0\u000310019513461850466042843216497049817520077473038151342172062787792060385693365679340105675989749518434413828886462863065848278037093509097683029097971827940634993554319709962392970517057953750288799041830714101301489952767003250084499645287109661598305\u0002encodedPrecision\u00039223372036854775808\u0002n1\u000392107868912499681809813834703129068392570839898502438937010495023204930248090080865859505101124126475992987573575847275655252567537864685238781976656902641966408470686445589766976138653634849670333899288796819026407362409703046040230876159580198409013324761920634222736578148823043046811641741332726171899503\u0002key_round\u00032\u0002g\u0003371299234601250649431571412842\u0002x\u00031212622101150891960289782033326297194857032745566\u0002ainv0\u00035505190552734840070831159532442676049497307863432721020872276088900734627211877202311074568223674081439264423128508739048798738700152434192808846739965269716385967035615615213293469157516036039944806648817130749074788057661580428143006698980985777598\u0002ainv1\u000343815585411269525130358535366333722066045872993377304849706852114583465801685983892284946172269660128842887264278744408018662460972221395128422128004606792445706485528875462258231139125264540869137565729755600706146549664196898066218453949338606298166911973135315703656607054813279197102601283355452984356350\u0002a0\u00032137152869400823138041411552307}");
+        model.setCurrentNodeMap(currentNodeMap);
+        model.setActive(false);
+        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(2, randomForestTrainReq, trainData);
+//        Assert.assertEquals(randomForestTrainRes.getTrainMetric().get(MetricType.ACC).get(0).toString(), "1=0.6666666666666666")
+    }
+
+    @Test
+    public void testTrainPhase3Active(){
+        init();
+        RandomForestTrainReq randomForestTrainReq = new RandomForestTrainReq(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        randomForestTrainReq.setClientFeatureMap(new HashMap<>());
+        Map<Integer, TreeNodeRF> currentNodeMap = new HashMap<>();
+        List<Integer> sampleIds = new ArrayList<>();
+        sampleIds.add(1);
+        currentNodeMap.put(0, new TreeNodeRF(sampleIds, 0, 0));
+        currentNodeMap.put(1, new TreeNodeRF(sampleIds, 0, 1));
+        randomForestTrainReq.setBodyAll(new String[]{"active", "273528226727648925423170667841758849463700135880489494825533923025024880259788:63455457545184325638614290698892501826867760554590297940153703143543331363464199167661252644065086782867228673307273467237084074922033318461128466682579785891095097603442017943526080021558872370124591800005450175413005098612111991774119926700449193788087689780656730490782485010375387424102729547719578258174:92107868912499681809813834703129068392570839898502438937010495023204930248090080865859505101124126475992987573575847275655252567537864685238781976656902641966408470686445589766976138653634849670333899288796819026407362409703046040230876159580198409013324761920634222736578148823043046811641741332726171899503:1125899906842624:1125899906842624:0:1125899906842624::273528226727648925423170667841758849463700135880489494825533923025024880259788:63455457545184325638614290698892501826867760554590297940153703143543331363464199167661252644065086782867228673307273467237084074922033318461128466682579785891095097603442017943526080021558872370124591800005450175413005098612111991774119926700449193788087689780656730490782485010375387424102729547719578258174:92107868912499681809813834703129068392570839898502438937010495023204930248090080865859505101124126475992987573575847275655252567537864685238781976656902641966408470686445589766976138653634849670333899288796819026407362409703046040230876159580198409013324761920634222736578148823043046811641741332726171899503:1125899906842624:1125899906842624:0:1125899906842624:::273528226727648925423170667841758849463700135880489494825533923025024880259788:63455457545184325638614290698892501826867760554590297940153703143543331363464199167661252644065086782867228673307273467237084074922033318461128466682579785891095097603442017943526080021558872370124591800005450175413005098612111991774119926700449193788087689780656730490782485010375387424102729547719578258174:92107868912499681809813834703129068392570839898502438937010495023204930248090080865859505101124126475992987573575847275655252567537864685238781976656902641966408470686445589766976138653634849670333899288796819026407362409703046040230876159580198409013324761920634222736578148823043046811641741332726171899503:1125899906842624:1125899906842624:0:1125899906842624::273528226727648925423170667841758849463700135880489494825533923025024880259788:63455457545184325638614290698892501826867760554590297940153703143543331363464199167661252644065086782867228673307273467237084074922033318461128466682579785891095097603442017943526080021558872370124591800005450175413005098612111991774119926700449193788087689780656730490782485010375387424102729547719578258174:92107868912499681809813834703129068392570839898502438937010495023204930248090080865859505101124126475992987573575847275655252567537864685238781976656902641966408470686445589766976138653634849670333899288796819026407362409703046040230876159580198409013324761920634222736578148823043046811641741332726171899503:1125899906842624:1125899906842624:0:1125899906842624"});
+        model.setCurrentNodeMap(currentNodeMap);
+        model.setActivePhase2body(new String[]{"1.0,1.0::1.0,0.0","0.0,1.0::1.0,0.0"});
+        List<ClientInfo> clientInfos = new ArrayList<>();
+        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        randomForestTrainReq.setClientInfos(clientInfos);
+
+
+        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(3, randomForestTrainReq, trainData);
+//        Assert.assertEquals(randomForestTrainRes.getTrainMetric().get(MetricType.ACC).get(0).toString(), "1=0.6666666666666666")
+    }
+
+    @Test
+    public void testTrainPhase3Passive(){
+        RandomForestTrainReq randomForestTrainReq = new RandomForestTrainReq(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        model.setActive(false);
+        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(3, randomForestTrainReq, trainData);
+        Assert.assertEquals(randomForestTrainRes.getMessageType(), RFDispatchPhaseType.SPLIT_NODE);
+    }
+
+    @Test
+    public void testTrainPhase4(){
+        RandomForestTrainReq randomForestTrainReq = new RandomForestTrainReq(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        model.setActive(false);
+        Map<Integer, List<Integer>> tidToSampleID = new HashMap<>();
+        List<Integer> list = new ArrayList<>();
+        list.add(0);
+        list.add(1);
+        list.add(2);
+        tidToSampleID.put(0, list);
+        randomForestTrainReq.setTidToSampleID(tidToSampleID);
+        randomForestTrainReq.setBody("{\"treeId\":0.0,\"percentile\":86.66666666666667,\"nodeId\":0.0,\"featureId\":0.0}||");
+        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(4, randomForestTrainReq, trainData);
+    }
+
+    @Test
+    public void testTrainPhase5(){
+
+        RandomForestTrainReq randomForestTrainReq = new RandomForestTrainReq(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        Map<Integer, List<Integer>> tidToSampleID = new HashMap<>();
+        List<Integer> list = new ArrayList<>();
+        list.add(0);
+        list.add(1);
+        list.add(2);
+        tidToSampleID.put(0, list);
+        randomForestTrainReq.setTidToSampleID(tidToSampleID);
+
+        List<String[]> allTreeIds = new ArrayList<>();
+        allTreeIds.add(new String[]{"0"});
+        randomForestTrainReq.setAllTreeIds(allTreeIds);
+        List<Map<Integer, double[]>> maskLefts = new ArrayList<>();
+        Map<Integer, double[]> map = new HashMap<>();
+        map.put(0, new double[]{0.0});
+        maskLefts.add(map);
+        randomForestTrainReq.setMaskLefts(maskLefts);
+        List<String[]> splitMesses = new ArrayList<>();
+        splitMesses.add(new String[]{"{\"is_leaf\": 0, \"feature_opt\": 0, \"value_opt\": 0}"});
+        randomForestTrainReq.setSplitMessages(splitMesses);
+        List<ClientInfo> clientInfos = new ArrayList<>();
+        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        randomForestTrainReq.setClientInfos(clientInfos);
+        model.setMaskLeft(maskLefts.get(0));
+        model.setMess(splitMesses.get(0));
+        Map<ClientInfo, List<Integer>[]> clientFeatureMap = new HashMap<>();
+        List<Integer>[] lists = new ArrayList[1];
+        lists[0] = new ArrayList<>();
+        lists[0].add(0);
+        clientFeatureMap.put(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"), lists);
+        model.setClientFeatureMap(clientFeatureMap);
+        model.setActive(true);
+
+        Map<Integer, TreeNodeRF> currentNodeMap = new HashMap<>();
+        List<Integer> sampleIds = new ArrayList<>();
+        sampleIds.add(1);
+        TreeNodeRF treeNodeRF = new TreeNodeRF(sampleIds, 0, 1);
+        treeNodeRF.score = 1.0;
+        currentNodeMap.put(0, treeNodeRF);
+        model.setCurrentNodeMap(currentNodeMap);
+
+        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(5, randomForestTrainReq, trainData);
+    }
+
+    @Test
+    public void testUpdateModel(){
+        RandomForestTrainReq randomForestTrainReq = new RandomForestTrainReq(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+        model.setActive(true);
+        List<ClientInfo> clientInfos = new ArrayList<>();
+        clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
+
+        model.setClientInfos(clientInfos);
+
+        randomForestTrainReq.setBody("init");
+        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(99, randomForestTrainReq, trainData);
+        randomForestTrainReq.setBody("");
+
+        randomForestTrainRes = (RandomForestTrainRes)model.train(99, randomForestTrainReq, trainData);
+    }
+
 
     @Test
     public void testInferenceInit(){
@@ -97,73 +336,13 @@ public class TestRandomForestJavaModel {
         InferenceInit init = new InferenceInit(subUid);
         RFInferenceData rfInferenceData  = new RFInferenceData((DataParseUtil.loadTrainFromFile(baseDir + "inference0.csv")));
         model.inference(-1,init,rfInferenceData);
-        //phase -1
-        Randomforestinfer2Message res1 = (Randomforestinfer2Message) model.inferenceOneShot(-1);
-        String modelString = "{\n" +
-                "  \"0\" : {\n" +
-                "    \"0\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"16\" : [ \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\" ],\n" +
-                "    \"1\" : [ \"R\", \"R\", \"R\", \"L\", \"R\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"3\" : [ \"R\", \"L\", \"L\", \"L\", \"L\", \"L\", \"L\", \"L\", \"L\" ],\n" +
-                "    \"5\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"21\" : [ \"L\", \"L\", \"R\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"22\" : [ \"R\", \"L\", \"L\", \"L\", \"L\", \"L\", \"L\", \"L\", \"L\" ],\n" +
-                "    \"26\" : [ \"R\", \"L\", \"L\", \"L\", \"L\", \"L\", \"L\", \"L\", \"L\" ],\n" +
-                "    \"15\" : [ \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\" ]\n" +
-                "  },\n" +
-                "  \"1\" : {\n" +
-                "    \"0\" : [ \"L\", \"L\", \"R\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"5\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"6\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"10\" : [ \"R\", \"R\", \"R\", \"L\", \"R\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"11\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"28\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ]\n" +
-                "  },\n" +
-                "  \"2\" : {\n" +
-                "    \"0\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"16\" : [ \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\" ],\n" +
-                "    \"1\" : [ \"R\", \"R\", \"R\", \"L\", \"R\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"19\" : [ \"L\", \"L\", \"R\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"21\" : [ \"L\", \"L\", \"R\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"7\" : [ \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\" ],\n" +
-                "    \"8\" : [ \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\" ],\n" +
-                "    \"9\" : [ \"L\", \"L\", \"R\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"30\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ]\n" +
-                "  },\n" +
-                "  \"3\" : {\n" +
-                "    \"0\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"1\" : [ \"R\", \"R\", \"R\", \"L\", \"R\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"7\" : [ \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\", \"R\" ],\n" +
-                "    \"9\" : [ \"L\", \"L\", \"R\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"30\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ]\n" +
-                "  },\n" +
-                "  \"4\" : {\n" +
-                "    \"0\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"1\" : [ \"R\", \"R\", \"R\", \"L\", \"R\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"20\" : [ \"L\", \"L\", \"R\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ],\n" +
-                "    \"22\" : [ \"R\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"L\", \"L\" ],\n" +
-                "    \"29\" : [ \"L\", \"L\", \"L\", \"L\", \"L\", \"R\", \"L\", \"L\", \"R\" ]\n" +
-                "  }\n" +
-                "}";
-        String[] inferenceUid = subUid;
-        double[] localPredict = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-        String type = "one-shot";
-        assertEquals(res1.getModelString(),modelString);
-        assertEquals(res1.getInferenceUid(),inferenceUid);
-        assertEquals(res1.getLocalPredict(),localPredict);
-        assertEquals(res1.getType(),type);
-
-        Message res2 = model.inferenceOneShot(-2);
-        assertEquals(res2.getClass().getName(),"com.jdt.fedlearn.core.entity.base.EmptyMessage");
-        Message res3 = model.inferenceOneShot(-3);
-        assertEquals(res3.getClass().getName(),"com.jdt.fedlearn.core.entity.base.EmptyMessage");
-        Message res4 = model.inferenceOneShot(-4);
-        assertEquals(res4.getClass().getName(),"com.jdt.fedlearn.core.entity.base.EmptyMessage");
-        Message res5 = model.inferenceOneShot(-5);
-        assertEquals(res5.getClass().getName(),"com.jdt.fedlearn.core.entity.base.EmptyMessage");
 
     }
 
-
+    @Test
+    public void testGetModelType(){
+        RandomForestJavaModel model = new RandomForestJavaModel();
+        assertEquals(model.getModelType(), AlgorithmType.RandomForestJava);
+    }
 
 }

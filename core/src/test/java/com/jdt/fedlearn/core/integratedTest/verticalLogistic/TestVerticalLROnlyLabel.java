@@ -9,7 +9,6 @@ import com.jdt.fedlearn.core.example.CommonRun;
 import com.jdt.fedlearn.core.model.Model;
 import com.jdt.fedlearn.core.model.VerticalLRModel;
 import com.jdt.fedlearn.core.parameter.VerticalLRParameter;
-import com.jdt.fedlearn.core.psi.MappingReport;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.MappingType;
 import com.jdt.fedlearn.core.type.MetricType;
@@ -70,10 +69,10 @@ public class TestVerticalLROnlyLabel {
 
     public void testTrainAndTest() throws IOException {
         ////-----------id match and feature process-------------////////////////
-        Tuple2<MappingReport, String[]> mappingOutput = CommonRun.match(MappingType.VERTICAL_MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
+        Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(MappingType.MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
         String[] commonIds = mappingOutput._2();
 
-        MatchResult matchResult = new MatchResult(mappingOutput._1().getSize());
+        MatchResult matchResult = mappingOutput._1();
         Map<ClientInfo, Features> featuresMap = new HashMap<>();
         for (Map.Entry<ClientInfo, String[][]> entry : rawDataMap.entrySet()) {
             Features features = DataParseUtil.fetchFeatureFromData(entry.getValue());
@@ -120,7 +119,7 @@ public class TestVerticalLROnlyLabel {
         System.out.println("predictUid.length " + predictUid.length);
         long start = System.currentTimeMillis();
 
-        List<CommonRequest> requests = regression.initInference(Arrays.asList(clientInfos.clone()), predictUid); //initial request
+        List<CommonRequest> requests = regression.initInference(Arrays.asList(clientInfos.clone()), predictUid,new HashMap<>()); //initial request
         double[][] result = CommonRun.inference(regression, requests, modelMap, inferenceRawData).getPredicts();
         System.out.println((System.currentTimeMillis() - start) + " ms");
         System.out.println("inference result is " + Arrays.toString(result));

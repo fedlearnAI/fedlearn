@@ -18,23 +18,36 @@ import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.exception.SerializeException;
 
 import java.io.IOException;
+import java.util.List;
 
+/**
+ * 通用请求，包括taskList和type
+ * taskList指需要查询的task列表
+ * type指任务状态， TODO 需要改成枚举类
+ */
 public class CommonQuery implements Message {
-    private String username;
+    private List<String> taskList;
+    private String type;
 
     public CommonQuery() {
+    }
+
+    public CommonQuery(List<String> taskList, String type) {
+        this.taskList = taskList;
+        this.type = type;
     }
 
     public CommonQuery(String jsonStr) {
         parseJson(jsonStr);
     }
 
-    public String getUsername() {
-        return username;
+
+    public List<String> getTaskList() {
+        return taskList;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public String getType() {
+        return type;
     }
 
     public void parseJson(String jsonStr) {
@@ -42,20 +55,11 @@ public class CommonQuery implements Message {
         CommonQuery p3r = null;
         try {
             p3r = mapper.readValue(jsonStr, CommonQuery.class);
-            this.username = p3r.username;
+            this.taskList = p3r.taskList;
+            this.type = p3r.type;
         } catch (IOException e) {
             throw new SerializeException("predict Phase1 Request to json");
         }
     }
 
-    public String toJson() {
-        String jsonStr;
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            jsonStr = objectMapper.writeValueAsString(this);
-        } catch (Exception e) {
-            throw new SerializeException("Boost Phase1 Request to json");
-        }
-        return jsonStr;
-    }
 }

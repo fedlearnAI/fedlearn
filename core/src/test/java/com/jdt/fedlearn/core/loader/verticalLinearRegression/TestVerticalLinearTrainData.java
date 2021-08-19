@@ -3,7 +3,6 @@ package com.jdt.fedlearn.core.loader.verticalLinearRegression;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.preprocess.Scaling;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.data.Tuple3;
 import org.testng.Assert;
 import org.testng.annotations.Test;

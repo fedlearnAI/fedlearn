@@ -15,23 +15,17 @@ package com.jdt.fedlearn.core.psi.diffieHellman;
 
 import com.jdt.fedlearn.core.encryption.DiffieHellman;
 import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.entity.base.StringArray;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.psi.*;
-import com.jdt.fedlearn.core.psi.MappingReport;
-import com.jdt.fedlearn.core.psi.MappingResult;
+import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.psi.Prepare;
 import com.jdt.fedlearn.core.type.MappingType;
-import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.Tool;
-import sun.security.acl.AclEntryImpl;
 
 import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * 基于 Diffie-Hellman算法 的 id对齐建立在一种密钥一致性算法之上，通过Diffie-Hellman算法构建的密钥可以满足对于用户A和B来说，不论是先使用A的公钥进行加密后使用B的公钥进行加密还是先使用B的公钥进行加密后使用A的工要进行加密，得到的结果是一致的。
@@ -77,8 +71,8 @@ public class DiffieHellmanMatch implements Prepare {
         Map<String, Object> others1 = new HashMap<>();
         others1.put("n", n);
         others1.put("g", g);
-        MatchInit initActive = new MatchInit(MappingType.VERTICAL_DH, "uid", others1);
-        MatchInit initPassive = new MatchInit(MappingType.VERTICAL_DH, "uid", null);
+        MatchInit initActive = new MatchInit(MappingType.DH, "uid", others1);
+        MatchInit initPassive = new MatchInit(MappingType.DH, "uid", null);
         for (ClientInfo client : clientInfos) {
             if (client == activeClient) {
                 CommonRequest request = new CommonRequest(client, initActive);
@@ -180,9 +174,9 @@ public class DiffieHellmanMatch implements Prepare {
 
 
     //将从active客户端收到的加密后的uid交集和占比解析
-    public MappingReport postMaster(List<CommonResponse> responses) {
+    public MatchResult postMaster(List<CommonResponse> responses) {
         String report = "DiffieHellmanMatch report: matched size is " + matchRes;
-        return new MappingReport(report, matchRes);
+        return new MatchResult(matchRes, report);
     }
 
     @Override

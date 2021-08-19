@@ -15,22 +15,22 @@ public class TestDhMatchReq2 {
     @Test
     public void jsonSerialize(){
         Serializer serializer = new JsonSerializer();
-        MatchInit boostP3Req = new MatchInit(MappingType.VERTICAL_DH, "uid",new HashMap<>());
+        MatchInit boostP3Req = new MatchInit(MappingType.DH, "uid",new HashMap<>());
         String str = serializer.serialize(boostP3Req);
         System.out.println(str);
 
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.psi.MatchInit\",\"DATA\":{\"type\":\"VERTICAL_DH\",\"uidName\":\"uid\",\"others\":{}}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.psi.MatchInit\",\"DATA\":{\"type\":\"DH\",\"uidName\":\"uid\",\"others\":{}}}";
         Assert.assertEquals(str, content);
     }
 
     @Test
     public void jsonDeserialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.psi.MatchInit\",\"DATA\":{\"type\":\"VERTICAL_MD5\",\"others\":{}}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.psi.MatchInit\",\"DATA\":{\"type\":\"MD5\",\"others\":{}}}";
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
 
         MatchInit boostP3Req = (MatchInit) message;
-        Assert.assertEquals(boostP3Req.getType(), MappingType.VERTICAL_MD5);
+        Assert.assertEquals(boostP3Req.getType(), MappingType.MD5);
         Assert.assertEquals(boostP3Req.getOthers(), new HashMap<>());
     }
 
@@ -39,13 +39,13 @@ public class TestDhMatchReq2 {
         Serializer serializer = new JavaSerializer();
         Map<String,Object> others = new HashMap<>();
         others.put("p", 12);
-        MatchInit matchInit = new MatchInit(MappingType.VERTICAL_DH, "uid", others);
+        MatchInit matchInit = new MatchInit(MappingType.DH, "uid", others);
         String str = serializer.serialize(matchInit);
 
         Message restore = serializer.deserialize(str);
         MatchInit init = (MatchInit) restore;
 
-        Assert.assertEquals(init.getType(), MappingType.VERTICAL_DH);
+        Assert.assertEquals(init.getType(), MappingType.DH);
         Assert.assertEquals(init.getOthers(), others);
     }
 }

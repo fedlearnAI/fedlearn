@@ -1,7 +1,6 @@
 package com.jdt.fedlearn.coordinator.util;
 
 import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.core.dispatch.FederatedGB;
 import com.jdt.fedlearn.core.parameter.FgbParameter;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -28,7 +27,7 @@ public class JsonUtilTest {
     @Test
     public void testParseJson(){
         String string = "{\"algorithm\":\"VerticalLinearRegression\"}";
-        Map res = JsonUtil.parseJson(string);
+        Map res = JsonUtil.json2Object(string,Map.class);
         System.out.println("res : " + res);
         Map map = new HashMap();
         map.put("algorithm", "VerticalLinearRegression");

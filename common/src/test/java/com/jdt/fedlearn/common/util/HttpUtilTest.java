@@ -13,7 +13,7 @@ limitations under the License.
 package com.jdt.fedlearn.common.util;
 
 import com.jdt.fedlearn.common.entity.MockRequest;
-
+import com.jdt.fedlearn.common.network.INetWorkService;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.mockserver.MockServer;
 
@@ -48,7 +48,7 @@ public class HttpUtilTest {
                         .withStatusCode(200)
                         .withBody(expected)
         );
-        String data = HttpClientUtil.doHttpGet("http://127.0.0.1:1090/getData");
+        String data = INetWorkService.getNetWorkService().send("http://127.0.0.1:1090/getData");
         Assert.assertEquals(expected,data);
     }
 
@@ -66,25 +66,25 @@ public class HttpUtilTest {
                         .withStatusCode(200)
                         .withBody(expected)
         );
-        String result = HttpClientUtil.doHttpPost("http://127.0.0.1:1090/postData", "test");
+        String result = INetWorkService.getNetWorkService().sendAndRecv("http://127.0.0.1:1090/postData", "test");
         Assert.assertEquals(expected,result);
     }
 
     @Test
     public void compress() throws IOException {
         String s = "{\"code\":0,\"data\":{\"predict\":[{\"uid\":\"107601\",\"score\":\"1.0\"},{\"uid\":\"107601\",\"score\":\"1.0\"},{\"uid\":\"107601\",\"score\":\"NaN\"},{\"uid\":\"107601\",\"score\":\"NaN\"},{\"uid\":\"107601\",\"score\":\"NaN\"}]},\"status\":\"success\"}";
-        String compress = HttpClientUtil.compress(s);
+        String compress = GZIPCompressUtil.compress(s);
         System.out.println(compress);
-        String result = HttpClientUtil.unCompress(compress);
+        String result = GZIPCompressUtil.unCompress(compress);
         Assert.assertEquals(s,result);
     }
 
     @Test
     public void unCompress() throws IOException {
         String s = "{\"code\":0,\"data\":{\"predict\":[{\"uid\":\"107601\",\"score\":\"1.0\"},{\"uid\":\"107601\",\"score\":\"1.0\"},{\"uid\":\"107601\",\"score\":\"NaN\"},{\"uid\":\"107601\",\"score\":\"NaN\"},{\"uid\":\"107601\",\"score\":\"NaN\"}]},\"status\":\"success\"}";
-        String compress = HttpClientUtil.compress(s);
+        String compress = GZIPCompressUtil.compress(s);
         System.out.println(compress);
-        String result = HttpClientUtil.unCompress(compress);
+        String result = GZIPCompressUtil.unCompress(compress);
         Assert.assertEquals(s,result);
     }
 
@@ -92,7 +92,7 @@ public class HttpUtilTest {
     public void getRemoteIP() {
         String ip = "127.0.0.1";
         MockRequest mockRequest = new MockRequest(ip);
-        String remoteIP = HttpClientUtil.getRemoteIP(mockRequest);
+        String remoteIP = IpAddressUtil.getRemoteIP(mockRequest);
         Assert.assertEquals(ip,remoteIP);
     }
 

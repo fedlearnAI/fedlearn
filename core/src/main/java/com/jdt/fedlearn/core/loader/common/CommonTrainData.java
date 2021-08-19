@@ -15,13 +15,15 @@ package com.jdt.fedlearn.core.loader.common;
 
 import com.jdt.fedlearn.core.entity.feature.Features;
 
-
+/**
+ *
+ */
 public class CommonTrainData extends AbstractTrainData implements TrainData{
 
     /**
      *
      * @param rawTable 表
-     * @param commonIds id对齐结果
+     * @param commonIds id对齐结果，公共ID
      * @param features 特征
      */
     public CommonTrainData(String[][] rawTable, String[] commonIds, Features features) {

@@ -23,9 +23,9 @@ public class TestLinearP1Response {
 
     @Test
     public void jsonSerialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.verticalLinearRegression.LinearP1Response\",\"DATA\":{\"client\":{\"ip\":\"0\",\"port\":0,\"protocol\":\"http\",\"uniqueId\":0},\"loss\":\"0\",\"u\":[[\"0\",\"1\",\"2\"],[\"5\",\"2\",\"9\"]]}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.verticalLinearRegression.LinearP1Response\",\"DATA\":{\"client\":{\"ip\":\"0\",\"port\":0,\"path\":\"\",\"protocol\":\"http\",\"uniqueId\":\"0\"},\"loss\":\"0\",\"u\":[[\"0\",\"1\",\"2\"],[\"5\",\"2\",\"9\"]]}}";
         Serializer serializer = new JsonSerializer();
-        ClientInfo clientInfo = new ClientInfo("0",0,"http",0);
+        ClientInfo clientInfo = new ClientInfo("0",0,"http","", "0");
         String[][] u = new String[][] {{"0","1","2"},{"5","2","9"}};
         String loss = "0";
         LinearP1Response LinearP1Request = new LinearP1Response(clientInfo,u,loss);

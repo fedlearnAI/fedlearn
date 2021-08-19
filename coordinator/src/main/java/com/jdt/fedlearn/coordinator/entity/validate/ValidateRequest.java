@@ -14,14 +14,16 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.entity.validate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jdt.fedlearn.common.entity.project.PartnerInfoNew;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.exception.SerializeException;
 
 import java.io.IOException;
+import java.util.List;
 
 
 /**
- * 推理请求,参数包括， 用户名--用于验证是否有权推理
+ * 推理请求,参数包括，
  * 需要推理的uid 列表
  * 模型token
  */
@@ -30,6 +32,7 @@ public class ValidateRequest implements Message {
     private String[] metricType;
     private String labelName;
     private String[] uid;
+    private List<PartnerInfoNew> clientList;
 
     public ValidateRequest() {
     }
@@ -47,6 +50,7 @@ public class ValidateRequest implements Message {
             this.metricType = p3r.metricType;
             this.labelName = p3r.labelName;
             this.uid = p3r.uid;
+            this.clientList = p3r.clientList;
         } catch (IOException e) {
             throw new SerializeException("predict Phase1 Request to json");
         }
@@ -93,5 +97,9 @@ public class ValidateRequest implements Message {
 
     public void setLabelName(String labelName) {
         this.labelName = labelName;
+    }
+
+    public List<PartnerInfoNew> getClientList() {
+        return clientList;
     }
 }

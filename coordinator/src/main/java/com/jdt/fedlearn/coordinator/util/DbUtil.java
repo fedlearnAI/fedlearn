@@ -14,7 +14,7 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.util;
 
 import com.jdt.fedlearn.coordinator.entity.DbConfig;
-import com.jdt.fedlearn.coordinator.type.DbType;
+import com.jdt.fedlearn.common.enums.DbType;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;

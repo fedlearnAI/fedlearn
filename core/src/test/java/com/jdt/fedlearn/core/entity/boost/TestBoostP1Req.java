@@ -26,6 +26,6 @@ public class TestBoostP1Req {
         BoostP1Req boostP1Req = (BoostP1Req)message;
 
         Assert.assertTrue(boostP1Req.isNewTree());
-        Assert.assertEquals(boostP1Req.getClient(), new ClientInfo());
+        Assert.assertEquals(boostP1Req.getClient(), new ClientInfo(null,0,null,null,"0"));
     }
 }

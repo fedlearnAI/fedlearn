@@ -301,7 +301,7 @@ public class VerticalLogisticRegression implements Control {
     }
 
 
-    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid) {
+    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid,Map<String, Object> others) {
         phase = -1;
         originIdArray = predictUid;
         predict = new double[originIdArray.length];

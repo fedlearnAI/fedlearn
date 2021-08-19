@@ -12,18 +12,16 @@ limitations under the License.
 */
 
 package com.jdt.fedlearn.core.entity.boost;
-import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.type.MetricType;
 
-import java.util.List;
-import java.util.Map;
+import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.entity.common.MetricValue;
 
 public class BoostP5Res implements Message {
     private boolean isStop;
     private int depth;
-    private Map<MetricType, List<Double>> trainMetric;
+    private MetricValue trainMetric;
 
-    public BoostP5Res(boolean isStop, int depth, Map<MetricType, List<Double>> trainMetric) {
+    public BoostP5Res(boolean isStop, int depth, MetricValue trainMetric) {
         this.isStop = isStop;
         this.depth = depth;
         this.trainMetric = trainMetric;
@@ -42,11 +40,11 @@ public class BoostP5Res implements Message {
         return depth;
     }
 
-    public void setTrainMetric(Map<MetricType, List<Double>> trainMetric) {
-        this.trainMetric = trainMetric;
+    public MetricValue getTrainMetric() {
+        return trainMetric;
     }
 
-    public Map<MetricType, List<Double>> getTrainMetric() {
-        return this.trainMetric;
+    public void setTrainMetric(MetricValue trainMetric) {
+        this.trainMetric = trainMetric;
     }
 }

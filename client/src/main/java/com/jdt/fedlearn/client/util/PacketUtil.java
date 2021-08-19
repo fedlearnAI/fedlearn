@@ -17,7 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.client.entity.train.TrainRequest;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.util.HttpClientUtil;
+import com.jdt.fedlearn.common.util.GZIPCompressUtil;
 import com.jdt.fedlearn.common.util.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +65,7 @@ public class PacketUtil {
         if (isGzip) {
             String gstr = trainRequest.getData();
             logger.info("gzip size:" + gstr.length());
-            String data = HttpClientUtil.unCompress(gstr);
+            String data = GZIPCompressUtil.unCompress(gstr);
             logger.info("unzip data:" + LogUtil.logLine(data));
             trainRequest.setData(data);
         }

@@ -33,7 +33,6 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MixGBParameter implements SuperParameter {
 
-    private final int trainingEpoch;
     private final int maxTreeNum;
     private final double verticalFeatureSampling;
     private final int maxBinNum;
@@ -43,19 +42,16 @@ public class MixGBParameter implements SuperParameter {
     private final MetricType[] evalMetric;
     private final int maxDepth;
     private final double eta;
-    private final double evalDataRatio;
-    private boolean evalIdRemoval;
     private final double horizontalFeaturesRatio;
     private double needVerticalSplitRatio;
-    private ObjectiveType objective;
+    private final ObjectiveType objective;
     private int numClass;
     public final String catFeatures;
     private final int bitLength;
 
     public MixGBParameter() {
-        trainingEpoch = 1;
         maxTreeNum = 30;
-        verticalFeatureSampling = 0.8;
+        verticalFeatureSampling = 1.0;
         maxBinNum = 32;
         minSampleSplit = 10;
         lambda = 1;
@@ -63,17 +59,29 @@ public class MixGBParameter implements SuperParameter {
         evalMetric = new MetricType[]{MetricType.RMSE};
         maxDepth = 10;
         eta = 0.1;
-        evalDataRatio = 0.6;
-        evalIdRemoval = false;
-        horizontalFeaturesRatio = 0.8;
-        needVerticalSplitRatio = 0.98;
+        horizontalFeaturesRatio = 1.0;
+        needVerticalSplitRatio = 1.0;
         objective = ObjectiveType.regSquare;
         numClass = 1;
         catFeatures = "";
         bitLength = 1024;
     }
 
-    public MixGBParameter(double verticalFeatureSampling, double horizontalFeaturesRatio, int minSampleSplit, double lambda, double gamma, ObjectiveType objective, MetricType[] evalMetric, int maxDepth, int maxTreeNum, int trainingEpoch, double eta, int maxBinNum, double evalDataRatio, String catFeatures, int bitLength, double needVerticalSplitRatio) {
+    public MixGBParameter(double verticalFeatureSampling,
+                          double horizontalFeaturesRatio,
+                          int minSampleSplit,
+                          double lambda,
+                          double gamma,
+                          ObjectiveType objective,
+                          MetricType[] evalMetric,
+                          int maxDepth,
+                          int maxTreeNum,
+                          double eta,
+                          int maxBinNum,
+                          double evalDataRatio,
+                          String catFeatures,
+                          int bitLength) {
+        super();
         this.verticalFeatureSampling = verticalFeatureSampling;
         this.minSampleSplit = minSampleSplit;
         this.lambda = lambda;
@@ -81,29 +89,8 @@ public class MixGBParameter implements SuperParameter {
         this.evalMetric = evalMetric;
         this.maxDepth = maxDepth;
         this.maxTreeNum = maxTreeNum;
-        this.trainingEpoch = trainingEpoch;
         this.eta = eta;
         this.maxBinNum = maxBinNum;
-        this.evalDataRatio = evalDataRatio;
-        this.horizontalFeaturesRatio = horizontalFeaturesRatio;
-        this.catFeatures = catFeatures;
-        this.objective = objective;
-        this.bitLength = bitLength;
-        this.needVerticalSplitRatio = needVerticalSplitRatio;
-    }
-
-    public MixGBParameter(double verticalFeatureSampling, double horizontalFeaturesRatio, int minSampleSplit, double lambda, double gamma, ObjectiveType objective, MetricType[] evalMetric, int maxDepth, int maxTreeNum, int trainingEpoch, double eta, int maxBinNum, double evalDataRatio, String catFeatures, int bitLength) {
-        this.verticalFeatureSampling = verticalFeatureSampling;
-        this.minSampleSplit = minSampleSplit;
-        this.lambda = lambda;
-        this.gamma = gamma;
-        this.evalMetric = evalMetric;
-        this.maxDepth = maxDepth;
-        this.maxTreeNum = maxTreeNum;
-        this.trainingEpoch = trainingEpoch;
-        this.eta = eta;
-        this.maxBinNum = maxBinNum;
-        this.evalDataRatio = evalDataRatio;
         this.horizontalFeaturesRatio = horizontalFeaturesRatio;
         this.catFeatures = catFeatures;
         this.objective = objective;
@@ -118,8 +105,7 @@ public class MixGBParameter implements SuperParameter {
     @Override
     public String serialize() {
         return "MixGBParameter{" +
-                "trainingEpoch=" + trainingEpoch +
-                ", maxTreeNum=" + maxTreeNum +
+                "maxTreeNum=" + maxTreeNum +
                 ", verticalFeatureSampling=" + verticalFeatureSampling  +
                 ", maxBinNum=" + maxBinNum  +
                 ", minSampleSplit=" + minSampleSplit  +
@@ -129,8 +115,6 @@ public class MixGBParameter implements SuperParameter {
                 ", maxDepth=" + maxDepth +
                 ", eta=" + eta +
                 ", objective='" + objective + '\'' +
-                ", evalDataRatio=" + evalDataRatio  +
-                ", evalIdRemoval=" + evalIdRemoval  +
                 ", horizontalFeaturesRatio=" + horizontalFeaturesRatio  +
                 ", needVerticalSplitRatio=" + needVerticalSplitRatio  +
                 ", numClass=" + numClass  +
@@ -151,8 +135,6 @@ public class MixGBParameter implements SuperParameter {
         res.add(new MultiParameter("evalMetric", "eval_metric", "MAPE", new String[]{"RMSE", "MAPE", "MAAPE", "MSE", "F1", "ACC", "AUC", "RECALL", "PRECISION"}, ParameterType.MULTI));
         res.add(new NumberParameter("maxDepth", "max_depth", 5, new String[]{"2", "20"}, ParameterType.NUMS));
         res.add(new NumberParameter("eta", "learning rate", 0.3, new String[]{"0.001", "1.0"}, ParameterType.NUMS));
-        res.add(new NumberParameter("evalDataRatio", "evalDataRatio", 0.6, new String[]{"0", "1"}, ParameterType.NUMS));
-        res.add(new CategoryParameter("evalIdRemoval", "evalIdRemoval", "false", new String[]{"true", "false"}, ParameterType.STRING));
         res.add(new NumberParameter("horizontalFeaturesRatio", "horizontalFeaturesRatio", 0.8, new String[]{"0", "1"}, ParameterType.NUMS));
         res.add(new NumberParameter("needVerticalSplitRatio", "needVerticalSplitRatio", 0.98, new String[]{"0.6", "1"}, ParameterType.NUMS));
         res.add(new CategoryParameter("objective", "objective", "regSquare", new String[]{"regLogistic", "regSquare", "binaryLogistic"}, ParameterType.STRING));
@@ -163,10 +145,6 @@ public class MixGBParameter implements SuperParameter {
 
     public int getMaxTreeNum() {
         return maxTreeNum;
-    }
-
-    public int getTrainingEpoch() {
-        return trainingEpoch;
     }
 
     public int getMaxBinNum() {
@@ -197,24 +175,12 @@ public class MixGBParameter implements SuperParameter {
         return eta;
     }
 
-    public double getEvalDataRatio() {
-        return evalDataRatio;
-    }
-
     public double getHorizontalFeaturesRatio() {
         return horizontalFeaturesRatio;
     }
 
     public double getNeedVerticalSplitRatio() {
         return needVerticalSplitRatio;
-    }
-
-    public MetricType[] getEvalMetric() {
-        return evalMetric;
-    }
-
-    public boolean getEvalIdRemoval() {
-        return evalIdRemoval;
     }
 
     public ObjectiveType getObjective() {
@@ -232,8 +198,7 @@ public class MixGBParameter implements SuperParameter {
     @Override
     public String toString() {
         return "MixGBParameter{" +
-                "trainingEpoch=" + trainingEpoch +
-                ", maxTreeNum=" + maxTreeNum +
+                "maxTreeNum=" + maxTreeNum +
                 ", verticalFeatureSampling=" + verticalFeatureSampling +
                 ", maxBinNum=" + maxBinNum +
                 ", minSampleSplit=" + minSampleSplit +
@@ -242,8 +207,6 @@ public class MixGBParameter implements SuperParameter {
                 ", evalMetric=" + Arrays.toString(evalMetric) +
                 ", maxDepth=" + maxDepth +
                 ", eta=" + eta +
-                ", evalDataRatio=" + evalDataRatio +
-                ", evalIdRemoval=" + evalIdRemoval +
                 ", horizontalFeaturesRatio=" + horizontalFeaturesRatio +
                 ", needVerticalSplitRatio=" + needVerticalSplitRatio +
                 ", objective=" + objective +
@@ -262,12 +225,28 @@ public class MixGBParameter implements SuperParameter {
             return false;
         }
         MixGBParameter that = (MixGBParameter) o;
-        return trainingEpoch == that.trainingEpoch && maxTreeNum == that.maxTreeNum && Double.compare(that.verticalFeatureSampling, verticalFeatureSampling) == 0 && maxBinNum == that.maxBinNum && minSampleSplit == that.minSampleSplit && Double.compare(that.lambda, lambda) == 0 && Double.compare(that.gamma, gamma) == 0 && maxDepth == that.maxDepth && Double.compare(that.eta, eta) == 0 && Double.compare(that.evalDataRatio, evalDataRatio) == 0 && evalIdRemoval == that.evalIdRemoval && Double.compare(that.horizontalFeaturesRatio, horizontalFeaturesRatio) == 0 && Double.compare(that.needVerticalSplitRatio, needVerticalSplitRatio) == 0 && numClass == that.numClass && bitLength == that.bitLength && Arrays.equals(evalMetric, that.evalMetric) && Objects.equals(objective, that.objective) && Objects.equals(catFeatures, that.catFeatures);
+        return maxTreeNum == that.maxTreeNum
+                && Double.compare(that.verticalFeatureSampling, verticalFeatureSampling) == 0
+                && maxBinNum == that.maxBinNum
+                && minSampleSplit == that.minSampleSplit
+                && Double.compare(that.lambda, lambda) == 0
+                && Double.compare(that.gamma, gamma) == 0
+                && maxDepth == that.maxDepth
+                && Double.compare(that.eta, eta) == 0
+                && Double.compare(that.horizontalFeaturesRatio, horizontalFeaturesRatio) == 0
+                && Double.compare(that.needVerticalSplitRatio, needVerticalSplitRatio) == 0
+                && numClass == that.numClass
+                && bitLength == that.bitLength
+                && Arrays.equals(evalMetric, that.evalMetric)
+                && Objects.equals(objective, that.objective)
+                && Objects.equals(catFeatures, that.catFeatures);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(trainingEpoch, maxTreeNum, verticalFeatureSampling, maxBinNum, minSampleSplit, lambda, gamma, maxDepth, eta, evalDataRatio, evalIdRemoval, horizontalFeaturesRatio, needVerticalSplitRatio, objective, numClass, catFeatures, bitLength);
+        int result = Objects.hash(maxTreeNum, verticalFeatureSampling,
+                maxBinNum, minSampleSplit, lambda, gamma, maxDepth, eta, horizontalFeaturesRatio,
+                needVerticalSplitRatio, objective, numClass, catFeatures, bitLength);
         result = 31 * result + Arrays.hashCode(evalMetric);
         return result;
     }

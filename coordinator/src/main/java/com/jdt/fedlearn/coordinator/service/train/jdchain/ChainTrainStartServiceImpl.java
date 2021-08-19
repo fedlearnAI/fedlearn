@@ -15,14 +15,15 @@ package com.jdt.fedlearn.coordinator.service.train.jdchain;
 
 import com.google.common.collect.Maps;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
+import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.common.entity.jdchain.JdchainTask;
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.allocation.ResourceManager;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdchainTrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.*;
 import com.jdt.fedlearn.core.type.AlgorithmType;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTaskMapper;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTrainMapper;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdChainTaskStatus;
@@ -74,11 +75,11 @@ public class ChainTrainStartServiceImpl implements TrainService {
      **/
     private String trainStart(StartTrain req) {
         StartValues values = TrainCommonServiceImpl.startPrepare(req);
-        String modelToken = TokenUtil.generateTrainToken(req.getTaskId(), AlgorithmType.valueOf(req.getModel()));
+        String modelToken = TokenUtil.generateTrainId(req.getTaskId(), AlgorithmType.valueOf(req.getModel()));
         List<SingleParameter> algorithmParams = req.getAlgorithmParams();
-        algorithmParams.add(req.getCommonParams().get(0));
+//        algorithmParams.add(req.getCommonParams().get(0));
         // 更新全局上下文, 并将状态设置为 READY
-        TrainContext trainContext = new TrainContext(values, RunningType.READY, TimeUtil.getNowTime(), algorithmParams, req.getCommonParams());
+        TrainContext trainContext = new TrainContext(values, RunningType.READY, TimeUtil.getNowTime(), algorithmParams);
         trainContext.setPercent(5);
 
         JdChainTaskStatus jdChainTaskStatus = new JdChainTaskStatus(TimeUtil.getNowTime(), TimeUtil.getNowTime(), trainContext);

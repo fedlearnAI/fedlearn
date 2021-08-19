@@ -7,7 +7,7 @@
     <parent>
         <artifactId>all</artifactId>
         <groupId>com.jdt.fedlearn</groupId>
-        <version>0.8.1</version>
+        <version>0.9.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -49,12 +49,6 @@
 
             <dependency>
                 <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
-                <version>${spring-boot.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-web</artifactId>
                 <version>${spring-boot.version}</version>
             </dependency>
@@ -72,11 +66,6 @@
         <dependency>
             <groupId>com.jdt.fedlearn</groupId>
             <artifactId>common</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
         </dependency>
 
         <dependency>
@@ -132,7 +121,7 @@
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
-            <version>3.32.3.2</version>
+            <version>3.8.9.1</version>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
@@ -149,16 +138,10 @@
             <resource>
                 <!-- 设定主资源目录  -->
                 <directory>src/main/resources</directory>
-                <includes>
-                    <include>**</include>
-<!--                    <include>**/*.yml</include>-->
-<!--                    <include>**/*.properties</include>-->
-<!--                    <include>**/*.static</include>-->
-                </includes>
-<!--                <excludes>-->
-<!--                    <exclude>static/**</exclude>-->
-<!--                </excludes>-->
                 <filtering>true</filtering>
+                <includes>
+                    <include>**/*</include>
+                </includes>
             </resource>
 
             <resource>
@@ -184,7 +167,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>com.jdt.fedlearn.frontend.FederatedApplication</mainClass>
+                    <mainClass>com.jdt.fedlearn.frontend.ApplicationRunner</mainClass>
                 </configuration>
             </plugin>
 

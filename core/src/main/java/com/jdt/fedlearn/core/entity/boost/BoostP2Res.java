@@ -15,10 +15,13 @@ package com.jdt.fedlearn.core.entity.boost;
 
 
 import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.entity.common.MetricValue;
 
 
 public class BoostP2Res implements Message {
     private final FeatureLeftGH[] featureGL;
+    private MetricValue trainMetric;
+
 
     public BoostP2Res(FeatureLeftGH[] featureGL) {
         this.featureGL = featureGL;
@@ -28,4 +31,11 @@ public class BoostP2Res implements Message {
         return featureGL;
     }
 
+    public void setTrainMetric(MetricValue trainMetric) {
+        this.trainMetric = trainMetric;
+    }
+
+    public MetricValue getTrainMetric() {
+        return trainMetric;
+    }
 }

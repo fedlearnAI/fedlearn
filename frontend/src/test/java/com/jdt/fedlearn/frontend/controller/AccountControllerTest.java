@@ -4,7 +4,7 @@ import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.frontend.FederatedApplication;
 import com.jdt.fedlearn.frontend.JdchainFederatedApplication;
 import com.jdt.fedlearn.frontend.constant.Constant;
-import com.jdt.fedlearn.frontend.mapper.entity.Account;
+import com.jdt.fedlearn.frontend.entity.table.AccountDO;
 import com.jdt.fedlearn.frontend.service.impl.account.AccountServiceDbImpl;
 import com.jdt.fedlearn.frontend.service.impl.account.AccountServiceJdchainImpl;
 import mockit.Mock;
@@ -58,7 +58,7 @@ public class AccountControllerTest extends AbstractTestNGSpringContextTests{
         MvcResult mvcResult = mockMvc.perform(request).andReturn() ;
         String result = mvcResult.getResponse().getContentAsString();
         System.out.println(result);
-        ModelMap modelMap = JsonUtil.parseJson(result);
+        ModelMap modelMap = JsonUtil.json2Object(result,ModelMap.class);
         Assert.assertEquals(modelMap.get("code"),0);
     }
 
@@ -74,12 +74,12 @@ public class AccountControllerTest extends AbstractTestNGSpringContextTests{
     private void mockAccountServiceDb() {
         new MockUp<AccountServiceDbImpl>() {
             @Mock
-            public Account queryAccount(String userName) {
-                Account account = new Account();
-                account.setUsername(userName);
-                account.setPassword(p);
-                account.setStatus(Constant.STATUS_ENABLE);
-                return account;
+            public AccountDO queryAccount(String userName) {
+                AccountDO accountDO = new AccountDO();
+                accountDO.setUsername(userName);
+                accountDO.setPassword(p);
+                accountDO.setStatus(Constant.STATUS_ENABLE);
+                return accountDO;
             }
         };
     }
@@ -87,12 +87,12 @@ public class AccountControllerTest extends AbstractTestNGSpringContextTests{
     private void mockAccountServiceJdchain() {
         new MockUp<AccountServiceJdchainImpl>() {
             @Mock
-            public Account queryAccount(String userName) {
-                Account account = new Account();
-                account.setUsername(userName);
-                account.setPassword(p);
-                account.setStatus(Constant.STATUS_ENABLE);
-                return account;
+            public AccountDO queryAccount(String userName) {
+                AccountDO accountDO = new AccountDO();
+                accountDO.setUsername(userName);
+                accountDO.setPassword(p);
+                accountDO.setStatus(Constant.STATUS_ENABLE);
+                return accountDO;
             }
         };
     }

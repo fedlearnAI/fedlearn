@@ -2,13 +2,12 @@ package com.jdt.fedlearn.core.integratedTest.mapping;
 
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.example.CommonRun;
-import com.jdt.fedlearn.core.psi.MappingReport;
+import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.DataParseUtil;
 
 import com.jdt.fedlearn.core.type.MappingType;
 
-import com.jdt.fedlearn.core.psi.MappingOutput;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -19,7 +18,7 @@ import java.util.*;
  */
 public class TestMD5Match {
     //服务端维护
-    private static final MappingType mappingType = MappingType.VERTICAL_MD5;
+    private static final MappingType mappingType = MappingType.MD5;
     private static final Map<ClientInfo, String[][]> trainDataMap = new HashMap<>();
     private ClientInfo[] clientInfos;
     private static final String baseDir = "./src/test/resources/classificationA_IDMatch/";
@@ -42,8 +41,8 @@ public class TestMD5Match {
     @Test
     public void Md5MatchTest() {
         //构造请求
-        Tuple2<MappingReport, String[]> mappingOutput = CommonRun.match(mappingType, Arrays.asList(clientInfos.clone()), trainDataMap);
-        System.out.println("mapping report is:" + mappingOutput._1());
+        Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(mappingType, Arrays.asList(clientInfos.clone()), trainDataMap);
+        System.out.println("mapping report is:" + mappingOutput._1().getReport());
         System.out.println("mapping result:  " + Arrays.toString(mappingOutput._2()));
         System.out.println("mapping result length: " + mappingOutput._2().length);
 

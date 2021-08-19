@@ -52,7 +52,7 @@ public class MatchStartImplTest {
     public void testMatch() {
         String projectId = "1";
         MatchStartImpl matchStartImpl = new MatchStartImpl();
-        MatchStartReq query = new MatchStartReq("lijingxi", projectId, "VERTICAL_MD5");
+        MatchStartReq query = new MatchStartReq(projectId, "VERTICAL_MD5");
         String content = JsonUtil.object2json(query);
         MatchStartReq query2 = new MatchStartReq(content);
         Map<String, Object> res = matchStartImpl.match(query2);

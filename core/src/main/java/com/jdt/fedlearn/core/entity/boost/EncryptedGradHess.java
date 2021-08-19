@@ -15,6 +15,7 @@ package com.jdt.fedlearn.core.entity.boost;
 
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.type.data.StringTuple2;
 
 
@@ -24,6 +25,7 @@ public class EncryptedGradHess implements Message {
     private StringTuple2[] gh;
     private String pubKey;
     private boolean newTree;
+    private MetricValue trainMetric;
 
     public EncryptedGradHess(ClientInfo client, int[] instanceSpace, StringTuple2[] gh, String pubKey, boolean newTree) {
         this.client = client;
@@ -56,5 +58,13 @@ public class EncryptedGradHess implements Message {
 
     public boolean getNewTree() {
         return newTree;
+    }
+
+    public void setTrainMetric(MetricValue trainMetric) {
+        this.trainMetric = trainMetric;
+    }
+
+    public MetricValue getTrainMetric() {
+        return trainMetric;
     }
 }

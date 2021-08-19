@@ -13,6 +13,8 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.encryption.LibGMP;
 
+import java.beans.Transient;
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Random;
@@ -20,8 +22,9 @@ import java.util.Random;
 /**
  * Prototype taken from jna-gmp github project (https://github.com/square/jna-gmp)
  */
-public class GInteger extends BigInteger {
-    private final MPZMemory memory = new MPZMemory();
+public class GInteger extends BigInteger implements Serializable {
+    private static final long serialVersionUID = -8474409790218658764L;
+    private transient final MPZMemory memory = new MPZMemory();
 
     {
         GMP.INSTANCE.get().mpzImport(memory.peer, super.signum(), super.abs().toByteArray());

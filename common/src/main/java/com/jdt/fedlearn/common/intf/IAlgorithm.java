@@ -15,6 +15,7 @@ package com.jdt.fedlearn.common.intf;
 import com.jdt.fedlearn.common.entity.Job;
 import com.jdt.fedlearn.common.entity.Task;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -22,11 +23,12 @@ import java.util.Map;
  * @Description: IAlgorithm 算法接口
  */
 public interface IAlgorithm {
-
+    String STAMP = "stamp";
+    String DATA = "data";
     /**
      * 运行需要执行的算法
      */
-    Map<String, Object> run(Task task);
+    Map<String, Object> run(Task task) throws IOException;
 
     /**
      * 算法初始化

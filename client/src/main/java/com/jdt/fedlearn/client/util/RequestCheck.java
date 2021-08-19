@@ -1,7 +1,6 @@
 package com.jdt.fedlearn.client.util;
 
-import com.jdt.fedlearn.common.util.HttpClientUtil;
-import com.jdt.fedlearn.common.util.IpAddress;
+import com.jdt.fedlearn.common.util.IpAddressUtil;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import org.slf4j.Logger;
@@ -23,16 +22,16 @@ public class RequestCheck {
      * @return 是否在白名单
      */
     public static boolean isRefusedAddress(HttpServletRequest request) {
-        String remoteIP = HttpClientUtil.getRemoteIP(request);
+        String remoteIP = IpAddressUtil.getRemoteIP(request);
         logger.info("remoteIP=============" + remoteIP);
         long start = System.currentTimeMillis();
-        String ips = ConfigUtil.getProperty("master.address");
+        String ips = ConfigUtil.getClientConfig().getMasterAddress();
         logger.info("ConfigUtil.getProperty cost : " + (System.currentTimeMillis() - start) + " ms");
         if (null == ips) {
             ips = "127.0.0.1,10.222.113.150,172.24.84.207,172.25.221.6,172.23.255.4";
         }
         start = System.currentTimeMillis();
-        List<String> ipList = Arrays.stream(ips.split(",")).map(IpAddress::extractIp).collect(Collectors.toList());
+        List<String> ipList = Arrays.stream(ips.split(",")).map(IpAddressUtil::extractIp).collect(Collectors.toList());
         logger.info("ipList cost : " + (System.currentTimeMillis() - start) + " ms");
         if (ipList.contains(remoteIP)) {
             return false;
@@ -71,10 +70,10 @@ public class RequestCheck {
     public static boolean needBelongCoordinator(Features features, AlgorithmType algorithmType, String remoteIP) {
         logger.info("needBelongCoordinator remoteIP=============" + remoteIP);
         boolean hasLabel = features.getLabel() != null && !features.getLabel().isEmpty();
-        String belongIps = ConfigUtil.getProperty("master.belong");
+        String belongIps = ConfigUtil.getClientConfig().getMasterBelong();
         assert belongIps != null;
-        List<String> belongIpList = Arrays.stream(belongIps.split(",")).map(IpAddress::extractIp).collect(Collectors.toList());
-        AlgorithmType[] algorithmTypeRF = new AlgorithmType[]{AlgorithmType.RandomForest, AlgorithmType.RandomForestJava, AlgorithmType.DistributedRandomForest};
+        List<String> belongIpList = Arrays.stream(belongIps.split(",")).map(IpAddressUtil::extractIp).collect(Collectors.toList());
+        AlgorithmType[] algorithmTypeRF = new AlgorithmType[]{AlgorithmType.RandomForestJava, AlgorithmType.DistributedRandomForest};
         if (hasLabel && !belongIpList.contains(remoteIP) && Arrays.asList(algorithmTypeRF).contains(algorithmType)) {
             return true;
         }

@@ -35,7 +35,7 @@ public class TestDistributedPaillier {
         if(usingFakeEnc) {
             return ;
         }
-        key = new HomoEncryptionUtil(n, l, usingFakeEnc);
+        key = new HomoEncryptionUtil(n, l, false);
     }
 
 
@@ -47,18 +47,17 @@ public class TestDistributedPaillier {
             }
         }
     }
-
+    @Test
     public void testMoreDouble() {
-
-        for(int i = 0; i < 1000; i++) {
+        for(int i = 0; i < 10; i++) {
             testDoubleType();
             System.out.println("passed samples " + (i+1)*20);
         }
     }
-
+    @Test
     public void testMoreLong() {
 
-        for(int i = 0; i < 1000; i++) {
+        for(int i = 0; i < 10; i++) {
             testLongType();
             System.out.println("passed samples " + (i+1)*20);
         }
@@ -86,7 +85,7 @@ public class TestDistributedPaillier {
             throw new WrongValueException("a and b are too large. Inner product larger than Long.Max...");
         }
 
-        key.generateKeys();
+        key.generateKeyStandalone();
         HomoEncryptionDebugUtil decHelper;
         if(usingFakeEnc){
             decHelper = new HomoEncryptionDebugUtil(true) ;
@@ -193,14 +192,14 @@ public class TestDistributedPaillier {
         double [] a = new double[num_sample];
         double [] b = new double[num_sample];
         for(int i = 0; i< num_sample; i++) {
-            a[i] = prg.nextInt((int) 1E7) / 1000d;
-            b[i] = prg.nextInt((int) 1E7) / 1000d;
+            a[i] = prg.nextInt((int) 1E3) / 1000d;
+            b[i] = prg.nextInt((int) 1E3) / 1000d;
         }
         if(dotMultiply(a, b) < 0){
             throw new WrongValueException("a and b are too large. Inner product larger than Long.Max...");
         }
         double precision = (1d/SCALE)*(1E7/1000);
-        key.generateKeys();
+        key.generateKeyStandalone();
         HomoEncryptionDebugUtil decHelper;
         if(usingFakeEnc){
             decHelper = new HomoEncryptionDebugUtil(true) ;
@@ -259,7 +258,7 @@ public class TestDistributedPaillier {
 
     // when results larger than 2^64, will raise error.
     public void test_special_numbers() {
-        key.generateKeys();
+        key.generateKeyStandalone();
         HomoEncryptionDebugUtil decHelper = new HomoEncryptionDebugUtil(key.getPk(), key.getSkAll(), key.getN(), maxNegAbs);
         int N = 20;
         long [] a = new long[N];

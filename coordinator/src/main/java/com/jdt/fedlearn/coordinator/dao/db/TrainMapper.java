@@ -18,12 +18,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.common.entity.TokenDTO;
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.common.util.TokenUtil;
-import com.jdt.fedlearn.coordinator.allocation.ResourceManager;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
-import com.jdt.fedlearn.coordinator.entity.train.SingleParameter;
-import com.jdt.fedlearn.coordinator.type.RunningType;
+import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.coordinator.util.DbUtil;
 import com.jdt.fedlearn.core.type.AlgorithmType;
@@ -40,11 +39,11 @@ import java.util.*;
 
 public class TrainMapper {
     private static final Logger logger = LoggerFactory.getLogger(TrainMapper.class);
+    private static ObjectMapper mapper = new ObjectMapper();
 
     public static void insertTrainInfo(TrainInfo info) {
         PreparedStatement ps = null;
         Connection conn = DbUtil.getConnection();
-        ObjectMapper mapper = new ObjectMapper();
         try {
             String sql = "INSERT INTO model_table (model_token, task_id, algorithm_type, hyper_parameter, train_start_time, created_time, modified_time) VALUES (?,?,?,?,?,?,?)";
             if (conn != null) {
@@ -79,7 +78,7 @@ public class TrainMapper {
             String sql = "update model_table set metric_info=?,running_type=?,train_percent=?,modified_time=? where model_token=?";
             if (conn != null) {
                 ps = conn.prepareStatement(sql);
-                String metricInfoStr = ResourceManager.serializer.serialize(trainInfo.getMetricInfo());
+                String metricInfoStr = trainInfo.getMetricInfo().toJson();
 //                logger.info("metricInfoStr " + metricInfoStr);
                 ps.setString(1, metricInfoStr);
                 ps.setString(2, trainInfo.getRunningType().toString());
@@ -98,16 +97,18 @@ public class TrainMapper {
         }
     }
 
-    public static List<String> getModelsByUser(String username) {
+
+
+    public static List<String> getModelTokensByTask(String taskId) {
         PreparedStatement ps = null;
         ResultSet resultSet = null;
         List<String> modelList = new ArrayList<>();
         Connection conn = DbUtil.getConnection();
         try {
-            String sql = "SELECT model_token FROM model_table,task_table where model_table.task_id = task_table.id and model_table.status = 0 and task_table.status = 0 and task_table.task_owner=?";
+            String sql = "SELECT model_token FROM model_table where status = 0 and task_id=?";
             if (conn != null) {
                 ps = conn.prepareStatement(sql);
-                ps.setString(1, username);
+                ps.setString(1, taskId);
                 resultSet = ps.executeQuery();
                 while (resultSet.next()) {
                     String token = resultSet.getString(1);
@@ -129,7 +130,7 @@ public class TrainMapper {
      * @param taskId 任务id
      * @return 模型id列表
      */
-    public static List<Tuple2<String,RunningType>> getModelsByTaskId(Integer taskId) {
+    public static List<Tuple2<String, RunningType>> getModelsByTaskId(String taskId) {
         PreparedStatement ps = null;
         ResultSet resultSet = null;
         List<Tuple2<String,RunningType>> modelList = new ArrayList<>();
@@ -138,7 +139,7 @@ public class TrainMapper {
             String sql = "SELECT model_token,running_type FROM model_table where status = 0 and task_id = ? order by modified_time desc ";
             if (conn != null) {
                 ps = conn.prepareStatement(sql);
-                ps.setInt(1, taskId);
+                ps.setString(1, taskId);
                 resultSet = ps.executeQuery();
                 while (resultSet.next()) {
                     String token = resultSet.getString(1);
@@ -183,7 +184,7 @@ public class TrainMapper {
                     String trainStartTime = (resultSet.getString(5));
                     String trainEndTime = (resultSet.getString(6));
                     AlgorithmType algorithmType = AlgorithmType.valueOf(algorithm);
-                    MetricValue metricValue = (MetricValue) ResourceManager.serializer.deserialize(trainMetricInfo);
+                    MetricValue metricValue = MetricValue.parseJson(trainMetricInfo);
                     RunningType runningType = RunningType.valueOf(resultSet.getString(7));
                     int percent = Integer.parseInt(resultSet.getString(8));
                     trainInfo = new TrainInfo(token, algorithmType, finshParameterFields,  metricValue, Long.parseLong(trainStartTime), Long.parseLong(trainEndTime),runningType,percent);
@@ -208,7 +209,6 @@ public class TrainMapper {
      * @return
      */
     public static boolean isContainModel(String token) {
-        TrainInfo model = null;
         PreparedStatement ps = null;
         Connection conn = DbUtil.getConnection();
         ResultSet resultSet = null;
@@ -237,7 +237,7 @@ public class TrainMapper {
      *
      * @param modelId 模型id
      */
-    public static void deleteModel(String modelId) {
+    public static boolean deleteModel(String modelId) {
         PreparedStatement ps = null;
         Connection conn = DbUtil.getConnection();
         try {
@@ -250,9 +250,11 @@ public class TrainMapper {
                 ps.close();
                 logger.info("delete model token:" + modelId);
             }
+            return true;
         } catch (SQLException e) {
             logger.error("conn && sql error with model:" + modelId);
             logger.error(e.toString());
+            return false;
         } finally {
             DbUtil.close(conn, ps, null);
         }

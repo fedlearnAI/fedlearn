@@ -27,6 +27,7 @@ import com.jdt.fedlearn.core.psi.PrepareClient;
 import com.jdt.fedlearn.core.psi.md5.Md5Match;
 import com.jdt.fedlearn.core.type.FreedmanType;
 import com.jdt.fedlearn.core.util.LagrangeInterpolation;
+import com.jdt.fedlearn.core.util.StringToIntUtil;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.*;
@@ -36,7 +37,7 @@ import java.util.stream.IntStream;
 import static java.util.stream.Collectors.toList;
 
 /**
- * 基于Freedman协议的ID对齐Client端算法, 当前仅支持数字类型id，如"124545"；不支持字符类型，如"jd1232_dsf";
+ * 基于Freedman协议的ID对齐Client端算法, 当前仅支持数字类型id，如"124545"；不支持字符类型，如"jd1232_dsf";且当前算法要求各方ID相乘不能超过Double的最大值；
  * 基于 Freedman 协议的 ID 对齐算法一共分为五个步骤
  * <p>1：初始化阶段</p>
  * <p>各个client对各自需要对齐的 ID 长度加上一个小的随机数用于模糊真实长度。</p>
@@ -53,23 +54,40 @@ import static java.util.stream.Collectors.toList;
 public class FreedmanMatchClient implements PrepareClient {
     private final Random r = new Random();
     private String[] commonIds;
-    private final EncryptionTool encryptionTool = new JavallierTool();// new FakeTool();//new PaillierTool();//new JavallierTool();
+    private EncryptionTool encryptionTool = new JavallierTool();// new FakeTool();//new PaillierTool();//new JavallierTool();
     private PublicKey publicKey; // 主动方会生成publicKey
     private PrivateKey privateKey; // 主动方会生成privateKey
-    private int random;
+    private double random;
 
     @Override
     public String[] getCommonIds() {
         return commonIds;
     }
-    
-    public void setCommonIds(String[] commonIds) {
-        this.commonIds = commonIds;
+
+    public FreedmanMatchClient() {
+    }
+
+    public FreedmanMatchClient(EncryptionTool encryptionTool, PublicKey publicKey, PrivateKey privateKey) {
+        this.encryptionTool = encryptionTool;
+        this.publicKey = publicKey;
+        this.privateKey = privateKey;
+    }
+
+    public void setEncryptionTool(EncryptionTool encryptionTool) {
+        this.encryptionTool = encryptionTool;
+    }
+
+    public void setPublicKey(PublicKey publicKey) {
+        this.publicKey = publicKey;
+    }
+
+    public void setPrivateKey(PrivateKey privateKey) {
+        this.privateKey = privateKey;
     }
 
     @Override
-    public Message init(String[] uid, Map<String,Object> others) {
-        int randInt = r.nextInt(30);
+    public Message init(String[] uid, Map<String, Object> others) {
+        int randInt = r.nextInt(30); // 加一个小的随机数 模糊真实长度
         int uidLength = uid.length + randInt;
         return new MatchInitRes(null, uidLength);
     }
@@ -98,10 +116,14 @@ public class FreedmanMatchClient implements PrepareClient {
         if (!(message instanceof EmptyMessage)) {
             throw new UnsupportedOperationException("Freedman id match client phase 1 should be of empty message");
         }
-        int[] uidInt = Arrays.stream(convertUid(uid)).toArray();
-        int[] lagrangeInput = Arrays.stream(uidInt).map(i -> -i).toArray();
+        double[] uidInt = convertUid(uid);
+        boolean ContinueOrNot = checkUid(uidInt);
+        if (!ContinueOrNot) {
+            throw new UnsupportedOperationException("ID exceeds maximum capacity for Freedman.");
+        }
+        double[] lagrangeInput = Arrays.stream(uidInt).map(i -> i * (-1.0)).toArray();
         LagrangeInterpolation lagrangeInterpolation = new LagrangeInterpolation(lagrangeInput);
-        int[] coeffcients = lagrangeInterpolation.generateCoefficients();
+        double[] coeffcients = lagrangeInterpolation.generateBigCoefficients();
         if (coeffcients.length != uid.length + 1) {
             throw new UnsupportedOperationException("Error from lagrange interpolation");
         }
@@ -109,7 +131,7 @@ public class FreedmanMatchClient implements PrepareClient {
         this.publicKey = privateKey.generatePublicKey();
         // 随机生成一个大于最大的uid的数字
 
-        this.random = r.nextInt(2 * MathExt.max(uidInt)) + MathExt.max(uidInt);
+        this.random = MathExt.max(uidInt) + (r.nextInt(Integer.MAX_VALUE));
         // 加密后的多项式系数
         String[] encryptedCoefs = Arrays.stream(coeffcients).parallel().mapToObj(i -> encryptionTool.encrypt(i, publicKey))
                 .map(Ciphertext::serialize).collect(toList()).toArray(new String[coeffcients.length]);
@@ -125,16 +147,16 @@ public class FreedmanMatchClient implements PrepareClient {
      */
     private Message passiveOperatePolynomial(Message message, String[] uid) {
         if (!(message instanceof FreedmanEncryption)) {
-            throw new UnsupportedOperationException("client phase 2 should be of FreedmanRes1 type");
+            throw new UnsupportedOperationException("client phase 2 should be of FreedmanEncryption type");
         }
         FreedmanEncryption freedmanRes1 = (FreedmanEncryption) message;
         List<Ciphertext> encryptedCoefficients = Arrays.stream(freedmanRes1.getEncryptedCoefficients())
                 .map(encryptionTool::restoreCiphertext).collect(Collectors.toList());
         String strPublicKey = freedmanRes1.getPublicKey();
         PublicKey publicKey = encryptionTool.restorePublicKey(strPublicKey);
-        int[] uidInt = convertUid(uid);
+        double[] uidInt = convertUid(uid);
         String[] passiveRes = Arrays.stream(uidInt).parallel().mapToObj(i -> encryptionTool.add(
-                encryptionTool.multiply(polynomialCalculation(encryptedCoefficients, i, encryptionTool, publicKey), random, publicKey),
+                encryptionTool.multiply(polynomialCalculation(encryptedCoefficients, (int) Math.round(i), encryptionTool, publicKey), random, publicKey),
                 encryptionTool.encrypt(i, publicKey), publicKey).serialize()).collect(toList()).toArray(new String[uidInt.length]);
         //todo 打乱顺序之后发送
         return new FreedmanPassiveResult(passiveRes);
@@ -148,12 +170,12 @@ public class FreedmanMatchClient implements PrepareClient {
      */
     private Message activeMatch(Message message, String[] uid) {
         if (!(message instanceof FreedmanPassiveUidMap)) {
-            throw new UnsupportedOperationException("client phase 3 should be of FreedmanReq3 type");
+            throw new UnsupportedOperationException("client phase 3 should be of FreedmanPassiveUidMap type");
         }
         FreedmanPassiveUidMap freedmanPassiveUidMap = (FreedmanPassiveUidMap) message;
-        int[] uidInt = convertUid(uid);
+        double[] uidInt = convertUid(uid);
         Map<ClientInfo, String[]> passiveResultMap = freedmanPassiveUidMap.getPassiveUidMap();
-        String[] intersection = Arrays.stream(uidInt).mapToDouble(i -> i).mapToObj(String::valueOf).toArray(String[]::new);
+        String[] intersection = Arrays.stream(uidInt).mapToObj(String::valueOf).toArray(String[]::new);
         Map<ClientInfo, double[]> decodedPassiveMap = new HashMap<>();
         Map<ClientInfo, int[]> indexResMap = new HashMap<>();
         for (Map.Entry<ClientInfo, String[]> entry : passiveResultMap.entrySet()) {
@@ -188,20 +210,48 @@ public class FreedmanMatchClient implements PrepareClient {
 
 
     /**
-     * 将读取进来的String类型的uid转化为int，但是uid本身必须为int才可以
+     * 将读取进来的String类型的uid转化为double，但是uid本身必须为数字才可以
      * @param uid
      * @return
      */
-    private int[] convertUid(String[] uid) {
-        int[] uidInt;
+    private double[] convertUid(String[] uid) {
+        double[] uidInt;
         try {
-            uidInt = Arrays.stream(uid).map(s -> s.split("\\.")[0]).mapToInt(Integer::valueOf).toArray();
+            uidInt = Arrays.stream(uid).mapToDouble(s -> Double.parseDouble(s.split("\\.")[0])).toArray();
         } catch (Exception e) {
-            throw new UnsupportedOperationException("cannot convert string uid to int uid.");
+            throw new UnsupportedOperationException(String.format("cannot convert string uid to int uid. first uid is: %s", uid[0]));
         }
         return uidInt;
     }
 
+    // 确保active方的ID相乘<Double的最大值
+    private boolean checkUid(double[] uid) {
+        double res = 1.0;
+        for (double d : uid) {
+            res = res * d;
+        }
+        if (res >= Double.MAX_VALUE) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+
+//    /**
+//     * 将读取进来的String类型的uid转化为double，通过MD5加密为40位的double，todo 后续考虑转化为16进制加快速度
+//     * @param uid
+//     * @return
+//     */
+//    private double[] convertUid(String[] uid) {
+//        double[] uidInt;
+//        try {
+//            uidInt = Arrays.stream(uid).mapToDouble(s -> Double.parseDouble(s.split("\\.")[0])).toArray();
+//        } catch (Exception e) {
+//            uidInt = Arrays.stream(uid).mapToDouble(s -> Double.parseDouble(StringToIntUtil.MD5Encode(s))).toArray();
+//        }
+//        return uidInt;
+//    }
 
     /**
      * 使用Horner's rule在密文的情况下计算多项式f(x)结果

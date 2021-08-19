@@ -12,10 +12,11 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.cache;
 
+import ch.qos.logback.core.joran.spi.JoranException;
+import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.JobResult;
 import com.jdt.fedlearn.common.util.ManagerCommandUtil;
-import com.jdt.fedlearn.worker.util.ConfigUtil;
 
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
@@ -26,6 +27,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,7 +37,7 @@ public class ManagerCacheTest extends PowerMockTestCase {
     private static final String cacheValue = "test";
 
     @BeforeMethod
-    public void setUp(){
+    public void setUp() throws IOException, JoranException {
 
         ConfigUtil.init("src/test/resources/conf/worker.properties");
 

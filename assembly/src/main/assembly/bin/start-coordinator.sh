@@ -10,10 +10,6 @@ DEPLOY_DIR=`pwd`
 DEPLOY_DIR_REAL=`readlink -f ${DEPLOY_DIR}`
 CONF_DIR=${DEPLOY_DIR_REAL}/conf
 
-SERVER_NAME=`grep -v '^\s*#' conf/master.properties | sed '/app.name/!d;s/.*=//' | tr -d '\r'`
-SERVER_PORT=`grep -v '^\s*#' conf/master.properties | sed '/app.port/!d;s/.*=//' | tr -d '\r'`
-APP=`sed '/"APP"/!d;s/.*value="\(.*\)".*/\1/' conf/logback.xml`
-eval LOGS_DIR=`sed '/"LOG_HOME"/!d;s/.*value="\(.*\)".*/\1/' conf/logback.xml`
 
 
 CONFIG=""
@@ -33,13 +29,22 @@ do
     esac
 done
 
+# TODO：没有赋值时退出
+SERVER_NAME=`grep -v '^\s*#' $CONFIG | sed '/app.name/!d;s/.*=//' | tr -d '\r'`
+SERVER_PORT=`grep -v '^\s*#' $CONFIG | sed '/app.port/!d;s/.*=//' | tr -d '\r'`
+APP=$SERVER_NAME
+LOGS_NAME=`grep -v '^\s*#' $CONFIG | sed '/log.settings/!d;s/.*=//' | tr -d '\r'`
+
+eval LOGS_DIR=`sed '/"LOG_HOME"/!d;s/.*value="\(.*\)".*/\1/' $LOGS_NAME`
+
+
 if [[ -z "$APP" ]]; then
-  echo "ERROR: Not Found APP defined in ${CONF_DIR}/logback.xml"
+  echo "ERROR: Not Found APP defined in ${CONF_DIR}/logback-test.xml"
   exit 1
 fi
 
 if [[ -z "$LOGS_DIR" ]]; then
-  echo "ERROR: Not Found LOG_HOME defined in ${CONF_DIR}/logback.xml"
+  echo "ERROR: Not Found LOG_HOME defined in ${CONF_DIR}/logback-test.xml"
   exit 1
 fi
 

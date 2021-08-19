@@ -1,9 +1,11 @@
 package com.jdt.fedlearn.coordinator.network;
 
-import com.jdt.fedlearn.common.util.HttpClientUtil;
+import com.jdt.fedlearn.common.enums.RunningType;
+import com.jdt.fedlearn.common.network.impl.HttpClientImpl;
+import com.jdt.fedlearn.common.util.GZIPCompressUtil;
 import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.coordinator.entity.common.Response;
-import com.jdt.fedlearn.coordinator.type.RunningType;
+import com.jdt.fedlearn.common.tool.internel.ResponseInternal;
+import com.jdt.fedlearn.coordinator.constant.RequestConstant;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
@@ -67,26 +69,15 @@ public class SendAndRecvTest {
     }
 
     @Test
-    public void testSend3() {
-        String matchToken = "1-MD5";
-        MockPostData(-1);
-        Message data = new BoostP1Req(C1, true);
-        String send = SendAndRecv.send(C1, matchToken, "dataset.csv", 0, "MD5", data);
-        Assert.assertEquals(send, "init_success");
-
-
-    }
-
-    @Test
     public void testSend4() {
         //send(ClientInfo Client, String path, String httpType, Map<String, Object> context)
         // httpType: get, POST
         MockPostData(0);
         Map<String, Object> map = new HashMap<>();
         map.put("code", 0);
-        String get1 = SendAndRecv.send(C1, "", "get", map);
+        String get1 = SendAndRecv.send(C1, "", map);
         Assert.assertEquals(get1, "getData");
-        String post1 = SendAndRecv.send(C1, "", "POST", map);
+        String post1 = SendAndRecv.send(C1, "", map);
         System.out.println(post1);
         Assert.assertEquals(post1, "{\"code\":0,\"data\":\"init_success\"}");
 
@@ -124,7 +115,7 @@ public class SendAndRecvTest {
         List<CommonResponse> responses = SendAndRecv.broadcastTrain(requests, modelToken, AlgorithmType.FederatedGB,
                 RunningType.RUNNING, "1");
         Assert.assertEquals(responses.size(), 1);
-        Assert.assertEquals(((SingleElement)responses.get(0).getBody()).getElement(), "init_success");
+        Assert.assertEquals(((SingleElement) responses.get(0).getBody()).getElement(), "init_success");
 
     }
 
@@ -141,7 +132,7 @@ public class SendAndRecvTest {
         List<CommonResponse> responses = SendAndRecv.broadcastTrain(requests, modelToken, AlgorithmType.FederatedGB,
                 RunningType.RUNNING, "1", dataset);
         Assert.assertEquals(responses.size(), 1);
-        Assert.assertEquals(((SingleElement)responses.get(0).getBody()).getElement(), "init_success");
+        Assert.assertEquals(((SingleElement) responses.get(0).getBody()).getElement(), "init_success");
 
     }
 
@@ -150,8 +141,19 @@ public class SendAndRecvTest {
         // 需要mock OkHttpUtil.post: result结果应为Response
         // mock传输phase1 - inference
         BoostN1Res data = new BoostN1Res();
-        String s = SendAndRecv.sendInference(C1, modelToken, 0, AlgorithmType.FederatedGB, data, inferenceId);
-        BoostN1Res res = (BoostN1Res)serializer.deserialize(s);
+
+        Map<String, Object> context = new HashMap<>();
+        context.put("modelToken", modelToken);
+        context.put("algorithm", AlgorithmType.FederatedGB);
+        context.put("phase", 0);
+        context.put("inferenceId", inferenceId);
+        context.put("dataset", null);
+        // todo inference request add index
+        context.put("index", "uid");
+
+        String path = RequestConstant.INFERENCE_PATH;
+        String s = SendAndRecv.send(C1, path, context, data);
+        BoostN1Res res = (BoostN1Res) serializer.deserialize(s);
         Assert.assertNull(res.getTrees());
         Assert.assertNull(res.getMultiClassUniqueLabelList());
         Assert.assertEquals(res.getFirstRoundPred(), 0.0);
@@ -164,9 +166,17 @@ public class SendAndRecvTest {
 //        Message data = new InferenceInitRes(true, new int[]{0,1,2});
         CommonRequest commonRequest = new CommonRequest(C1, data);
         intiRequests.add(commonRequest);
-        List<CommonResponse> responses = SendAndRecv.broadcastInference(intiRequests, modelToken, AlgorithmType.FederatedGB, inferenceId);
+
+        Map<String, Object> context = new HashMap<>();
+        context.put("modelToken", modelToken);
+        context.put("algorithm", AlgorithmType.FederatedGB);
+        context.put("inferenceId", inferenceId);
+        // todo inference request add index
+        context.put("index", "uid");
+
+        List<CommonResponse> responses = SendAndRecv.broadcastInference(intiRequests, context, null);
         Assert.assertEquals(responses.size(), 1);
-        Assert.assertEquals(((BoostN1Res)responses.get(0).getBody()).getFirstRoundPred(), 0.0);
+        Assert.assertEquals(((BoostN1Res) responses.get(0).getBody()).getFirstRoundPred(), 0.0);
 
     }
 
@@ -179,7 +189,7 @@ public class SendAndRecvTest {
         CommonRequest commonRequest = new CommonRequest(C1, data);
         intiRequests.add(commonRequest);
         String s = SendAndRecv.sendValidate(C1, modelToken, 0, AlgorithmType.FederatedGB, data, inferenceId, "label");
-        BoostN1Res res = (BoostN1Res)serializer.deserialize(s);
+        BoostN1Res res = (BoostN1Res) serializer.deserialize(s);
         Assert.assertNull(res.getTrees());
         Assert.assertNull(res.getMultiClassUniqueLabelList());
         Assert.assertEquals(res.getFirstRoundPred(), 0.0);
@@ -194,7 +204,7 @@ public class SendAndRecvTest {
         intiRequests.add(commonRequest);
         List<CommonResponse> responses = SendAndRecv.broadcastValidate(intiRequests, modelToken, AlgorithmType.FederatedGB, inferenceId, "label");
         Assert.assertEquals(responses.size(), 1);
-        Assert.assertEquals(((BoostN1Res)responses.get(0).getBody()).getFirstRoundPred(), 0.0);
+        Assert.assertEquals(((BoostN1Res) responses.get(0).getBody()).getFirstRoundPred(), 0.0);
 
     }
 
@@ -211,9 +221,9 @@ public class SendAndRecvTest {
                 map.put("status", status);
                 map.put("data", data);
                 String s = JsonUtil.object2json(map);
-                String compress = HttpClientUtil.compress(s);
-                Response response = new Response(compress);
-                String s1 = HttpClientUtil.compress(JsonUtil.object2json(response));
+                String compress = GZIPCompressUtil.compress(s);
+                ResponseInternal responseInternal = new ResponseInternal(compress);
+                String s1 = GZIPCompressUtil.compress(JsonUtil.object2json(responseInternal));
                 return s1;
             }
 
@@ -232,44 +242,44 @@ public class SendAndRecvTest {
 
     private void MockPostData(int exceptionType) {
         // 0: no exception; 1: exception1;2： exception2
-        new MockUp<HttpClientUtil>() {
+        new MockUp<HttpClientImpl>() {
             @Mock
             public String doHttpPost(String uri, Object content) {
                 Map<String, Object> query = new ConcurrentHashMap<>();
                 query.put("data", "init_success");
-                if (exceptionType==1) {
+                if (exceptionType == 1) {
                     // 不compress会进入exception
                     query.put("dataIndex", 1);
                     query.put("msgid", "msgid");
                     query.put("dataSize", 1);
                     String s = JsonUtil.object2json(query);
                     return s;
-                }
-                else if (exceptionType==0) {
+                } else if (exceptionType == 0) {
                     query.put("code", 0);
                     String s = JsonUtil.object2json(query);
-                    String compress = HttpClientUtil.compress(s);
+                    String compress = GZIPCompressUtil.compress(s);
                     return compress;
-                } else if (exceptionType==2){
+                } else if (exceptionType == 2) {
                     // 没有code会有另一个exception
                     query.put("dataIndex", 1);
                     query.put("msgid", "msgid");
                     query.put("dataSize", 1);
                     String s = JsonUtil.object2json(query);
-                    String compress = HttpClientUtil.compress(s);
+                    String compress = GZIPCompressUtil.compress(s);
                     return compress;
                 } else {
                     // 最后一个send，预处理数据
                     query.put("code", 0);
                     query.put("status", "success");
                     String s = JsonUtil.object2json(query);
-                    String compress = HttpClientUtil.compress(s);
+                    String compress = GZIPCompressUtil.compress(s);
                     return compress;
                 }
             }
+
             @Mock
             public String doHttpGet(String uri) {
-                return HttpClientUtil.compress("getData");
+                return GZIPCompressUtil.compress("getData");
             }
         };
     }

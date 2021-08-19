@@ -27,6 +27,8 @@ import scala.Tuple4;
 import java.util.*;
 
 public class TestFederatedGB {
+    private static final FgbParameter fp = new FgbParameter.Builder(3, new MetricType[]{MetricType.ACC}, ObjectiveType.regLogistic).build();
+
     @Test
     public void getNextPhase() {
         Map<Integer, Integer> inOutPair = new HashMap<>();
@@ -36,7 +38,7 @@ public class TestFederatedGB {
         inOutPair.put(3, 4);
         inOutPair.put(4, 5);
         inOutPair.put(5, 1);
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         for (Map.Entry<Integer, Integer> entry : inOutPair.entrySet()) {
             int p = federatedGB.getNextPhase(entry.getKey(), new ArrayList<>());
             Assert.assertEquals(p, entry.getValue().intValue());
@@ -48,7 +50,7 @@ public class TestFederatedGB {
         /**
          * Test unsupported phase
          */
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         try {
             federatedGB.getNextPhase(6, new ArrayList<>());
         } catch (NotMatchException e) {
@@ -61,7 +63,7 @@ public class TestFederatedGB {
         /**
          * Test else branch
          */
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         List<CommonResponse> responses = new ArrayList<>();
         try {
             federatedGB.control(responses);
@@ -78,7 +80,7 @@ public class TestFederatedGB {
         MatchResult matchResult = new MatchResult(10);
         Map<ClientInfo, Features> features = StructureGenerate.fgbFeatures(clientInfos); // client -> feature
 
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
 
         List<CommonRequest> requests = federatedGB.initControl(clientInfos, matchResult, features, new HashMap<>());
         Assert.assertEquals(clientInfos.size(), requests.size());
@@ -93,7 +95,7 @@ public class TestFederatedGB {
     @Test
     public void fromInit() {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         List<CommonResponse> responses = new ArrayList<>();
         responses.add(new CommonResponse(clientInfos.get(0), new SingleElement("init_success")));
         responses.add(new CommonResponse(clientInfos.get(1), new SingleElement("init_success")));
@@ -115,7 +117,7 @@ public class TestFederatedGB {
     @Test
     public void control1FromInit() {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         List<CommonResponse> responses = new ArrayList<>();
         responses.add(new CommonResponse(clientInfos.get(0), new SingleElement("init_success")));
         responses.add(new CommonResponse(clientInfos.get(1), new SingleElement("init_success")));
@@ -137,13 +139,13 @@ public class TestFederatedGB {
     @Test
     public void control1FromLastRound() {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         List<CommonResponse> responses = new ArrayList<>(); // from model.train phase5
-        Map<MetricType, List<Double>> tm1 = new HashMap<MetricType, List<Double>>() {
+        Map<MetricType, List<Pair<Integer, Double>>> tm1 = new HashMap<MetricType, List<Pair<Integer, Double>>>() {
         };
-        Map<MetricType, List<Double>> tm2 = new HashMap<MetricType, List<Double>>() {
+        Map<MetricType, List<Pair<Integer, Double>>> tm2 = new HashMap<MetricType, List<Pair<Integer, Double>>>() {
         };
-        Map<MetricType, List<Double>> tm3 = new HashMap<MetricType, List<Double>>() {
+        Map<MetricType, List<Pair<Integer, Double>>> tm3 = new HashMap<MetricType, List<Pair<Integer, Double>>>() {
         };
         List<Double> tm11 = new ArrayList<Double>();
         tm11.add(3.2);
@@ -154,9 +156,9 @@ public class TestFederatedGB {
         List<Double> tm31 = new ArrayList<Double>();
         tm31.add(5.6);
         tm31.add(2.6);
-        responses.add(new CommonResponse(clientInfos.get(0), new BoostP5Res(true, 3, tm1)));
-        responses.add(new CommonResponse(clientInfos.get(1), new BoostP5Res(false, 1, tm2)));
-        responses.add(new CommonResponse(clientInfos.get(2), new BoostP5Res(false, 2, tm3)));
+        responses.add(new CommonResponse(clientInfos.get(0), new BoostP5Res(true, 3, new MetricValue(tm1))));
+        responses.add(new CommonResponse(clientInfos.get(1), new BoostP5Res(false, 1, new MetricValue(tm2))));
+        responses.add(new CommonResponse(clientInfos.get(2), new BoostP5Res(false, 2, new MetricValue(tm3))));
         // result
         List<CommonRequest> requests = federatedGB.control(responses);
         Assert.assertEquals(requests.size(), 3);
@@ -174,7 +176,7 @@ public class TestFederatedGB {
 
     @Test
     public void controlPhase2() {
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         List<CommonResponse> responses = new ArrayList<>();
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         // client 1 new tree; client2&3 existed tree
@@ -203,7 +205,7 @@ public class TestFederatedGB {
 
     @Test
     public void controlPhase3() {
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         List<CommonResponse> responses = new ArrayList<>();
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         FeatureLeftGH fgh1 = new FeatureLeftGH(clientInfos.get(0), "feat1",
@@ -229,7 +231,7 @@ public class TestFederatedGB {
 
     @Test
     public void controlPhase4() {
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         List<CommonResponse> responses = new ArrayList<>();
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         BoostP3Res bp3r1 = new BoostP3Res(clientInfos.get(0), "1", 3); // client1有label，有output from phase3
@@ -254,7 +256,7 @@ public class TestFederatedGB {
 
     @Test
     public void controlPhase5() {
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         List<CommonResponse> responses = new ArrayList<>();
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         LeftTreeInfo lti1 = new LeftTreeInfo(1, new int[]{1, 2});
@@ -279,7 +281,7 @@ public class TestFederatedGB {
         /**
          * Test else branch
          */
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         federatedGB.setInferencePhase(4);
         List<CommonResponse> responses = new ArrayList<>();
         try {
@@ -292,9 +294,9 @@ public class TestFederatedGB {
     @Test
     public void inferenceInit() {
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         String[] predictUid = new String[]{"1", "2"};
-        List<CommonRequest> requests = federatedGB.initInference(clientInfos, predictUid);
+        List<CommonRequest> requests = federatedGB.initInference(clientInfos, predictUid,new HashMap<>());
 
         Assert.assertEquals(requests.size(), 3);
         CommonRequest request = requests.stream().findAny().get();
@@ -303,7 +305,7 @@ public class TestFederatedGB {
 
     @Test
     public void inferenceControl1() {
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         List<CommonResponse> responses = new ArrayList<>();
         List<Integer> idList1 = new ArrayList<>();
@@ -340,7 +342,7 @@ public class TestFederatedGB {
 
     @Test
     public void inferenceControl() {
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         federatedGB.setInferencePhase(2);
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         List<CommonResponse> responses = new ArrayList<>();
@@ -370,7 +372,7 @@ public class TestFederatedGB {
         multiClassUniqueLabelList.add(0.0);
         multiClassUniqueLabelList.add(1.0);
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter(), queryTree, scores, isStopInference, inferencePhase, numClass,
+        FederatedGB federatedGB = new FederatedGB(fp, queryTree, scores, isStopInference, inferencePhase, numClass,
                 firstRoundPred, multiClassUniqueLabelList, idIndexArray, clientInfos);
         List<CommonResponse> responses = new ArrayList<>();
         // tree from train
@@ -405,7 +407,7 @@ public class TestFederatedGB {
         multiClassUniqueLabelList.add(0.0);
         multiClassUniqueLabelList.add(1.0);
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter(), queryTree, scores, isStopInference, inferencePhase, numClass,
+        FederatedGB federatedGB = new FederatedGB(fp, queryTree, scores, isStopInference, inferencePhase, numClass,
                 firstRoundPred, multiClassUniqueLabelList, idIndexArray, clientInfos);
         List<CommonResponse> responses = new ArrayList<>();
         // tree from train
@@ -479,7 +481,7 @@ public class TestFederatedGB {
         String[] originIdArray = {"0", "1", "2", "3"};
         // all nan
         double[][] scores = new double[][]{{Double.NaN, Double.NaN, Double.NaN, Double.NaN}};
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter(), queryTree, scores, isStopInference, inferencePhase, numClass,
+        FederatedGB federatedGB = new FederatedGB(fp, queryTree, scores, isStopInference, inferencePhase, numClass,
                 firstRoundPred, multiClassUniqueLabelList, idIndexArray, clientInfos);
         List<CommonResponse> responses = new ArrayList<>();
         responses.add(new CommonResponse(clientInfos.get(0), null));
@@ -494,11 +496,9 @@ public class TestFederatedGB {
 
         ObjectiveType[] types = new ObjectiveType[]{ObjectiveType.regLogistic, ObjectiveType.regSquare, ObjectiveType.countPoisson,
                 ObjectiveType.binaryLogistic};
-//        ObjectiveType[] types = new ObjectiveType[] {ObjectiveType.multiSoftmax, ObjectiveType.multiSoftProb};
+        MetricType[] metricTypes = new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC};
         for (ObjectiveType ot : types) {
-            FgbParameter fp = new FgbParameter(50, 1, 0, 5, 0.1, 33, ot
-                    , new MetricType[]{MetricType.CROSS_ENTRO, MetricType.ACC, MetricType.AUC},
-                    BitLengthType.bit1024, new String[]{""});
+            FgbParameter fp = new FgbParameter.Builder(50, metricTypes, ot).maxDepth(5).build();
             FederatedGB federatedGB2 = new FederatedGB(fp, queryTree, scores2, isStopInference, inferencePhase, numClass,
                     firstRoundPred, multiClassUniqueLabelList, idIndexArray, clientInfos, originIdArray);
             double[][] res2 = federatedGB2.postInferenceControl(responses).getPredicts();
@@ -507,7 +507,6 @@ public class TestFederatedGB {
             // TODO more Assert
 
             // TODO  ObjectiveType Null
-
         }
 
 
@@ -515,7 +514,7 @@ public class TestFederatedGB {
 
     @Test
     public void isContinue() {
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         federatedGB.setNumRound(100);
         Assert.assertFalse(federatedGB.isContinue());
         federatedGB.setNumRound(0);
@@ -524,21 +523,21 @@ public class TestFederatedGB {
 
     @Test
     public void isInferenceContinue() {
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         boolean res = federatedGB.isInferenceContinue();
         Assert.assertEquals(res, !federatedGB.isStopInference());
     }
 
     @Test
     public void getAlgorithmType() {
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FederatedGB federatedGB = new FederatedGB(fp);
         Assert.assertEquals(federatedGB.getAlgorithmType(), AlgorithmType.FederatedGB);
     }
 
     @Test
     public void metric() {
-
-        FederatedGB federatedGB = new FederatedGB(new FgbParameter());
+        FgbParameter fgbParameter = new FgbParameter.Builder(3, new MetricType[]{MetricType.RMSE}, ObjectiveType.regSquare).build();
+        FederatedGB federatedGB = new FederatedGB(fgbParameter);
         Map<MetricType, List<Pair<Integer, Double>>> target = new HashMap<>();
         List<Pair<Integer, Double>> l = new ArrayList<Pair<Integer, Double>>();
         l.add(new Pair<>(0, -Double.MAX_VALUE));

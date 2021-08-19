@@ -13,36 +13,33 @@ limitations under the License.
 package com.jdt.fedlearn.worker.service;
 
 import com.google.common.collect.Maps;
-import com.jdt.fedlearn.core.type.data.Tuple2;
-import com.jdt.fedlearn.core.util.Tool;
+import com.jdt.fedlearn.client.cache.ModelCache;
+import com.jdt.fedlearn.client.cache.TrainDataCache;
+import com.jdt.fedlearn.client.dao.*;
+import com.jdt.fedlearn.client.entity.source.DataSourceConfig;
+import com.jdt.fedlearn.client.type.SourceType;
+import com.jdt.fedlearn.client.util.ConfigUtil;
+import com.jdt.fedlearn.common.constant.CacheConstant;
+import com.jdt.fedlearn.common.network.INetWorkService;
+import com.jdt.fedlearn.core.entity.distributed.InitResult;
+import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.worker.cache.ManagerCache;
-import com.jdt.fedlearn.worker.cache.ModelCache;
-import com.jdt.fedlearn.worker.constant.CacheConstant;
 import com.jdt.fedlearn.worker.constant.Constant;
-import com.jdt.fedlearn.worker.dao.*;
-import com.jdt.fedlearn.worker.entity.source.DataSourceConfig;
 import com.jdt.fedlearn.worker.entity.train.QueryProgress;
 import com.jdt.fedlearn.worker.multi.TrainProcess;
 import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.worker.type.SourceType;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.util.*;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.common.TrainInit;
-import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.model.Model;
-import com.jdt.fedlearn.core.model.DistributedRandomForestModel;
 import com.jdt.fedlearn.core.model.common.CommonModel;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
-import com.jdt.fedlearn.worker.util.ConfigUtil;
 import com.jdt.fedlearn.worker.util.ExceptionUtil;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.TrainRequest;
 import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
-import com.jdt.fedlearn.grpc.federatedlearning.PaillierKeyPublic;
-import com.jdt.fedlearn.common.util.HttpClientUtil;
 import com.jdt.fedlearn.common.util.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -60,7 +57,9 @@ import java.util.stream.Collectors;
 public class TrainService {
     private static final Logger logger = LoggerFactory.getLogger(TrainService.class);
     public static Map<String, String> responseQueue = new ConcurrentSkipListMap<>();
-
+    public static Map<String, String> modelCache = new ConcurrentSkipListMap<>();
+    public static Map<String, String> trainDataCache = new ConcurrentSkipListMap<>();
+    private INetWorkService netWorkService = INetWorkService.getNetWorkService();
     /**
      * @param trainRequest 服务端请求的数据
      * @return 训练中间结果
@@ -76,42 +75,45 @@ public class TrainService {
         String dataset = trainRequest.getDataset();
         logger.info("parameterData:" + LogUtil.logLine(parameterData));
 
-        String modelKey = CacheConstant.getMoldeKey(modelToken, requestId);
-        String modelResult = ManagerCache.getCache(AppConstant.MODEL_CACHE,modelKey);
-        if (modelResult == null) {
-            return initModel(algorithm,parameterData,modelToken,dataset);
+        String modelAddressKey = CacheConstant.getModelAddressKey(modelToken,requestId);
+        String modelAddress = ManagerCache.getCache(AppConstant.MODEL_ADDRESS_CACHE,modelAddressKey);
+        if (modelAddress == null) {
+            return initModel(requestId,algorithm,parameterData,modelToken,dataset);
         }
+        Map<String, String> modelAndDataMap = getModelAndData(modelAddress, modelToken, requestId);
+        String modelStr = modelAndDataMap.get(AppConstant.MODEL_KEY);
+        String dataStr = modelAndDataMap.get(AppConstant.TRAIN_DATA_KEY);
         String result = "";
         //训练中的模型直接加载
-        DistributedRandomForestModel model = null;
+        Model model = null;
         try {
-            model = (DistributedRandomForestModel) SerializationUtils.deserialize(modelResult);
-            logger.info("moldeKey={}, phase={}, status={}", modelKey, phase,status);
+            model = (Model) SerializationUtils.deserialize(modelStr);
+            logger.info("modelAddressKey={}, phase={}, status={}", modelAddressKey, phase,status);
             String stamp = UUID.randomUUID().toString();
             if (status.equals(RunningType.COMPLETE)) {
                 result = RunningType.COMPLETE.getRunningType();
-                // 保存结果
-                String trainResultKey = CacheConstant.getTrainResultKey(stamp);
-                TrainService.responseQueue.put(trainResultKey, result);
-                ModelDao.saveModel(modelToken, model.serialize());
+                ModelDao.saveModel(modelToken, model);
                 ModelCache modelCache = ModelCache.getInstance();
                 modelCache.put(modelToken, model);
                 /* 训练结束清除所有缓存*/
-                clearManagerCache(modelKey,modelToken);
+                clearManagerCache(modelAddressKey,modelToken);
                 logger.info("client train is complete!!!");
             } else {
                 // 提交到子线程执行
                 if (trainRequest.isSync()) {
                     Message restoreMessage = Constant.serializer.deserialize(parameterData);
-                    Message data =  model.train(phase, restoreMessage, null);
+                    Message data =  model.train(phase, restoreMessage, (TrainData) SerializationUtils.deserialize(dataStr));
                     String strMessage =  Constant.serializer.serialize(data);
                     return strMessage;
                 }
-                TrainProcess trainProcess = new TrainProcess(model, stamp, modelToken, phase, parameterData, null, requestId);
+                TrainProcess trainProcess = new TrainProcess(model, stamp, modelToken, phase, parameterData, (TrainData) SerializationUtils.deserialize(dataStr), requestId);
                 trainProcess.run();
+                //更新model
+                String modelString = SerializationUtils.serialize(model);
+                updateModel(modelToken,requestId,modelString);
             }
             String trainResultAddressKey = CacheConstant.getTrainResultAddressKey(stamp);
-            ManagerCache.putCache(AppConstant.ADDRESS_CACHE,trainResultAddressKey,IpAddress.getLocalHostLANAddress().getHostAddress()+":"+ ConfigUtil.getPortElseDefault());
+            ManagerCache.putCache(AppConstant.RESULT_ADDRESS_CACHE,trainResultAddressKey, IpAddressUtil.getLocalHostLANAddress().getHostAddress() + AppConstant.COLON + ConfigUtil.getPortElseDefault());
             // 最后返回异步的stamp
             result = "{\"stamp\": \"" + stamp + "\"}";
             logger.info("stamp is:" + result);
@@ -121,6 +123,22 @@ public class TrainService {
         return result;
     }
 
+    private void updateModel(String modelToken,String requestId, String modelString) {
+        String modelKey = CacheConstant.getModelAddressKey(modelToken,requestId);
+        String modelAddress = ManagerCache.getCache(AppConstant.MODEL_ADDRESS_CACHE,modelKey);
+        String address = IpAddressUtil.getLocalHostLANAddress().getHostAddress() + AppConstant.COLON + ConfigUtil.getPortElseDefault();
+        // 判断是结果地址是不是在本地
+        if (StringUtils.equals(modelAddress, address)) {
+            TrainService.updateLocalModel(modelKey,modelString);
+        }else {
+            // 调用http 接口更新
+            Map<String,String> params = new HashMap<>(8);
+            params.put(AppConstant.MODEL_UPDATE_KEY,modelKey);
+            params.put(AppConstant.MODEL_UPDATE_VALUE,modelString);
+            netWorkService.sendAndRecv(AppConstant.HTTP_PREFIX + modelAddress + AppConstant.SLASH + WorkerCommandEnum.API_MODEL_UPDATE.getCode(), params);
+        }
+    }
+
     /**
      * 训练结束清除manager缓存
      * @param modelKey
@@ -128,9 +146,10 @@ public class TrainService {
      */
     private void clearManagerCache(String modelKey,String modelToken) {
         /* 删除缓存在manager的model*/
-        ManagerCache.delCache(AppConstant.MODEL_CACHE,modelKey);
-        ManagerCache.delCache(AppConstant.TREE_CACHE, CacheConstant.getTreeKey(modelToken));
-        ManagerCache.delCache(AppConstant.FIRST_CACHE, CacheConstant.getIsFirst(modelToken));
+        ManagerCache.delCache(AppConstant.MODEL_ADDRESS_CACHE,modelKey);
+        ManagerCache.delCache(AppConstant.MODEL_COUNT_CACHE, CacheConstant.getTreeKey(modelToken));
+        modelCache.remove(modelKey);
+        trainDataCache.remove(modelKey);
     }
 
     /**
@@ -143,10 +162,10 @@ public class TrainService {
         String stamp = query.getStamp();
         try {
             String trainResultAddressKey = CacheConstant.getTrainResultAddressKey(stamp);
-            String resultAddress = ManagerCache.getCache(AppConstant.ADDRESS_CACHE,trainResultAddressKey);
+            String resultAddress = ManagerCache.getCache(AppConstant.RESULT_ADDRESS_CACHE,trainResultAddressKey);
             // 删除缓存
-            ManagerCache.delCache(AppConstant.ADDRESS_CACHE,trainResultAddressKey);
-            String address = IpAddress.getLocalHostLANAddress().getHostAddress() + ":" + ConfigUtil.getPortElseDefault();
+            ManagerCache.delCache(AppConstant.RESULT_ADDRESS_CACHE,trainResultAddressKey);
+            String address = IpAddressUtil.getLocalHostLANAddress().getHostAddress() + AppConstant.COLON + ConfigUtil.getPortElseDefault();
             // 判断是结果地址是不是在本地
             String trainResult = null;
             if (StringUtils.equals(resultAddress, address)) {
@@ -155,19 +174,19 @@ public class TrainService {
                 Map<String, Object> param = Maps.newHashMap();
                 param.put("stamp", stamp);
                 // 调用http 接口查询
-                String remoteTrainResult = HttpClientUtil.doHttpPost("http://" + resultAddress + "/" + WorkerCommandEnum.API_TRAIN_RESULT_QUERY.getCode(), param);
-                String finalResult = HttpClientUtil.unCompress(remoteTrainResult);
+                String remoteTrainResult = netWorkService.sendAndRecv(AppConstant.HTTP_PREFIX + resultAddress + AppConstant.SLASH + WorkerCommandEnum.API_TRAIN_RESULT_QUERY.getCode(), param);
+                String finalResult = GZIPCompressUtil.unCompress(remoteTrainResult);
                 CommonResultStatus commonResultStatus = JsonUtil.json2Object(finalResult, CommonResultStatus.class);
                 trainResult = (String) commonResultStatus.getData().get(ResponseConstant.DATA);
             }
             if (trainResult != null) {
                 modelMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
-                modelMap.put(ResponseConstant.STATUS, "COMPLETE");
+                modelMap.put(ResponseConstant.STATUS, ResponseConstant.COMPLETE);
                 // todo
                 modelMap.put(ResponseConstant.DATA, trainResult);
             } else {
                 modelMap.put(ResponseConstant.CODE, ResponseConstant.DOING_CODE);
-                modelMap.put(ResponseConstant.STATUS, "DOING");
+                modelMap.put(ResponseConstant.STATUS, ResponseConstant.DOING);
             }
         } catch (Exception e){
             logger.error("异步获取信息异常", e);
@@ -204,103 +223,59 @@ public class TrainService {
     * @author: geyan29
     * @date: 2021/4/28 6:49 下午
     */
-    private String initModel(AlgorithmType algorithm, String parameterData, String modelToken, String dataset){
+    private String initModel(String requestId, AlgorithmType algorithm, String parameterData, String modelToken, String dataset){
         try {
-            Model localModel = null;
-            //构造trainData
             Message message = Constant.serializer.deserialize(parameterData);
             TrainInit trainInit = (TrainInit)message;
-            SuperParameter superParameter = trainInit.getParameter();
-//            Map<Long, String> idMap = trainInit.getIdMap().getContent();
-
             String matchToken = trainInit.getMatchId();
-            // 此时是在client端，解密的状态
             String[] mapResOri = IdMatchProcessor.loadResult(matchToken);
-            String[] mapRes;
+            Model localModel = CommonModel.constructModel(algorithm);
+            String[][] rawData = getRawData(localModel, requestId, dataset, trainInit, mapResOri);
+            InitResult initResult = localModel.initMap(requestId, rawData, trainInit, mapResOri);
+            TrainData trainData = initResult.getTrainData();
+            Model model = initResult.getModel();
+            List<String> modelIDs = initResult.getModelIDs();
+            String trainDataStr = SerializationUtils.serialize(trainData);
+            String modelStr = SerializationUtils.serialize(model);
 
-            int[] testIndex = trainInit.getTestIndex();
-            Tuple2<String[],String[]> trainTestUid = Tool.splitUid(mapResOri,testIndex);
-            String[] testId = trainTestUid._2();
-            mapRes = trainTestUid._1();
+            /* 将返回的model和trainData保存在本地 并通知manager保存结果的地址*/
+//            String modelAndTrainDataKey = CacheConstant.getModelAndTrainDataKey(modelToken,requestId);
+            String modelAddressKey = CacheConstant.getModelAddressKey(modelToken,requestId);
+            modelCache.put(modelAddressKey,modelStr);
+            trainDataCache.put(modelAddressKey,trainDataStr);
 
-            Map<Long, String> idMap = new HashMap<>();
-            for (int i = 0; i < mapRes.length; i++) {
-                idMap.put((long) i, mapRes[i]);
-            }
-            Features features = trainInit.getFeatureList();
-            Map<String, Object> others = trainInit.getOthers();
+            String address = IpAddressUtil.getLocalHostLANAddress().getHostAddress() + AppConstant.COLON + ConfigUtil.getPortElseDefault();
+            //保存model及trainData的worker
+            ManagerCache.putCache(AppConstant.MODEL_ADDRESS_CACHE,modelAddressKey,address);
 
-            DataReader reader = getReader(dataset);
-            // 获取到idMap 对应数据的索引
-            long s = System.currentTimeMillis();
-            String[][] newIndexId = reader.readDataIndex(dataset, idMap);
-            String[][] sortedIndexId = Arrays.stream(newIndexId).parallel().sorted(Comparator.comparing(x -> x[0])).toArray(String[][]::new);
-            List<Integer> sortedIndexList = Arrays.stream(sortedIndexId).parallel().map(x -> Integer.valueOf(x[1])).collect(Collectors.toList());
-
-            // 获取验证数据
-
-
-            Map<Long, String> validationIdMap = new HashMap();
-            for(int i = 0; i < testId.length; ++i) {
-                validationIdMap.put((long)i, testId[i]);
-            }
-            String[][] validationLinesArr = reader.readDataIndex(dataset, validationIdMap);
-            List<Integer> validationLinesList = Arrays.stream(validationLinesArr).parallel().map(x -> Integer.valueOf(x[1])).collect(Collectors.toList());
-            List<Integer> validationLines = new ArrayList<>();
-            validationLines.add(0);
-            // 因为添加了一行头部，整体需要
-            List<Integer>  validationLinesData = validationLinesList.stream().map(integer -> integer + 1).collect(Collectors.toList());
-            validationLines.addAll(validationLinesData);
-            String[][] validationData = reader.readDataLine(dataset, validationLines);
-
-            long d = System.currentTimeMillis();
-            logger.info("read index cost: ", d-s);
-            Map<Long, ArrayList<Integer>> sampleIdsMap = (Map<Long, ArrayList<Integer>>) trainInit.getOthers().get("sampleIds");
-            Set<Long> treeIdsSet = sampleIdsMap.keySet();
+            //保存拆分的份数
             String treeKey = CacheConstant.getTreeKey(modelToken);
-            ManagerCache.putCache(AppConstant.TREE_CACHE,treeKey, JsonUtil.object2json(treeIdsSet));
-            int idx = 0;
-            String privateKey = "null";
-            PaillierKeyPublic keyPublic = null;
-            for (Map.Entry<Long, ArrayList<Integer>> entry : sampleIdsMap.entrySet()) { //构造model
-                localModel = CommonModel.constructModel(algorithm);
-                ArrayList<Integer> sampleRandomIndex = entry.getValue();
-                // 和idMap的索引获取交集
-                List<Integer> intersection = sampleRandomIndex.parallelStream().map(x->sortedIndexList.get(x)).collect(Collectors.toList());
-                // 防止乱序
-                Collections.sort(intersection);
-                // 添加第一行头
-                ArrayList<Integer> feature = new ArrayList<>();
-                feature.add(0);
-                // 因为添加了一行头部，整体需要
-                List<Integer> mapSampleRandomIndex = intersection.stream().map(integer -> integer + 1).collect(Collectors.toList());
-                feature.addAll(mapSampleRandomIndex);
-                //读取采样的数据集
-                String[][] trainPara = reader.readDataLine(dataset, feature);
-                logger.info("read file cost: ", d-s);
-                String isDistributed = "true";
-                others.put("isDistributed", isDistributed);
-                localModel.trainInit(trainPara, mapResOri, testIndex, superParameter, features, others);
-                if (idx == 0) {
-                    privateKey = ((DistributedRandomForestModel)localModel).getPrivateKeyString();
-                    keyPublic = ((DistributedRandomForestModel)localModel).getKeyPublic();
-                } else {
-                    ((DistributedRandomForestModel)localModel).setPrivateKeyString(privateKey);
-                    ((DistributedRandomForestModel)localModel).setKeyPublic(keyPublic);
-                }
-                ((DistributedRandomForestModel)localModel).setValidationData(validationData);
-                ((DistributedRandomForestModel)localModel).setTestId(testId);
-                String moldeTreeKey = CacheConstant.getMoldeKey(modelToken, entry.getKey().toString());
-                /* 将model保存在manager*/
-                ManagerCache.putCache(AppConstant.MODEL_CACHE,moldeTreeKey,SerializationUtils.serialize(localModel));
-                idx++;
-            }
+            ManagerCache.putCache(AppConstant.MODEL_COUNT_CACHE,treeKey, JsonUtil.object2json(modelIDs));
+
             return AppConstant.INIT_SUCCESS;
         } catch (Exception e) {
             logger.error(ExceptionUtil.getExInfo(e));
             return AppConstant.INIT_FAILED;
         }
     }
+
+    private String[][] getRawData(Model localModel, String requestId, String dataset, TrainInit trainInit, String[] mapResOri) throws IOException {
+        Map<Long, String> idMap = new HashMap<>();
+        for (int i = 0; i < mapResOri.length; i++) {
+            idMap.put((long) i, mapResOri[i]);
+        }
+        DataReader reader = getReader(dataset);
+        String[][] newIndexId = reader.readDataIndex(dataset, idMap);
+        String[][] sortedIndexId = Arrays.stream(newIndexId).parallel().sorted(Comparator.comparing(x -> x[0])).toArray(String[][]::new);
+        List<Integer> sortedIndexList = Arrays.stream(sortedIndexId).parallel().map(x -> Integer.valueOf(x[1])).collect(Collectors.toList());
+        //下面改到core
+        ArrayList<Integer> sampleData = localModel.dataIdList(requestId, trainInit, sortedIndexList);
+        //读取采样的数据集
+        return reader.readDataLine(dataset, sampleData);
+    }
+
+
+
 
     /**
     * @description: 根据文件名获取reader
@@ -310,7 +285,7 @@ public class TrainService {
     * @date: 2021/5/18 4:39 下午
     */
     private DataReader getReader(String dataset){
-        List<DataSourceConfig> trainConfigs = ConfigUtil.trainConfigList();
+        List<DataSourceConfig> trainConfigs = TrainDataCache.dataSourceMap.get(TrainDataCache.TRAIN_DATA_SOURCE);
         DataSourceConfig trainConfig = null;
         for (DataSourceConfig config : trainConfigs) {
             if (config.getDataName().equals(dataset)) {
@@ -333,4 +308,55 @@ public class TrainService {
         }
     }
 
+    /**
+     * 获取worker保存的 model和trainData
+     * @param modelAddress
+     * @param modelToken
+     * @param requestId
+     * @return
+     */
+    private Map<String, String> getModelAndData(String modelAddress, String modelToken, String requestId){
+        Map<String,String> result;
+        String modelAndTrainDataKey = CacheConstant.getModelAddressKey(modelToken,requestId);
+        String address = IpAddressUtil.getLocalHostLANAddress().getHostAddress() + AppConstant.COLON + ConfigUtil.getPortElseDefault();
+        // 判断是结果地址是不是在本地
+        if (StringUtils.equals(modelAddress, address)) {
+            result = TrainService.getLocalModelAndData(modelAndTrainDataKey);
+        }else {
+            // 调用http 接口查询
+            String remoteModelResult = netWorkService.sendAndRecv(AppConstant.HTTP_PREFIX + modelAddress + AppConstant.SLASH + WorkerCommandEnum.API_MODEL_DATA_QUERY.getCode(), modelAndTrainDataKey);
+            String finalResult = GZIPCompressUtil.unCompress(remoteModelResult);
+            CommonResultStatus commonResultStatus = JsonUtil.json2Object(finalResult, CommonResultStatus.class);
+            result = (Map<String, String>) commonResultStatus.getData().get(ResponseConstant.DATA);
+
+        }
+        return result;
+    }
+
+    public static String getLocalModel(String key) {
+        String modelStr = modelCache.get(key);
+        return modelStr;
+    }
+
+    public static String getLocalTrainData(String key) {
+        String trainDataStr = trainDataCache.get(key);
+        return trainDataStr;
+    }
+
+    public static void updateLocalModel(String key,String value){
+        modelCache.put(key,value);
+    }
+
+    public static void updateLocalTrainData(String key,String value){
+        trainDataCache.put(key,value);
+    }
+
+    public static Map<String,String> getLocalModelAndData(String key){
+        String modelStr = modelCache.get(key);
+        String trainDataStr = trainDataCache.get(key);
+        Map<String,String> result = new HashMap<>(16);
+        result.put(AppConstant.MODEL_KEY,modelStr);
+        result.put(AppConstant.TRAIN_DATA_KEY,trainDataStr);
+        return result;
+    }
 }

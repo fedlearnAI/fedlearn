@@ -15,9 +15,12 @@ package com.jdt.fedlearn.coordinator.entity.prepare;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.jdt.fedlearn.common.entity.project.MatchPartnerInfo;
 import com.jdt.fedlearn.core.exception.DeserializeException;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * ID对齐请求实体，包含username，taskId，matchAlgorithm三方面信息
@@ -25,17 +28,22 @@ import java.io.Serializable;
  * @author lijingxi
  */
 public class MatchStartReq implements Serializable {
-    private String username;
     private String taskId;
     private String matchAlgorithm;
+    private List<MatchPartnerInfo> clientList;
 
     public MatchStartReq() {
     }
 
-    public MatchStartReq(String username, String taskId, String matchAlgorithm) {
-        this.username = username;
+    public MatchStartReq(String taskId, String matchAlgorithm) {
         this.taskId = taskId;
         this.matchAlgorithm = matchAlgorithm;
+    }
+
+    public MatchStartReq(String taskId, String matchAlgorithm,List<MatchPartnerInfo> clientInfos) {
+        this.taskId = taskId;
+        this.matchAlgorithm = matchAlgorithm;
+        this.clientList = clientInfos;
     }
 
     public MatchStartReq(String jsonStr) {
@@ -43,15 +51,11 @@ public class MatchStartReq implements Serializable {
         try {
             MatchStartReq query = mapper.readValue(jsonStr, this.getClass());
             taskId = query.taskId;
-            username = query.username;
             matchAlgorithm = query.matchAlgorithm;
+            clientList =query.clientList;
         } catch (RuntimeException | JsonProcessingException e) {
             throw new DeserializeException("deserialize error with:", e);
         }
-    }
-
-    public String getUsername() {
-        return username;
     }
 
     public String getTaskId() {
@@ -60,5 +64,9 @@ public class MatchStartReq implements Serializable {
 
     public String getMatchAlgorithm() {
         return matchAlgorithm;
+    }
+
+    public List<MatchPartnerInfo> getClientList() {
+        return clientList;
     }
 }

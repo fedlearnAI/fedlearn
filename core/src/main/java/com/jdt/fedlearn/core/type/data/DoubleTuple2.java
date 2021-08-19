@@ -20,7 +20,7 @@ import java.util.Objects;
 /**
  * <p>A convenience class to represent Tuple .</p>
  */
-public class DoubleTuple2 implements Serializable {
+public class DoubleTuple2 implements Serializable{
 
     /**
      * first of this <code>Pair</code>.
@@ -85,6 +85,14 @@ public class DoubleTuple2 implements Serializable {
         this.first += add.getFirst();
         this.second += add.getSecond();
     }
+
+    public DoubleTuple2 addObj(DoubleTuple2 add) {
+        this.first += add.getFirst();
+        this.second += add.getSecond();
+        return this;
+    }
+
+
 
     /**
      * <p><code>String</code> representation of this

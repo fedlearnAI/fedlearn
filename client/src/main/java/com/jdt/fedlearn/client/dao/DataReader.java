@@ -16,6 +16,8 @@ package com.jdt.fedlearn.client.dao;
 import com.jdt.fedlearn.client.entity.source.DataSourceConfig;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 public interface DataReader {
     /**
@@ -28,13 +30,13 @@ public interface DataReader {
      * @param uid 需要加载的uid
      * @return 根据uid过滤的二维数组
      */
-    String[][] loadInference(String[] uid);
+    String[][] loadInference(DataSourceConfig config, String[] uid);
 
     /**
      * @param uid 需要加载的uid
      * @return 根据uid过滤的二维数组
      */
-    String[][] loadValidate(String[] uid);
+    String[][] loadValidate(DataSourceConfig config, String[] uid);
 
     /**
      * @param dataConfig 训练配置文件
@@ -42,5 +44,28 @@ public interface DataReader {
      */
     String[] loadHeader(DataSourceConfig dataConfig);
 
+    /***
+     * @description: 读取指定行的数据
+     * @param dataset
+     * @param idMap
+     * @return: java.lang.String[][]
+     * @author: geyan29
+     * @date: 2021/5/18 4:31 下午
+     */
+    default String[][] readDataIndex(String dataset, Map<Long, String> idMap) throws IOException{
+        return null;
+    };
+
+    /***
+     * @description: 读取指定行
+     * @param sourceFile
+     * @param seeksList
+     * @return: java.lang.String[][]
+     * @author: geyan29
+     * @date: 2021/5/18 4:32 下午
+     */
+    default String[][] readDataLine(String sourceFile, List<Integer> seeksList) throws IOException{
+        return null;
+    };
 
 }

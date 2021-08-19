@@ -6,12 +6,9 @@ import com.jdt.fedlearn.core.entity.feature.SingleFeature;
 import com.jdt.fedlearn.core.loader.boost.BoostTrainData;
 import com.jdt.fedlearn.core.loader.common.CommonTrainData;
 import com.jdt.fedlearn.core.loader.verticalLinearRegression.VerticalLinearTrainData;
-import com.jdt.fedlearn.core.psi.MappingOutput;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.data.Tuple3;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class StructureGenerate {
     public static Tuple3<String[][], String[], Features> trainInputStd() {
@@ -46,13 +43,6 @@ public class StructureGenerate {
         String[][] input = new String[][]{x0, x1, x2, x3, x4};
         String[] mappingResult = new String[]{"1", "100", "10003", "uid"};
 
-//        Map<Long, String> idMap = new HashMap<>();
-//        idMap.put(0L, "1");
-//        idMap.put(1L, "100");
-//        idMap.put(2L, "10003");
-//        idMap.put(3L, "uid");
-//        MappingResult mappingResult = new MappingResult(idMap);
-
         List<SingleFeature> featureList = new ArrayList<>();
         featureList.add(new SingleFeature("uid", "float"));
         featureList.add(new SingleFeature("HouseAge", "float"));
@@ -74,12 +64,6 @@ public class StructureGenerate {
         String[][] input = new String[][]{x0, x1, x2, x3, x4};
 
         String[] mappingResult = new String[]{"1", "100", "10003", "uid"};
-//        Map<Long, String> idMap = new HashMap<>();
-//        idMap.put(0L, "1");
-//        idMap.put(1L, "100");
-//        idMap.put(2L, "10003");
-//        idMap.put(3L, "uid");
-//        MappingResult mappingResult = new MappingResult(idMap);
 
         List<SingleFeature> featureList = new ArrayList<>();
         featureList.add(new SingleFeature("uid", "float"));
@@ -101,13 +85,6 @@ public class StructureGenerate {
         String[][] input = new String[][]{x0, x1, x2, x3, x4};
         String[] mappingResult = new String[]{"1", "100", "10003", "uid"};
 
-//        Map<Long, String> idMap = new HashMap<>();
-//        idMap.put(0L, "1");
-//        idMap.put(1L, "100");
-//        idMap.put(2L, "10003");
-//        idMap.put(3L, "uid");
-//        MappingResult mappingResult = new MappingResult(idMap);
-
         List<SingleFeature> featureList = new ArrayList<>();
         featureList.add(new SingleFeature("uid", "float"));
         featureList.add(new SingleFeature("y", "float"));
@@ -126,13 +103,6 @@ public class StructureGenerate {
 
         String[][] input = new String[][]{x0, x1, x2, x3, x4};
         String[] mappingResult = new String[]{"1B", "2A", "3A", "uid"};
-
-//        Map<Long, String> idMap = new HashMap<>();
-//        idMap.put(0L, "1B");
-//        idMap.put(1L, "2A");
-//        idMap.put(2L, "3A");
-//        idMap.put(3L, "uid");
-//        MappingResult mappingResult = new MappingResult(idMap);
 
         List<SingleFeature> featureList = new ArrayList<>();
         featureList.add(new SingleFeature("uid", "float"));
@@ -156,13 +126,6 @@ public class StructureGenerate {
 
         String[] mappingResult = new String[]{"1B", "2A", "3A", "uid"};
 
-//        Map<Long, String> idMap = new HashMap<>();
-//        idMap.put(0L, "1B");
-//        idMap.put(1L, "2A");
-//        idMap.put(2L, "3A");
-//        idMap.put(3L, "uid");
-//        MappingResult mappingResult = new MappingResult(idMap);
-
         List<SingleFeature> featureList = new ArrayList<>();
         featureList.add(new SingleFeature("uid", "float"));
         featureList.add(new SingleFeature("Pregnancies2", "float"));
@@ -180,12 +143,6 @@ public class StructureGenerate {
         String[] x4 = new String[]{"8088", "34", "-118.21", "3.88172043", "1.393"};
 
         String[][] input = new String[][]{x0, x1, x2, x3, x4};
-
-//        Map<Integer, String> idMap = new HashMap<>();
-//        idMap.put(0, "1");
-//        idMap.put(1, "100");
-//        idMap.put(2, "10003");
-//        idMap.put(3, "8088");
         String[] mappingResult = new String[]{"1", "100", "10003", "8088"};
 
 
@@ -253,11 +210,6 @@ public class StructureGenerate {
         clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP"));
         clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP"));
         return clientInfos;
-    }
-
-    public static MappingResult verticalResult() {
-        List<String> bothIds = Arrays.asList("1", "2", "3a", "4b", "5c");
-        return new MappingResult(bothIds);
     }
 
     public static Map<ClientInfo, Features> fgbFeatures(List<ClientInfo> clientInfos) {
@@ -328,29 +280,6 @@ public class StructureGenerate {
     }
 
 
-    public static MappingOutput mixGBMapResult(List<ClientInfo> clientInfos) {
-        Map<Long, String> ids = new HashMap<>();
-        ids.put(0L, "0a");
-        ids.put(1L, "1b");
-        ids.put(2L, "2c");
-        ids.put(3L, "3d");
-
-        Map<ClientInfo, MappingResult> contents = clientInfos.stream()
-                .collect(Collectors.toMap(cli -> cli, cli -> new MappingResult(new HashMap<>(ids))));
-        return new MappingOutput(contents, null);
-    }
-
-    public static MappingOutput linRegMapInput(List<ClientInfo> clientInfos){
-        Map<Long, String> ids = new HashMap<>();
-        ids.put(0l,"0a");
-        ids.put(1l,"1b");
-        ids.put(2l,"2c");
-        ids.put(3l,"3d");
-
-        Map<ClientInfo, MappingResult> contents = clientInfos.stream()
-                .collect(Collectors.toMap(cli -> cli, cli -> new MappingResult(new HashMap<>(ids)) ));
-        return new MappingOutput(contents, null);
-    }
 
     public static VerticalLinearTrainData getVerticalLinearTrainData() {
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();

@@ -28,9 +28,7 @@ import org.springframework.context.annotation.Conditional;
 @Conditional(JdChainCondition.class)
 @SpringBootApplication(exclude={DataSourceAutoConfiguration.class})
 public class JdchainFederatedApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(JdchainFederatedApplication.class, args);
     }
-
 }

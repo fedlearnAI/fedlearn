@@ -3,12 +3,12 @@ package com.jdt.fedlearn.coordinator.dao.jdchain;
 import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jdt.fedlearn.common.constant.JdChainConstant;
+import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdChainTaskStatus;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdchainTrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.service.train.jdchain.ChainTrainCommonServiceImpl;
-import com.jdt.fedlearn.coordinator.type.RunningType;
 import com.jdt.fedlearn.coordinator.util.JdChainUtils;
 import com.jdt.fedlearn.core.entity.serialize.JsonSerializer;
 import com.jdt.fedlearn.core.type.AlgorithmType;
@@ -89,12 +89,27 @@ public class ChainTrainMapper {
         return list;
     }
 
+    public static List<JdchainTrainInfo> queryAllTrainByTaskList(List<String> taskList) {
+        List<JdchainTrainInfo> list = new ArrayList<>();
+        TypedKVEntry[] typedKVEntries = JdChainUtils.queryAllKVByDataAccountAddr(JdChainConstant.TRAIN_TABLE_ADDRESS);
+        if (typedKVEntries != null) {
+            List<JdchainTrainInfo> allJdchainTrainInfos = Arrays.stream(typedKVEntries).map(typedKVEntry -> ((JdchainTrainInfo) jsonSerializer.deserialize((String) typedKVEntry.getValue()))).collect(Collectors.toList());
+            list = allJdchainTrainInfos.parallelStream()
+                    .filter(jdchainTrainInfo -> taskList.contains(jdchainTrainInfo.getTaskId()))
+                    .sorted(Comparator.comparing(JdchainTrainInfo::getTrainEndTime, Comparator.nullsLast(Comparator.reverseOrder())))
+                    .collect(Collectors.toList());
+        }
+        return list;
+    }
+
+
+
     /**
      * 更新区块链的JdChainTaskStatus和JdchainTrainInfo的状态
      * @param modelToken 模型id
      * @param runningType 任务状态
      */
-    public static void updateStatusAndTrainInfo(String modelToken,JdChainTaskStatus jdChainTaskStatus,JdchainTrainInfo trainInfo,RunningType runningType){
+    public static void updateStatusAndTrainInfo(String modelToken, JdChainTaskStatus jdChainTaskStatus, JdchainTrainInfo trainInfo, RunningType runningType){
         AlgorithmType supportedAlgorithm = AlgorithmType.valueOf(trainInfo.getAlgorithm());
         JdchainTrainInfo trainInfoNew = new JdchainTrainInfo(modelToken, trainInfo.getTaskId(), supportedAlgorithm.name(), trainInfo.getParameterFieldList(),
                 TimeUtil.parseStrToData(jdChainTaskStatus.getStartTime()), TimeUtil.parseStrToData(jdChainTaskStatus.getModifyTime()),

@@ -20,7 +20,6 @@ import com.jdt.fedlearn.core.encryption.distributedPaillier.HomoEncryptionUtil;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.base.Double2dArray;
-import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.base.IntArray;
 import com.jdt.fedlearn.core.entity.base.StringArray;
 import com.jdt.fedlearn.core.entity.common.*;
@@ -31,7 +30,6 @@ import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.model.mixLinear.idmatcher.LinRegMatcher;
 import com.jdt.fedlearn.core.model.mixLinear.idmatcher.LinregMatchAlg;
 import com.jdt.fedlearn.core.parameter.LinearParameter;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.MetricType;
@@ -51,12 +49,13 @@ import static com.jdt.fedlearn.core.encryption.distributedPaillier.HomoEncryptio
 import static com.jdt.fedlearn.core.encryption.distributedPaillier.HomoEncryptionUtil.toDouble;
 import static com.jdt.fedlearn.core.math.MathExt.elemwiseAdd;
 import static com.jdt.fedlearn.core.math.MathExt.elemwiseInvMul;
+import static com.jdt.fedlearn.core.util.Tool.geneEmptyReq;
 import static com.jdt.fedlearn.core.util.TypeConvUtils.*;
 
 
 public class LinearRegression implements Control {
 
-    boolean useFakeDec = true;
+    boolean useFakeDec = false;
     boolean debugMode = false;
 
     private static final AlgorithmType algorithmType = AlgorithmType.LinearRegression;
@@ -79,12 +78,12 @@ public class LinearRegression implements Control {
     private Map<ClientInfo, double[]> clientFeatMap;
 
     // when computing hessInv, some intermediate results (s and y vectors) need to be
-    // computed in PLAINTEXT on CLIENT. This is not secure because Master has to send
+    // computed in PLAINTEXT on CLIENT. This is not secure because Master has to mockSend
     // FULL g to all other parties who will decrypt g and get the plaintext.
-    // In contrast, a secure way is to send specific entries of g to those parties who
+    // In contrast, a secure way is to mockSend specific entries of g to those parties who
     // OWNs those features or adding random mask. To make the computation secure, Master mask encrypted g
-    // with  clientFeatRandWeight, and send the masked g to all clients. Then clients compute on
-    // these masked values and then send the "wrong" s and t to master. Master then recovers "true"
+    // with  clientFeatRandWeight, and mockSend the masked g to all clients. Then clients compute on
+    // these masked values and then mockSend the "wrong" s and t to master. Master then recovers "true"
     // value of s and y using clientFeatRandWeight.
     private Map<String, double[]> clientFeatRandWeight; // g的随机掩码
 
@@ -105,15 +104,7 @@ public class LinearRegression implements Control {
         this.p = tmp;
         this.numP = p.getNump();
         // Key initialization
-        // **Standalone version** master generates all keys and send to clients. So master is trusted.
         this.pheKeys = new HomoEncryptionUtil(numP, p.getEncBits(), useFakeDec);
-        this.pheKeys.generateKeys();
-        // Debug mode Key initialization
-        if(debugMode && !useFakeDec) {
-            // 生成一份 priv/pubkey 后, 保存为文件, 然后从文件加载. 方便debug.
-            decHelper = new HomoEncryptionDebugUtil(pheKeys.getPk(), pheKeys.getSkAll(), numP, Long.MAX_VALUE);
-            decHelper.saveToFile("dist_pai_keys_3_1024");
-        }
     }
 
     public void trainParamInit(LinRegTrainInitParams linRegParam) {
@@ -140,26 +131,34 @@ public class LinearRegression implements Control {
     /**
      * initControl for master
      * @param clientInfos 客户端列表
-     * @param idMap
      * @param other : contains LinearRegressionTrainInitOthers for each client.
      */
     public List<CommonRequest> initControl(List<ClientInfo> clientInfos,
                                            MatchResult idMap,
                                            Map<ClientInfo, Features> features,
                                            Map<String, Object> other) {
+        if(!useFakeDec) {
+            DistributedPaillier.DistPaillierPubkey pubkey = new DistributedPaillier.DistPaillierPubkey();
+            pubkey.parseJson((String)other.get("pubKeyStr"));
+            this.pheKeys.setPk(pubkey);
+        }
+        // Debug mode Key initialization
+        if(debugMode && !useFakeDec) {
+            // 生成一份 priv/pubkey 后, 保存为文件, 然后从文件加载. 方便debug.
+            decHelper = new HomoEncryptionDebugUtil(pheKeys.getPk(), pheKeys.getSkAll(), numP, Long.MAX_VALUE);
+            decHelper.saveToFile("dist_pai_keys_3_1024");
+        }
+
         List<CommonRequest> initRequests = new ArrayList<>();
         String[] clientList = clientInfos.stream().map(x-> x.getIp()+x.getPort()).toArray(String[]::new);
 
         int cnt = 1;
         for (ClientInfo clientInfo : clientInfos) {
-            pheKeys.getSkAll()[cnt-1].setRank(cnt);
             Map<String, Object> extraParamsFromMaster = new HashMap<>();
             extraParamsFromMaster.put("trainDataHasLabel", !(features.get(clientInfo).getLabel()==null));
-            // Standalone version. Master transfer keys to all parties. Master is TRUSTED.
-            extraParamsFromMaster.put("pkStr", pheKeys.getPk().toJson());
-            extraParamsFromMaster.put("skStr", pheKeys.getSkAll()[cnt-1].toJson());
             extraParamsFromMaster.put("clientList", clientList);
             extraParamsFromMaster.put("selfPort", clientInfo.getIp()+clientInfo.getPort());
+            extraParamsFromMaster.put("thisPartyID", cnt);
             cnt += 1;
 
             TrainInit trainInit = new TrainInit(p, features.get(clientInfo), null, extraParamsFromMaster);
@@ -180,7 +179,7 @@ public class LinearRegression implements Control {
         // if no idmapping result, do idmapping
         // if idmapping is done, return empty request.
         if (phase == 1) {
-            // send Empty request, wait client to return MatchResourceLinReg
+            // mockSend Empty request, wait client to return MatchResourceLinReg
             res = geneEmptyReq(response, phase);
         } else if (phase == 2) {
             res = trainIdMatchingPhase2GetIdMatchingRes(response);
@@ -190,7 +189,7 @@ public class LinearRegression implements Control {
           else if (phase == 3 ) {
             res = geneEmptyReq(response, phase);
         } else if (phase == 4 ) {
-              // get loacalYhat from clients, compute d_final, and send back
+              // get loacalYhat from clients, compute d_final, and mockSend back
             res = controlPhase2GetPartialYHat(response);
         } else if (phase == 5 ) {
               // compute gradient
@@ -325,7 +324,7 @@ public class LinearRegression implements Control {
                 int i;
                 for (i = 0; i < M - 1; i++) {
                     // if this client does NOT OWN this feature, mask with a random number;
-                    // if this client OWNs this feature, then send it back with NO change.
+                    // if this client OWNs this feature, then mockSend it back with NO change.
                     tmpp[i] = 1d; // FIXME: should make this a random value. To make debug easier, I use a fixed value here.
                 }
                 tmpp[i] = 1d;
@@ -577,24 +576,33 @@ public class LinearRegression implements Control {
         return geneEmptyReq(responses, phase);
     }
 
-    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid) {
+    public List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid, Map<String, Object> others) {
+        if(!useFakeDec) {
+            DistributedPaillier.DistPaillierPubkey pubkey = new DistributedPaillier.DistPaillierPubkey();
+            pubkey.parseJson((String)others.get("pubKeyStr"));
+            this.pheKeys.setPk(pubkey);
+        }
+        // Debug mode Key initialization
+        if(debugMode && !useFakeDec) {
+            // 生成一份 priv/pubkey 后, 保存为文件, 然后从文件加载. 方便debug.
+            decHelper = new HomoEncryptionDebugUtil(pheKeys.getPk(), pheKeys.getSkAll(), numP, Long.MAX_VALUE);
+            decHelper.saveToFile("dist_pai_keys_3_1024");
+        }
+
         this.phase = -1;
-        List<CommonRequest> initRequests = new ArrayList<>();
         int cnt = 1;
+        List<CommonRequest> initRequests = new ArrayList<>();
         String[] clientList = clientInfos.stream().map(x-> x.getIp()+x.getPort()).toArray(String[]::new);
         for (ClientInfo clientInfo : clientInfos) {
-            pheKeys.getSkAll()[cnt-1].setRank(cnt);
 
             Map<String, Object> extraParamsFromMaster = new HashMap<>();
-            // Standalone version. Master transfer keys to all parties. Master is TRUSTED.
-            extraParamsFromMaster.put("pkStr", pheKeys.getPk().toJson());
-            extraParamsFromMaster.put("skStr", pheKeys.getSkAll()[cnt-1].toJson());
 
             extraParamsFromMaster.put("clientList", clientList);
             extraParamsFromMaster.put("selfPort", clientInfo.getIp()+clientInfo.getPort());
 
             extraParamsFromMaster.put("numP", p.getNump());
             extraParamsFromMaster.put("encBits", p.getEncBits());
+            extraParamsFromMaster.put("thisPartyID", cnt);
 
             InferenceInit inferenceInit = new InferenceInit(predictUid, extraParamsFromMaster);
             CommonRequest request = new CommonRequest(clientInfo,  inferenceInit, phase);
@@ -784,7 +792,7 @@ public class LinearRegression implements Control {
             List<signedByteArray[]> sendMsg_2 = new ArrayList<>(imDecResToOneParty
                     .get(client.getIp()+client.getPort()));
             if(sendMsg_2.size()!=numP-1) {
-                throw new NotMatchException("Need to send " + (numP-1) + " to client " + client.getIp()+client.getPort() +
+                throw new NotMatchException("Need to mockSend " + (numP-1) + " to client " + client.getIp()+client.getPort() +
                         ", but got " + sendMsg_2.size());
             }
             CommonRequest request = new CommonRequest(client, new CypherMessageList(sendMsg_2), phase);
@@ -861,17 +869,6 @@ public class LinearRegression implements Control {
 
     public void setIterNum(int iterNum) {
         this.iterNum = iterNum;
-    }
-
-    private static List<CommonRequest> geneEmptyReq(List<CommonResponse> responses, int phase) {
-        List<CommonRequest> res = new ArrayList<>();
-        for (CommonResponse entry : responses) {
-            ClientInfo client = entry.getClient();
-            CommonRequest request = new CommonRequest(client, EmptyMessage.message(), phase);
-            request.setBody(new EmptyMessage());
-            res.add(request);
-        }
-        return res;
     }
 
     private static void reportMasterPhaseTime(double start, int phase, int iterNum) {

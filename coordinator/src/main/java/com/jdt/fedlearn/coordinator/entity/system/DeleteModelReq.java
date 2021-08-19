@@ -26,18 +26,12 @@ import java.io.IOException;
  */
 public class DeleteModelReq {
     private String modelToken;
-    private String username;
 
     public DeleteModelReq() {
     }
 
     public DeleteModelReq(String jsonStr) {
         parseJson(jsonStr);
-    }
-
-    public DeleteModelReq(String modelToken, String username) {
-        this.modelToken = modelToken;
-        this.username = username;
     }
 
     public String getModelToken() {
@@ -48,20 +42,12 @@ public class DeleteModelReq {
         this.modelToken = modelToken;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
 
     public void parseJson(String jsonStr) {
         ObjectMapper mapper = new ObjectMapper();
         DeleteModelReq p3r = null;
         try {
             p3r = mapper.readValue(jsonStr, DeleteModelReq.class);
-            this.username = p3r.username;
             this.modelToken = p3r.modelToken;
         } catch (IOException e) {
             throw new DeserializeException(e.getMessage());

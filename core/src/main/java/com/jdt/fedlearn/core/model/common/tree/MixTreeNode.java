@@ -16,13 +16,14 @@ package com.jdt.fedlearn.core.model.common.tree;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.type.data.DoubleTuple2;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
  * @author zhangwenxi
  */
-public class MixTreeNode {   // 服务端和客户端都需要用到
+public class MixTreeNode implements Serializable {   // 服务端和客户端都需要用到
     private int depth;
     private boolean isLeaf;
     /**
@@ -39,8 +40,9 @@ public class MixTreeNode {   // 服务端和客户端都需要用到
     private int splitFeatureType;
     private String splitFeatureName;
     private double splitThreshold;
-    private String verticalSplitFeatureName;
+    private int verticalFeatureIndex;
     private double verticalSplitThreshold;
+    private boolean missingGoLeft;
 
     private MixTreeNode leftChild;
     private MixTreeNode rightChild;
@@ -54,7 +56,9 @@ public class MixTreeNode {   // 服务端和客户端都需要用到
      * 当前节点的实例空间
      */
     private Set<Integer> instanceIdSpaceSet;
-    private Set<Integer> verticalInstanceIdSpaceSet;
+    private Set<Integer> tmpInstanceIdSpaceSet;
+    private Set<Integer> horiInstanceIdSpaceSet;
+
     /**
      * 处理的客户端唯一标记
      */
@@ -174,22 +178,6 @@ public class MixTreeNode {   // 服务端和客户端都需要用到
         return splitFeatureName;
     }
 
-    public void setVerticalSplitFeatureName(String name) {
-        this.verticalSplitFeatureName = name;
-    }
-
-    public double getVerticalSplitThreshold() {
-        return verticalSplitThreshold;
-    }
-
-    public void setVerticalSplitThreshold(double value) {
-        this.verticalSplitThreshold = value;
-    }
-
-    public String getVerticalSplitFeatureName() {
-        return verticalSplitFeatureName;
-    }
-
     public void setSplitFeatureName(String name) {
         this.splitFeatureName = name;
     }
@@ -214,16 +202,16 @@ public class MixTreeNode {   // 服务端和客户端都需要用到
         return instanceIdSpaceSet;
     }
 
-    public Set<Integer> getVerticalInstanceIdSpaceSet() {
-        return verticalInstanceIdSpaceSet;
+    public Set<Integer> getTmpInstanceIdSpaceSet() {
+        return tmpInstanceIdSpaceSet;
     }
 
     public void setInstanceIdSpaceSet(Set<Integer> instanceIdSpaceSet) {
         this.instanceIdSpaceSet = instanceIdSpaceSet;
     }
 
-    public void setVerticalInstanceIdSpaceSet(Set<Integer> verticalInstanceIdSpaceSet) {
-        this.verticalInstanceIdSpaceSet = verticalInstanceIdSpaceSet;
+    public void setTmpInstanceIdSpaceSet(Set<Integer> tmpInstanceIdSpaceSet) {
+        this.tmpInstanceIdSpaceSet = tmpInstanceIdSpaceSet;
     }
 
     public MixTreeNode backTrackingTreeNode() {
@@ -243,9 +231,9 @@ public class MixTreeNode {   // 服务端和客户端都需要用到
                     newNode.instanceIdSpaceSet.removeAll(curTreeNode.instanceIdSpaceSet);
                     // save memory cost
                     curTreeNode.instanceIdSpaceSet = null;
-                    if (curTreeNode.getRightChild() != null) {
-                        curTreeNode.getRightChild().instanceIdSpaceSet = null;
-                    }
+//                    if (curTreeNode.getRightChild() != null) {
+//                        curTreeNode.getRightChild().instanceIdSpaceSet = null;
+//                    }
                 }
                 curTreeNode = parentNode.getRightChild();
                 break;
@@ -253,5 +241,37 @@ public class MixTreeNode {   // 服务端和客户端都需要用到
             curTreeNode = parentNode;
         }
         return curTreeNode;
+    }
+
+    public int getVerticalFeatureIndex() {
+        return verticalFeatureIndex;
+    }
+
+    public void setVerticalFeatureIndex(int verticalFeatureIndex) {
+        this.verticalFeatureIndex = verticalFeatureIndex;
+    }
+
+    public Set<Integer> getHoriInstanceIdSpaceSet() {
+        return horiInstanceIdSpaceSet;
+    }
+
+    public void setHoriInstanceIdSpaceSet(Set<Integer> horiInstanceIdSpaceSet) {
+        this.horiInstanceIdSpaceSet = horiInstanceIdSpaceSet;
+    }
+
+    public boolean isMissingGoLeft() {
+        return missingGoLeft;
+    }
+
+    public void setMissingGoLeft(boolean missingGoLeft) {
+        this.missingGoLeft = missingGoLeft;
+    }
+
+    public double getVerticalSplitThreshold() {
+        return verticalSplitThreshold;
+    }
+
+    public void setVerticalSplitThreshold(double verticalSplitThreshold) {
+        this.verticalSplitThreshold = verticalSplitThreshold;
     }
 }

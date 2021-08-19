@@ -10,12 +10,10 @@ public class DeleteModelReqTest {
     public void testAll() {
         DeleteModelReq deleteModelReq = new DeleteModelReq();
         deleteModelReq.setModelToken("1-FederatedGB-100");
-        deleteModelReq.setUsername("lijingxi");
         String s = deleteModelReq.toJson();
         DeleteModelReq deleteModelReq1 = new DeleteModelReq(s);
-        DeleteModelReq deleteModelReq2 = new DeleteModelReq("1-FederatedGB-100", "lijingxi");
+        DeleteModelReq deleteModelReq2 = new DeleteModelReq("1-FederatedGB-100");
         Assert.assertEquals(deleteModelReq1.getModelToken(), deleteModelReq2.getModelToken());
-        Assert.assertEquals(deleteModelReq1.getUsername(), deleteModelReq2.getUsername());
     }
 
 }

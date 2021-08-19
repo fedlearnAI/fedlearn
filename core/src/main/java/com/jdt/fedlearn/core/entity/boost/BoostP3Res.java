@@ -16,12 +16,14 @@ package com.jdt.fedlearn.core.entity.boost;
 
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.entity.common.MetricValue;
 
 
 public class BoostP3Res implements Message {
     private ClientInfo client;
     private String feature;
     private int index;
+    private MetricValue trainMetric;
 
     public BoostP3Res() {
     }
@@ -44,4 +46,11 @@ public class BoostP3Res implements Message {
         return index;
     }
 
+    public void setTrainMetric(MetricValue trainMetric) {
+        this.trainMetric = trainMetric;
+    }
+
+    public MetricValue getTrainMetric() {
+        return trainMetric;
+    }
 }

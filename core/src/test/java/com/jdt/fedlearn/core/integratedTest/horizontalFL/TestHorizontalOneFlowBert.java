@@ -9,12 +9,10 @@ import com.jdt.fedlearn.core.dispatch.HorizontalFedAvg;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.psi.MappingOutput;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.util.DataParseUtil;
 
 import com.jdt.fedlearn.core.model.Model;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.MetricType;
 
 import java.util.*;
@@ -130,11 +128,10 @@ public class TestHorizontalOneFlowBert {
         for (int i = 0; i < trainDataMap.values().stream().findFirst().get().getTable().length - 1; i++) {
             localIdMap.put((long) i, i + "");
         }
-        MappingOutput mappingOutput = new MappingOutput(clientInfos, new MappingResult(localIdMap), null);
-        // TODO 确认一下是否可以是mappingOutput
-        MatchResult matchResult = new MatchResult(mappingOutput.getAnyResult().getSize());
+        String[] commonIDs = localIdMap.values().toArray(new String[0]);
+        MatchResult matchResult = new MatchResult(localIdMap.size());
         List<CommonRequest> initRequests = master.initControl(clientInfos, matchResult, featuresMap, null);
-        CommonRun.train(master, initRequests, modelMap,  rawDataMap,mappingOutput.getAnyResult().getContent().values().toArray(new String[0]));
+        CommonRun.train(master, initRequests, modelMap,  rawDataMap, commonIDs);
         //TODO 除了训练结果以外的参数清除
         System.out.println("----------------"+modelName+" train end-------------------\n\n\n\n");
         //testInference();

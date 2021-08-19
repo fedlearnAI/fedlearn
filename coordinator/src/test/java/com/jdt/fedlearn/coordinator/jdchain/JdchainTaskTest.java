@@ -13,7 +13,7 @@ public class JdchainTaskTest {
     @Test
     public void test(){
         /** key用taskId-username 组合使用 目前jdchain不支持key的模糊查询*/
-        String create = "{\"username\":\"admin\",\"dataset\":\"cl0_train.csv\",\"taskName\":\"admin_test\",\"clientInfo\":{\"ip\":\"127.0.0.1\",\"port\":\"8094\",\"protocol\":\"http\"},\"features\":[{\"name\":\"uid\",\"dtype\":\"float\"},{\"name\":\"HouseAge\",\"dtype\":\"float\"},{\"name\":\"Longitude\",\"dtype\":\"float\"},{\"name\":\"AveOccup\",\"dtype\":\"float\"},{\"name\":\"price\",\"dtype\":\"float\"}]}";
+        String create = "{\"username\":\"admin\",\"taskName\":\"admin_test\",\"clientInfo\":{\"ip\":\"127.0.0.1\",\"port\":\"8094\",\"protocol\":\"http\"},\"features\":[{\"name\":\"uid\",\"dtype\":\"float\"},{\"name\":\"HouseAge\",\"dtype\":\"float\"},{\"name\":\"Longitude\",\"dtype\":\"float\"},{\"name\":\"AveOccup\",\"dtype\":\"float\"},{\"name\":\"price\",\"dtype\":\"float\"}]}";
         JdchainTask jdchainTask = JsonUtil.json2Object(create, JdchainTask.class);
         jdchainTask.setTaskId("1970");
         ClientInfoFeatures clientInfoFeatures = JsonUtil.json2Object(create,ClientInfoFeatures.class);
@@ -23,10 +23,10 @@ public class JdchainTaskTest {
         System.out.println(jdchainTask.getClientInfoFeatures());
         /** 模拟加入任务 */
         String join = "{\"username\":\"jdgeyan\",\"taskId\":\"115\",\"clientInfo\":{\"ip\":\"127.0.0.1\",\"port\":\"8095\",\"protocol\":\"http\"},\"dataset\":\"cl1_train.csv\",\"features\":[{\"name\":\"uid\",\"dtype\":\"float\"},{\"name\":\"Population\",\"dtype\":\"float\"},{\"name\":\"MedInc\",\"dtype\":\"float\"}]}";
-        Map<String,Object> jsonObject = JsonUtil.parseJson(join);
-        String taskId = (String) jsonObject.get("taskId");
+        Map<String, Object> map = JsonUtil.object2map(join);
+        String taskId = (String) map.get("taskId");
         System.out.println(taskId);//可以用于去查询jdchain
-        String partners = (String) jsonObject.get("username");
+        String partners = (String) map.get("username");
         List<String> partnersList = jdchainTask.getPartners();
         if(partnersList == null){
             partnersList = new ArrayList<>();
@@ -37,11 +37,12 @@ public class JdchainTaskTest {
         jdchainTask.setPartners(partnersList);
         ClientInfoFeatures clientInfoFeatures1 = JsonUtil.json2Object(join,ClientInfoFeatures.class);
         jdchainTask.getClientInfoFeatures().add(clientInfoFeatures1);
+        System.out.println(JsonUtil.object2json(jdchainTask));
     }
 
     @Test
     public void queryList(){
-        String json = "{\"partners\":[\"jdgeyan\"],\"taskName\":\"admin_test\",\"clientInfoFeatures\":[{\"features\":[{\"dType\":\"float\",\"name\":\"uid\"},{\"dType\":\"float\",\"name\":\"HouseAge\"},{\"dType\":\"float\",\"name\":\"Longitude\"},{\"dType\":\"float\",\"name\":\"AveOccup\"},{\"dType\":\"float\",\"name\":\"price\"}],\"clientInfo\":{\"protocol\":\"http\",\"port\":8094,\"ip\":\"127.0.0.1\"},\"dataset\":\"cl0_train.csv\"},{\"features\":[{\"dType\":\"float\",\"name\":\"uid\"},{\"dType\":\"float\",\"name\":\"Population\"},{\"dType\":\"float\",\"name\":\"MedInc\"}],\"clientInfo\":{\"protocol\":\"http\",\"port\":8095,\"ip\":\"127.0.0.1\"},\"dataset\":\"cl1_train.csv\"}],\"taskId\":\"1970\",\"username\":\"admin\"}";
+        String json = "{\"clientInfoFeatures\":[{\"clientInfo\":{\"dataset\":\"class0_train.csv\",\"hasLabel\":false,\"ip\":\"127.0.0.1\",\"port\":8094,\"protocol\":\"http\",\"token\":-115596356,\"username\":\"a1\"},\"features\":{\"featureList\":[{\"dType\":\"float\",\"name\":\"uid\",\"taskId\":\"1620109824\",\"username\":\"a1\"},{\"dType\":\"float\",\"name\":\"job\",\"taskId\":\"1620109824\",\"username\":\"a1\"},{\"dType\":\"float\",\"name\":\"previous\",\"taskId\":\"1620109824\",\"username\":\"a1\"},{\"dType\":\"float\",\"name\":\"balance\",\"taskId\":\"1620109824\",\"username\":\"a1\"},{\"dType\":\"float\",\"name\":\"education\",\"taskId\":\"1620109824\",\"username\":\"a1\"},{\"dType\":\"float\",\"name\":\"campaign\",\"taskId\":\"1620109824\",\"username\":\"a1\"},{\"dType\":\"float\",\"name\":\"poutcome\",\"taskId\":\"1620109824\",\"username\":\"a1\"},{\"dType\":\"float\",\"name\":\"y\",\"taskId\":\"1620109824\",\"username\":\"a1\"}],\"uidName\":\"uid\"}},{\"clientInfo\":{\"dataset\":\"class1_train.csv\",\"hasLabel\":false,\"ip\":\"127.0.0.1\",\"port\":8095,\"protocol\":\"http\",\"token\":1189311652,\"username\":\"a2\"},\"features\":{\"featureList\":[{\"dType\":\"float\",\"name\":\"uid\",\"taskId\":\"1620109824\",\"username\":\"a2\"},{\"dType\":\"float\",\"name\":\"housing\",\"taskId\":\"1620109824\",\"username\":\"a2\"},{\"dType\":\"float\",\"name\":\"default\",\"taskId\":\"1620109824\",\"username\":\"a2\"},{\"dType\":\"float\",\"name\":\"month\",\"taskId\":\"1620109824\",\"username\":\"a2\"},{\"dType\":\"float\",\"name\":\"age\",\"taskId\":\"1620109824\",\"username\":\"a2\"},{\"dType\":\"float\",\"name\":\"duration\",\"taskId\":\"1620109824\",\"username\":\"a2\"}],\"uidName\":\"uid\"}}],\"createTime\":1624932243578,\"hasPwd\":\"false\",\"inferenceFlag\":\"2\",\"merCode\":\"a1\",\"partners\":[\"a2\"],\"taskId\":\"1620109824\",\"taskName\":\"0629-1\",\"updateTime\":1624932273316,\"username\":\"a1\",\"visible\":\"1\"}";
         JdchainTask jdchainTask = JsonUtil.json2Object(json, JdchainTask.class);
         jdchainTask.getPartners();
         jdchainTask.getUsername();

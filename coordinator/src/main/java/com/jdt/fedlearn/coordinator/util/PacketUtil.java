@@ -13,8 +13,9 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.util;
 
-import com.jdt.fedlearn.common.util.HttpClientUtil;
+import com.jdt.fedlearn.common.util.GZIPCompressUtil;
 import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.common.network.INetWorkService;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import org.slf4j.Logger;
@@ -31,7 +32,7 @@ public class PacketUtil {
     private static final int GZIP_THRESHOLD = 20000;
     private static final boolean SPLIT = ConfigUtil.getSplitTag();
     private static final boolean GZIP = ConfigUtil.getZipProperties();
-
+    private static INetWorkService netWorkService = INetWorkService.getNetWorkService();
 
     /**
      * @param data 传输的文本
@@ -52,11 +53,11 @@ public class PacketUtil {
             logger.info("spilt size: " + size);
             List<String> datalist = getStrList(data, SPLIT_NUM, size);
             for (String s : datalist) {
-                String gdata = HttpClientUtil.compress(s);
+                String gdata = GZIPCompressUtil.compress(s);
                 resNew.add(new Tuple2<>(gdata, true));
             }
         } else if (GZIP && dataLen > GZIP_THRESHOLD) {
-            String gdata = HttpClientUtil.compress(data);
+            String gdata = GZIPCompressUtil.compress(data);
             resNew.add(new Tuple2<>(gdata, true));
         } else {
             resNew.add(new Tuple2<>(data, false));
@@ -90,6 +91,8 @@ public class PacketUtil {
                 logger.info("compressed data len:" + gData.length());
                 long s1 = System.currentTimeMillis();
                 resStr = SendAndRecv.sendWithRetry(url, context);
+                logger.info("========");
+                logger.info(resStr);
                 logger.info("SendAndRecv.sendWithRetry : " + (System.currentTimeMillis() - s1) + " ms ");
             }
             return resStr;
@@ -164,11 +167,11 @@ public class PacketUtil {
             query.put("dataSize", responseSize);
             query.put("dataIndex", i);
             logger.info("msgid:" + msgid + "; dataSize:" + responseSize + "; dataIndex:" + i);
-            String subData = HttpClientUtil.doHttpPost(url, query);
+            String subData = netWorkService.sendAndRecv(url, query);
             logger.info("after HttpUtil.postData");
             Map resJson = null;
             try {
-                resJson = JsonUtil.parseJson(HttpClientUtil.unCompress(subData));
+                resJson = JsonUtil.json2Object(GZIPCompressUtil.unCompress(subData), Map.class);
             } catch (Exception e) {
                 logger.error("splitResponse: json parse error, " + e.getMessage());
             }

@@ -12,11 +12,12 @@ limitations under the License.
 */
 package com.jdt.fedlearn.common.util;
 
-import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.JobResult;
 import com.jdt.fedlearn.common.entity.Task;
 import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
+import com.jdt.fedlearn.common.network.INetWorkService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +29,7 @@ import java.util.Map;
  */
 public class ManagerCommandUtil {
     private static final Logger logger = LoggerFactory.getLogger(ManagerCommandUtil.class);
-
+    private static INetWorkService netWorkService =  INetWorkService.getNetWorkService();
     /**
      * http请求manager
      * @param baseUrl            baseurl
@@ -39,14 +40,14 @@ public class ManagerCommandUtil {
     public static JobResult request(String baseUrl, ManagerCommandEnum managerCommandEnum, Object param) {
         try {
             String url = baseUrl + "/" + managerCommandEnum.getCode();
-            String postDataStr = HttpClientUtil.doHttpPost(url, param);
-            String str = HttpClientUtil.unCompress(postDataStr);
+            String postDataStr = netWorkService.sendAndRecv(url, param);
+            String str = GZIPCompressUtil.unCompress(postDataStr);
             JobResult jobResult = JsonUtil.json2Object(str, JobResult.class);
             Map<String, Object> data = jobResult.getData();
 
             if (jobResult.getResultTypeEnum() != ResultTypeEnum.SUCCESS) {
                 RuntimeException exception = new RuntimeException("调用manager command执行异常:" + managerCommandEnum.toString());
-                logger.error(data.get(AppConstant.MESSAGE).toString(), exception);
+                logger.error(data.get(ResponseConstant.MESSAGE).toString(), exception);
                 throw exception;
             }
             return jobResult;

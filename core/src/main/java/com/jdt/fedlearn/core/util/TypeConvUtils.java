@@ -90,6 +90,29 @@ public class TypeConvUtils {
         return data;
     }
 
+
+    public static String sbArray2Json(signedByteArray input) {
+        String jsonStr;
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            jsonStr = objectMapper.writeValueAsString(input);
+        } catch (Exception e) {
+            throw new DeserializeException("DeserializeException :" + e);
+        }
+        return jsonStr;
+    }
+
+    public static signedByteArray parseSByteArr(String jsonStr) {
+        ObjectMapper mapper = new ObjectMapper();
+        signedByteArray ret ;
+        try {
+            ret = mapper.readValue(jsonStr, signedByteArray.class);
+        } catch (IOException e) {
+            throw new DeserializeException("DeserializeException :" + e);
+        }
+        return ret;
+    }
+
     public static signedByteArray[] parse1dSByteArr(String jsonStr) {
         ObjectMapper mapper = new ObjectMapper();
         signedByteArray[] data;

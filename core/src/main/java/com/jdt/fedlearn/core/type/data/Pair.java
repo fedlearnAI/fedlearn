@@ -52,6 +52,9 @@ public class Pair<K, V> implements Serializable {
         return value;
     }
 
+    public Pair() {
+    }
+
     /**
      * Creates a new pair
      *

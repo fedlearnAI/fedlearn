@@ -25,7 +25,7 @@ public class TestLinearP1Request {
 
     @Test
     public void jsonSerialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.verticalLinearRegression.LinearP1Request\",\"DATA\":{\"pubKey\":\"0\",\"newIter\":true,\"client\":{\"port\":0,\"uniqueId\":0}}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.verticalLinearRegression.LinearP1Request\",\"DATA\":{\"pubKey\":\"0\",\"newIter\":true,\"client\":{\"port\":0}}}";
         Serializer serializer = new JsonSerializer();
         String pubKey = "0";
         List<Long> batchSamples = new ArrayList<>();

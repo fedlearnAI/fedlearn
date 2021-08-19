@@ -65,7 +65,7 @@
 //
 //        /*构造请求参数*/
 //        AlgorithmType algorithm = AlgorithmType.valueOf(ALGORITHM);
-//        String inferenceId = TokenUtil.getInferenceToken(MODEL_TOKEN);
+//        String inferenceId = TokenUtil.getInferenceId(MODEL_TOKEN);
 //        Map<String, Object> context = new HashMap<>(8);
 //        context.put(MODEL_TOKEN_KEY, MODEL_TOKEN);
 //        context.put(ALGORITHM_KEY, algorithm);

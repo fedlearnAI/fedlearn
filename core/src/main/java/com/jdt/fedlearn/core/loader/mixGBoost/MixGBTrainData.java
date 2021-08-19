@@ -13,28 +13,28 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.loader.mixGBoost;
 
+import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.loader.common.AbstractTrainData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
-import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.Tool;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * @author zhangwenxi3
+ * @author zhangwenxi
  */
 public class MixGBTrainData extends AbstractTrainData implements TrainData {
     private Map<String, Integer> allFeatureNamesToIndex;
     private double firstPredictValue;
-    private Map<Integer, Integer> instanceIdToIndexMap;
-    private Map<Integer, Integer> localLabeledId;
-//    private List<String> categoryFeatures;
+    private List<Integer> localLabeledId;
+    public boolean hasAllCommonLabel;
+    private final Set<Integer> commonFea;
+    private static final String UID_NAME = "uid";
 
     /**
      * 记录每个特征缺失值的实例
@@ -46,41 +46,41 @@ public class MixGBTrainData extends AbstractTrainData implements TrainData {
     private double[][] featureThresholdList;
     private int[] featureIndexList;
 
-    public MixGBTrainData(String[][] originData, String[] commonIds, Features featuresList, List<String> categoricalFeatures) {
+    public MixGBTrainData(String[][] originData, String[] commonIds, Features featuresList, Set<String> commonFeatures) {
         initClientData(originData, commonIds, featuresList);
-//        this.categoryFeatures = categoricalFeatures;
-        }
+        commonFea = commonFeatures.parallelStream().map(fea -> allFeatureNamesToIndex.get(fea)).collect(Collectors.toSet());
+    }
 
-    public Tuple2<String, Double> getFeatureRandValue(String featureName, Set<Integer> idSet) {
+    public double getFeatureRandValue(String featureName, Set<Integer> idSet) {
         if (!allFeatureNamesToIndex.containsKey(featureName)) {
-            return null;
+            return -Double.MAX_VALUE;
         }
         int index = allFeatureNamesToIndex.get(featureName);
-        List<Double> tempSet = idSet.parallelStream().filter(id -> !featureMissValueInstIdMap[index].contains(id))
-                .map(id -> instanceIdToIndexMap.get(id)).map(uindex -> sample[index][uindex]).collect(Collectors.toList());
+        Set<Integer> missingMap = featureMissValueInstIdMap[index];
+        List<Double> tempSet = idSet.parallelStream().filter(id -> !missingMap.contains(id))
+                .map(id -> sample[index][id]).collect(Collectors.toList());
         if (tempSet.isEmpty()) {
-            return null;
+            return -Double.MAX_VALUE;
         }
         double minValue = tempSet.stream().min(Comparator.comparingDouble(Double::doubleValue)).orElse(-Double.MAX_VALUE);
         double maxValue = tempSet.stream().max(Comparator.comparingDouble(Double::doubleValue)).orElse(Double.MAX_VALUE);
         if (Double.compare(minValue, maxValue) == 0) {
-            return null;
+            return -Double.MAX_VALUE;
         }
         tempSet.remove(minValue);
         tempSet.remove(maxValue);
         if (tempSet.isEmpty()) {
-            return new Tuple2<>(featureName, minValue);
+            return minValue;
         }
-        Random random = new Random();
-        //在数组大小之间产生一个随机数 j
-        int j = random.nextInt(tempSet.size());
-        return new Tuple2<>(featureName, tempSet.get(j));
+        /* 在数组大小之间产生一个随机数 j */
+        int j = new Random().nextInt(tempSet.size());
+        return tempSet.get(j);
     }
 
     public double[] getInstanceLabels(int[] instId) {
         return Arrays.stream(instId).parallel()
                 .mapToDouble(id -> {
-                    if (localLabeledId.containsKey(id)) {
+                    if (localLabeledId.contains(id)) {
                         return label[localLabeledId.get(id)];
                     }
                     return -1;
@@ -88,35 +88,34 @@ public class MixGBTrainData extends AbstractTrainData implements TrainData {
                 .toArray();
     }
 
-    public double getInstanceFeatureValue(int instId, String fname) {
-        if (!instanceIdToIndexMap.containsKey(instId) || !allFeatureNamesToIndex.containsKey(fname)) {
-            return Double.MAX_VALUE;
-        }
-        int columnIndex = instanceIdToIndexMap.get(instId);
-        int rowIndex = allFeatureNamesToIndex.get(fname);
-        return sample[rowIndex][columnIndex];
+    public Integer[] getLeftInstance(Set<Integer> instIds, String name, double value) {
+        int columnIndex = allFeatureNamesToIndex.get(name);
+        final double[] values = sample[columnIndex];
+        return instIds.parallelStream().filter(instId ->  instId < values.length && Tool.compareDoubleValue(values[instId], value) <= 0)
+                .toArray(Integer[]::new);
     }
 
-    public Integer[] getLeftInstance(Set<Integer> instIds, String fname, double value) {
-        int columnIndex = allFeatureNamesToIndex.get(fname);
+    public Set<Integer> getLeftInstanceSet(Set<Integer> instIds, String name, double value) {
+        if (!allFeatureNamesToIndex.containsKey(name)) {
+            return new HashSet<>();
+        }
+        int columnIndex = allFeatureNamesToIndex.get(name);
         final double[] values = sample[columnIndex];
-        return instIds.parallelStream().filter(instId ->
-                instanceIdToIndexMap.containsKey(instId) && Tool.compareDoubleValue(values[instanceIdToIndexMap.get(instId)], value) <= 0)
-                .toArray(Integer[]::new);
+        return instIds.parallelStream().filter(instId -> instId < values.length && Tool.compareDoubleValue(values[instId], value) <= 0)
+                .collect(Collectors.toSet());
     }
 
     public Integer[] getLeftInstance(Set<Integer> instIds, int columnIndex, double value) {
         final double[] values = sample[columnIndex];
-        return instIds.parallelStream().filter(instId ->
-                instanceIdToIndexMap.containsKey(instId) && Tool.compareDoubleValue(values[instanceIdToIndexMap.get(instId)], value) <= 0)
+        return instIds.parallelStream().filter(instId -> instId < values.length && Tool.compareDoubleValue(values[instId], value) <= 0)
                 .toArray(Integer[]::new);
     }
 
-    public int[] getLeftInstance(int[] instIds, String fname, double value) {
-        int columnIndex = allFeatureNamesToIndex.get(fname);
+    public int[] getLeftInstance(int[] instIds, String name, double value) {
+        int columnIndex = allFeatureNamesToIndex.get(name);
         final double[] values = sample[columnIndex];
-        return Arrays.stream(instIds).parallel().filter(instId ->
-                instanceIdToIndexMap.containsKey(instId) && Tool.compareDoubleValue(values[instanceIdToIndexMap.get(instId)], value) <= 0)
+        return Arrays.stream(instIds).parallel()
+                .filter(instId -> instId < values.length && Tool.compareDoubleValue(values[instId], value) <= 0)
                 .toArray();
     }
 
@@ -124,140 +123,121 @@ public class MixGBTrainData extends AbstractTrainData implements TrainData {
         final double[] values = sample[feaIndex];
         if (addMissing) {
             Set<Integer> missingValueInstIdSet = featureMissValueInstIdMap[feaIndex];
-            return instIds.parallelStream().filter(instId -> missingValueInstIdSet.contains(instId) || Tool.compareDoubleValue(values[instanceIdToIndexMap.get(instId)], value) <= 0)
+            return instIds.parallelStream().filter(instId -> missingValueInstIdSet.contains(instId) || values[instId] <= value)
                     .mapToInt(Integer::intValue).toArray();
         }
-        return instIds.parallelStream().filter(instId ->
-                Tool.compareDoubleValue(values[instanceIdToIndexMap.get(instId)], value) <= 0)
+        return instIds.parallelStream().filter(instId -> values[instId] <= value)
                 .mapToInt(Integer::intValue)
                 .toArray();
     }
 
     public Map<Integer, Double> getUsageIdFeatureValueByIndex(Set<Integer> instIdSet, int featureIndex) {
         final double[] values = sample[featureIndex];
-        return instIdSet.parallelStream().collect(Collectors.toMap(id ->
-                instanceIdToIndexMap.get(id), id -> values[instanceIdToIndexMap.get(id)]));
+        return instIdSet.parallelStream().collect(Collectors.toMap(id -> id, id -> values[id]));
     }
 
-    public Map<Integer, Double> getUsageIdFeatureValue(Set<Integer> instIdSet, int featureIndex) {
-        final double[] values = sample[featureIndex];
-        return instIdSet.parallelStream().collect(Collectors.toMap(id ->
-                id, id -> values[instanceIdToIndexMap.get(id)]));
-    }
-
-    //key 是生成的id，value是原始id，一方面根据idmap对数据做一次过滤，另一方面将原始id转换成新id
-    private String[][] loadSpecifiedIds(Map<Integer, String> idMap, String[][] rawTable) {
-        // 根据id map的结果，对原始样本重排序
-        // x[featureDim], col of uid
-        Map<String, Integer> uidLineIndex = new HashMap<>();
-        IntStream.range(1, rawTable.length).forEachOrdered(index -> uidLineIndex.put(rawTable[index][featureDim], index));
-
-        Tuple2<Integer, String[]>[] res = idMap.entrySet().parallelStream()
-//                .filter(entry -> !"uid".equals(entry.getValue()))
-                .filter(entry -> uidLineIndex.containsKey(entry.getValue()))
-                .map(entry -> {
-                    int index = uidLineIndex.get(entry.getValue());
-                    return new Tuple2<>(entry.getKey(), rawTable[index]);
-                }).toArray((IntFunction<Tuple2<Integer, String[]>[]>) Tuple2[]::new);
-//        uid
-        //计算data size
-        datasetSize = res.length;
-        fullInstance = Arrays.stream(res).parallel().mapToInt(Tuple2::_1).toArray();
-        instanceIdToIndexMap = IntStream.range(0, datasetSize).boxed().parallel().collect(Collectors.toMap(i -> res[i]._1(), i -> i));
-        // res, contains required feature values, and labels(as the last column)
-        return Arrays.stream(res).parallel().map(Tuple2::_2).toArray(String[][]::new);
-    }
-
-    /**
-     * @param commonIds only get common id
+    /**给所有样本编号
+     * 共同样本放在最前面，以保证各个参与方对共同的编号一致
+     * @param commonIds common id
      * @param rawTable local data
      * @return all ID data
      */
-    private String[][] loadAllId(String[] commonIds, String[][] rawTable) {
-        // 根据id map的结果，对原始样本重排序
-        // x[featureDim], col of uid
-        Map<String, Integer> newIdMap;
+    private String[][] sortAllId(String[] commonIds, String[][] rawTable) {
+        /*
+         根据id map的结果，对原始样本重排序
+         x[featureDim], col of uid
+        */
+        Map<String, Integer> commonIdIndexMap;
         AtomicInteger maxCount;
-        if (commonIds == null || commonIds.length == 0) {
-            newIdMap = new HashMap<>();
+        if (commonIds == null) {
+            commonIdIndexMap = new HashMap<>();
             maxCount = new AtomicInteger(0);
         } else {
-            newIdMap = IntStream.range(0, commonIds.length).boxed().collect(Collectors.toMap(index -> commonIds[index], index -> index));
+            commonIdIndexMap = IntStream.range(0, commonIds.length).boxed()
+                    .collect(Collectors.toMap(index -> commonIds[index], index -> index));
             maxCount = new AtomicInteger(commonIds.length - 1);
         }
-
-        List<Tuple2<Integer, String[]>> res = Arrays.stream(rawTable).parallel().map(row -> {
-            if ("uid".equals(row[featureDim])) {
+        /* 除共同样本之外的样本，依次给与编号。并根据编号重新排序*/
+        List<Tuple2<Integer, String[]>> indexData = Arrays.stream(rawTable).parallel().map(row -> {
+            if (UID_NAME.equals(row[featureDim])) {
                 return null;
             }
-            if (newIdMap.containsKey(row[featureDim])) {
-                return new Tuple2<>(newIdMap.get(row[featureDim]), row);
+            if (commonIdIndexMap.containsKey(row[featureDim])) {
+                return new Tuple2<>(commonIdIndexMap.get(row[featureDim]), row);
             }
             return new Tuple2<>(maxCount.incrementAndGet(), row);
-        }).filter(Objects::nonNull).collect(Collectors.toList());
+        }).filter(Objects::nonNull).sorted(Comparator.comparing(Tuple2::_1)).collect(Collectors.toList());
 
-//        uid
-        //计算data size
-        datasetSize = res.size();
-        fullInstance = res.parallelStream().mapToInt(Tuple2::_1).toArray();
-        instanceIdToIndexMap = IntStream.range(0, datasetSize).boxed().collect(Collectors.toMap(i -> res.get(i)._1(), i -> i));
-        // res, contains required feature values, and labels(as the last column)
-        return res.parallelStream().map(Tuple2::_2).toArray(String[][]::new);
+        datasetSize = indexData.size();
+        return indexData.parallelStream().map(Tuple2::_2).toArray(String[][]::new);
     }
 
+    /** 数据初始化
+     * 加载特征
+     * 加载 id
+     * 加载标签
+     * @param originData 原始数据
+     * @param commonIds 共同样本
+     * @param features 需要加载的特征
+     */
     public void initClientData(String[][] originData, String[] commonIds, Features features) {
-        // after loadSpecifiedFeatures, contains:
-        // the required feature values(sample)
-        // all labels(as the second last column)
-        // all uid(as the last column)
+        /*
+         after loadSpecifiedFeatures, contains:
+         the required feature values(sample)
+         all uid(as the second last column)
+         all labels(as the last column)
+        */
         originData = loadSpecifiedFeatures(features, originData);
-        // only gives common id
-//        originData = loadSpecifiedIds(idMap, originData);
-        originData = loadAllId(commonIds, originData);
-
-        // after loadSpecifiedId, contains:
-        // required feature values
-        // and labels(as the last column)
+        originData = sortAllId(commonIds, originData);
+        /*
+         after sortAllId, contains:
+         required feature values
+         and labels(as the last column)
+        */
         if (hasLabel) {
-            loadLabel(originData);
+            loadLabel(commonIds, originData);
         }
         if (featureDim > 0) {
             loadSample(originData);
-            }
+        }
         firstPredictValue = 0;
         fullInstance = null;
     }
 
-    private void loadLabel(String[][] originData) {
-        // last column as labels
+    /** loadLabel
+     * @param commonIds common ID array
+     * @param originData raw data
+     */
+    private void loadLabel(String[] commonIds, String[][] originData) {
+        /* last column as labels */
         String[] labelCol = Arrays.stream(originData).parallel().map(x -> x[featureDim + 1]).toArray(String[]::new);
         localLabeledId = IntStream.range(0, datasetSize).parallel().boxed()
                 .filter(i -> !("NULL".equals(labelCol[i]) || "NIL".equals(labelCol[i]) || labelCol[i].isEmpty()))
-                .collect(Collectors.toMap(i -> fullInstance[i], i -> i));
+                .collect(Collectors.toList());
         if (!localLabeledId.isEmpty()) {
-            label = localLabeledId.entrySet().parallelStream().mapToDouble(entry -> Double.parseDouble(labelCol[entry.getValue()])).toArray();
+            label = localLabeledId.parallelStream()
+                    .mapToDouble(index -> Double.parseDouble(labelCol[index])).toArray();
         }
-        int cnt = 0;
-        for (Map.Entry<Integer, Integer> entry : localLabeledId.entrySet()) {
-            localLabeledId.replace(entry.getKey(), cnt);
-            cnt++;
-        }
-        }
+        hasAllCommonLabel = IntStream.range(0, commonIds.length).allMatch(i -> localLabeledId.contains(i));
+    }
 
+    /** load sample data from String values
+     * @param originRowData String input
+     */
     private void loadSample(String[][] originRowData) {
         String[][] originData = MathExt.transpose(originRowData);
         featureMissValueInstIdMap = new HashSet[featureDim];
         IntStream.range(0, featureDim).parallel().forEach(i -> featureMissValueInstIdMap[i] = new HashSet<>());
         sample = new double[featureDim][datasetSize];
-        // skip last row --> label
+        /* skip last row --> label, second last row --> uid */
         for (int col = 0; col < featureDim; col++) {
             String[] fea = originData[col];
             for (int idIndex = 0; idIndex < datasetSize; idIndex++) {
-                // 得到处理后的数据
+                /* 处理特征值 */
                 if ("".equals(fea[idIndex])) {
-                    // 缺少值的处理
+                    /* 缺少值的处理 */
                     sample[col][idIndex] = Double.MIN_VALUE;
-                    featureMissValueInstIdMap[col].add(fullInstance[idIndex]);
+                    featureMissValueInstIdMap[col].add(idIndex);
                     continue;
                 }
                 sample[col][idIndex] = Float.parseFloat(fea[idIndex]);
@@ -265,52 +245,48 @@ public class MixGBTrainData extends AbstractTrainData implements TrainData {
         }
     }
 
-    public void setLabel(double[] v) {
-        label = v;
-    }
-
+    /** loadSpecifiedFeatures
+     * @param features features to load
+     * @param rawTable raw data
+     * @return required feature values, all uid (as the second last column), all labels(if any, as the last column)
+     */
     private String[][] loadSpecifiedFeatures(Features features, String[][] rawTable) {
         List<String[]> res = new ArrayList<>();
-        // if has label, get label name
+        /* if has label, get label name */
         String labelName = "";
         if (features.getLabel() != null && !features.getLabel().isEmpty()) {
             labelName = features.getLabel();
             }
-        // columns as rowsuid
+        /* columns as rows uid */
         String[][] transTable = MathExt.transpose(rawTable);
         String[] originalUid = null;
         String[] originLabels = null;
         int feaIndex = 0;
-        // 初始化所有特征名称和未使用的index（不包括第一列的实例ID）
+        /* 初始化所有特征名称和未使用的index（不包括第一列的实例ID） */
         allFeatureNamesToIndex = new HashMap<>();
         for (String[] line : transTable) {
-            // load all uid
+            /* load all uid */
             if ("uid".equals(line[0])) {
                 originalUid = line;
-                continue;
-            }
-            // filter features that will not be used in training
-            if (!features.contain(line[0])) {
-                continue;
-            }
-            // load all label strings
-            if (labelName.equals(line[0])) {
+            } else if(labelName.equals(line[0])) {
+                /* load all label strings */
                 hasLabel = true;
                 originLabels = line;
-                continue;
+            } else if(features.contain(line[0])){
+                /* filter out features that will not be used in training */
+                res.add(line);
+                allFeatureNamesToIndex.put(line[0], feaIndex++);
             }
-            res.add(line);
-            allFeatureNamesToIndex.put(line[0], feaIndex++);
         }
         featureName = res.parallelStream().map(line -> line[0]).toArray(String[]::new);
-        // featureDim, has removed uid and label
+        /* featureDim, has removed uid and label */
         featureDim = res.size();
-        // res, contains required feature values, all uid(as the second last row), all uid(as the last row)
+        /* res, contains required feature values, all uid(as the second last row), all uid(as the last row) */
         res.add(originalUid);
         if (hasLabel) {
             res.add(originLabels);
         }
-        // transpose result, contains required feature values, all uid (as the second last column), all labels(if any, as the last column)
+        /* transpose result, contains required feature values, all uid (as the second last column), all labels(if any, as the last column) */
         return MathExt.transpose(res.toArray(new String[0][]));
     }
 
@@ -334,14 +310,6 @@ public class MixGBTrainData extends AbstractTrainData implements TrainData {
         return featureThresholdList;
     }
 
-    public Map<Integer, Integer> getInstanceIdToIndexMap() {
-        return instanceIdToIndexMap;
-    }
-
-    public Map<Integer, Integer> getLocalLabeledId() {
-        return localLabeledId;
-    }
-
     public void setFeatureIndexList(int[] featureIndexList) {
         this.featureIndexList = featureIndexList;
     }
@@ -352,5 +320,13 @@ public class MixGBTrainData extends AbstractTrainData implements TrainData {
 
     public Set<Integer>[] getFeatureMissValueInstIdMap() {
         return featureMissValueInstIdMap;
+    }
+
+    public List<Integer> getLocalLabeledId() {
+        return localLabeledId;
+    }
+
+    public Set<Integer> getCommonFea() {
+        return commonFea;
     }
 }

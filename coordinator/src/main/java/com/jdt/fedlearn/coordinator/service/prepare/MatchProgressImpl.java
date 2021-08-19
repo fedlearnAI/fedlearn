@@ -13,14 +13,20 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.service.prepare;
 
+import com.jdt.fedlearn.common.enums.RunningType;
+import com.jdt.fedlearn.common.util.LogUtil;
+import com.jdt.fedlearn.common.tool.ResponseHandler;
 import com.jdt.fedlearn.coordinator.dao.db.MatchMapper;
 import com.jdt.fedlearn.coordinator.entity.prepare.MatchQueryReq;
-import com.jdt.fedlearn.coordinator.service.AbstractDispatchService;
+import com.jdt.fedlearn.coordinator.entity.table.MatchEntity;
+import com.jdt.fedlearn.coordinator.exception.NotAcceptableException;
+import com.jdt.fedlearn.coordinator.service.CommonService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
-import com.jdt.fedlearn.core.psi.MatchResult;
+import com.jdt.fedlearn.core.exception.NotMatchException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,59 +43,65 @@ import java.util.Map;
 public class MatchProgressImpl implements TrainService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public static final String PERCENT = "percent";
-    public static final String DESCRIBES = "describes";
-    public static final String DOING = "正在对齐";
-    public static final int VALUE_100 = 100;
-    public static final String NOT_EXISTS = "任务不存在";
-    public static final int VALUE_0 = 0;
+    private static final String PERCENT = "percent";
+    private static final String DESCRIBE = "describe";
+    private static final String DOING = "正在对齐";
+    private static final String FAIL = "对齐失败";
+    private static final int VALUE_100 = 100;
+    private static final int VALUE_50 = 50;
+    private static final String NOT_EXISTS = "任务不存在";
+    private static final int VALUE_0 = 0;
 
     @Override
     public Map<String, Object> service(String content) throws ParseException {
-        MatchQueryReq matchQueryReq = new MatchQueryReq(content);
-        Map<String, Object> data = query(matchQueryReq);
-        return new AbstractDispatchService() {
-            @Override
-            public Map dealService() {
-                return data;
-            }
-        }.doProcess(true);
+        try {
+            MatchQueryReq matchQueryReq = new MatchQueryReq();
+            matchQueryReq.parseJson(content);
+            Map<String, Object> data = query(matchQueryReq);
+            return ResponseHandler.successResponse(data);
+        } catch (Exception e) {
+            logger.error(String.format("MatchProgressImpl Exception :%s ", LogUtil.logLine(e.getMessage())));
+            return CommonService.exceptionProcess(e, new HashMap<>());
+        }
     }
 
-    public Map<String, Object> query(MatchQueryReq matchQueryReq) throws ParseException {
+    public Map<String, Object> query(MatchQueryReq matchQueryReq) throws ParseException, NotMatchException, NotAcceptableException {
         boolean flag = ConfigUtil.getJdChainAvailable();
         Map<String, Object> data = new HashMap<>();
-        String matchIdStr = matchQueryReq.getMatchToken();
+        String matchIdStr = matchQueryReq.getMatchId();
         logger.info("matchToken: " + matchIdStr + " enter !");
-        if (MatchStartImpl.ID_MATCH_FLAG.containsKey(matchIdStr)) {
+        if (MatchStartImpl.matchEntityMap.containsKey(matchIdStr)) {
             logger.info("containsKey: " + matchIdStr);
-            int percent = MatchStartImpl.ID_MATCH_FLAG.get(matchIdStr);
-            logger.info("ID_MATCH_FLAG :" + percent);
-            if (percent == 100) {
-                MatchResult matchResult = MatchStartImpl.SUM_DATA_MAP.get(matchIdStr);
-                String describe = matchResult.getMappingReport().getReport();
+            RunningType runningType = MatchStartImpl.matchEntityMap.get(matchIdStr).getRunningType();
+            if (RunningType.COMPLETE.equals(runningType)) {
+                MatchEntity matchEntity = MatchStartImpl.matchEntityMap.get(matchIdStr);
+                String describe = matchEntity.getMatchReport();
                 data.put(PERCENT, VALUE_100);
-                data.put(DESCRIBES, describe);
-                logger.info("data PERCENT: " + percent + " data DESCRIBES: " + describe);
+                data.put(DESCRIBE, describe);
+                logger.info("data PERCENT: " + VALUE_100 + " data DESCRIBES: " + describe);
+            } else if ((RunningType.FAIL.equals(runningType))) {
+                data.put(PERCENT, VALUE_0);
+                data.put(DESCRIBE, MatchStartImpl.matchEntityMap.get(matchIdStr).getMatchReport());
+                logger.info("data PERCENT: " + VALUE_0 + " , data DESCRIBES: : " + MatchStartImpl.matchEntityMap.get(matchIdStr).getMatchReport());
+                throw new NotAcceptableException(String.format("任务失败 :%s ", LogUtil.logLine(MatchStartImpl.matchEntityMap.get(matchIdStr).getMatchReport())));
             } else {
-                data.put(PERCENT, percent);
-                data.put(DESCRIBES, DOING);
-                logger.info("data PERCENT: " + percent + " , data DESCRIBES: : " + DOING);
+                data.put(PERCENT, VALUE_50);
+                data.put(DESCRIBE, DOING);
+                logger.info("data PERCENT: " + VALUE_50 + " , data DESCRIBES: : " + DOING);
             }
         } else {
-            if(!flag){
+            if (!flag) {
                 boolean contain = MatchMapper.isContainMatchModel(matchIdStr);
-                if(contain){
+                if (contain) {
                     logger.info("get idMatch from database ");
-                    int percent =VALUE_100;
-                    MatchResult matchResult = MatchMapper.getMatchInfoByToken(matchIdStr);
-                    data.put(PERCENT, percent);
-                    data.put(DESCRIBES, matchResult.getMappingReport().getReport());
-                    MatchStartImpl.ID_MATCH_FLAG.put(matchIdStr,percent);
-                    MatchStartImpl.SUM_DATA_MAP.put(matchIdStr, matchResult);
-                }else {
+                    MatchEntity matchEntity = MatchMapper.getMatchEntityByToken(matchIdStr);
+                    data.put(PERCENT, VALUE_100);
+                    data.put(DESCRIBE, matchEntity.getMatchReport());
+                    MatchStartImpl.matchEntityMap.put(matchIdStr, matchEntity);
+                } else {
                     data.put(PERCENT, VALUE_0);
-                    data.put(DESCRIBES, NOT_EXISTS);
+                    data.put(DESCRIBE, NOT_EXISTS);
+                    throw new NotMatchException("任务不存在");
                 }
             }
         }

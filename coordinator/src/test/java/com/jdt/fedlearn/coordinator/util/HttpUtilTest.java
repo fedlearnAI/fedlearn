@@ -1,6 +1,7 @@
 package com.jdt.fedlearn.coordinator.util;
 
-import com.jdt.fedlearn.common.util.HttpClientUtil;
+import com.jdt.fedlearn.common.network.impl.HttpClientImpl;
+import com.jdt.fedlearn.common.network.INetWorkService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class HttpUtilTest {
-    private static Logger log = LoggerFactory.getLogger(HttpClientUtil.class);
+    private static Logger log = LoggerFactory.getLogger(HttpClientImpl.class);
 
     public static void main(String[] args) {
 
@@ -24,7 +25,7 @@ public class HttpUtilTest {
 //        url = "http://localhost:8082/api/core/login";
         Map<String, Object> map = new HashMap<>();
         map.put("key", "==g43sEvsUcbcunFv3mHkIzlHO4iiUIT R7WwXuSVKTK0yugJnZSlr6qNbxsL8OqCUAFyCDCoRKQ882m6cTTi0q9uCJsq JJvxS+8mZVRP/7lWfEVt8/N9mKplUA68SWJEPSXyz4MDeFam766KEyvqZ99d");
-        String postResult = HttpClientUtil.doHttpPost(url,map);
+        String postResult = INetWorkService.getNetWorkService().sendAndRecv(url,map);
         System.out.println(postResult);
 
 //        url = "http://localhost:8082/api/test/testSendForm?format=json";

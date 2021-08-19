@@ -20,7 +20,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 推理数据集处理
+ * 推理数据解析抽象类,
+ * 提供各种数据解析和预处理，缺失值填充工具
  * 数据集处理顺序依次是：
  * 1.解析 将原始数据集解析为uid/featureName/sample等部分
  * 2.缺失值填充

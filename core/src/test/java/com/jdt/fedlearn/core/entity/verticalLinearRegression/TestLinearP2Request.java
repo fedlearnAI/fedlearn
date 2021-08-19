@@ -19,7 +19,7 @@ public class TestLinearP2Request {
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
         LinearP2Request linearP2Request = (LinearP2Request) message;
-        ClientInfo clientInfo = new ClientInfo("0",0,"http",0);
+        ClientInfo clientInfo = new ClientInfo("0",0,"http","","0");
         Assert.assertEquals(linearP2Request.getClient(), clientInfo);
         Assert.assertEquals(linearP2Request.getBodies().size(),0);
     }
@@ -39,7 +39,7 @@ public class TestLinearP2Request {
     @Test
     public void javaSerializeDeserialize(){
         Serializer serializer = new JavaSerializer();
-        ClientInfo clientInfo = new ClientInfo("0",0,"http",0);
+        ClientInfo clientInfo = new ClientInfo("0",0,"http","","0");
         List<LinearP1Response> linearP1ResponseList = new ArrayList<>();
         LinearP2Request LinearP1Request = new LinearP2Request(clientInfo,linearP1ResponseList);
         String str = serializer.serialize(LinearP1Request);

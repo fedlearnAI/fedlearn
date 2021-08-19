@@ -12,11 +12,11 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.cache;
 
+import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.JobResult;
 import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
 import com.jdt.fedlearn.common.util.ManagerCommandUtil;
-import com.jdt.fedlearn.worker.util.ConfigUtil;
 
 import java.util.HashMap;
 import java.util.Map;

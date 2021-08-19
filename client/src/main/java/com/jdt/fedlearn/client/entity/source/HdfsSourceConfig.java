@@ -18,11 +18,15 @@ import com.jdt.fedlearn.client.type.SourceType;
 public class HdfsSourceConfig extends DataSourceConfig {
     private String trainBase;
     private String dataset;
+    private String uri;
+    private String user;
 
-    public HdfsSourceConfig(String trainBase, String dataset) {
+    public HdfsSourceConfig(String trainBase, String uri, String user, String dataset) {
         super.setSourceType(SourceType.HDFS);
         super.setDataName(dataset);
         this.trainBase = trainBase;
+        this.uri = uri;
+        this.user = user;
         this.dataset = dataset;
     }
 
@@ -42,7 +46,23 @@ public class HdfsSourceConfig extends DataSourceConfig {
         this.dataset = dataset;
     }
 
+    public String getUri() {
+        return uri;
+    }
+
+    public void setUri(String uri) {
+        this.uri = uri;
+    }
+
+    public String getUser() {
+        return user;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
+    }
+
     public static HdfsSourceConfig template() {
-        return new HdfsSourceConfig("/tmp", "train1.csv");
+        return new HdfsSourceConfig("/tmp", "", "root", "train1.csv");
     }
 }

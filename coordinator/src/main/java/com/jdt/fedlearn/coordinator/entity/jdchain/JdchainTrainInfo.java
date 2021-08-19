@@ -1,7 +1,7 @@
 package com.jdt.fedlearn.coordinator.entity.jdchain;
 
-import com.jdt.fedlearn.coordinator.entity.train.SingleParameter;
-import com.jdt.fedlearn.coordinator.type.RunningType;
+import com.jdt.fedlearn.common.enums.RunningType;
+import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 
@@ -86,10 +86,6 @@ public class JdchainTrainInfo implements Message {
 
     public List<String> getPartners() {
         return partners;
-    }
-
-    public void setPartners(List<String> partners) {
-        this.partners = partners;
     }
 
     public Date getTrainStartTime() {

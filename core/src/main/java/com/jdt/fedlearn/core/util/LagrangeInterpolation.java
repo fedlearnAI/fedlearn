@@ -1,6 +1,8 @@
 package com.jdt.fedlearn.core.util;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -11,19 +13,19 @@ import java.util.List;
  * <p>因为应用在Freedman id对齐算法，经过简化，具体求解方式为计算多项式（x+a[0]）* (x+a[1]) * ... * (x+a[n-1])化简后的系数</p>
  *
  * <p>例如：当Active方id是{2, 3, 1}时，可以以下式方式创建{@code LagrangeInterpolation}对象
- * {@code LagrangeInterpolation spc = new LagrangeInterpolation(new int[]{-2, -3, -1});}
+ * {@code LagrangeInterpolation li = new LagrangeInterpolation(new double[]{-2.0, -3.0, -1.0});}
  * </p>
- * <p>调用{@code spc.generateCoefficients()}即可获得系数</p>
+ * <p>调用{@code li.generateCoefficients()}即可获得系数</p>
  */
 public class LagrangeInterpolation {
-    private static int[] ids;
-    
-    public LagrangeInterpolation(int[] ids) {
-        this.ids = ids;
+    private static double[] BigIds;
+
+    public LagrangeInterpolation(double[] BigIds) {
+        this.BigIds = BigIds;
     }
 
     //多项式函数的系数递归求值。
-    private static int getCoefficient(int n, int k) {
+    private static double getCoefficient(int n, int k) {
 	/**
      * getCoefficient(n, k)表示n次多项式的k次幂前的系数和，返回一个int
      * 其中a此处为ids
@@ -32,18 +34,18 @@ public class LagrangeInterpolation {
      * getCoefficient(n, 0) = a[0] * a[1] * ... * a[n] = getCoefficient(n-1, 0) * a[n-1]
      * 其中n为迭代次数，k为k次幂
      */
-        if ((n > 0 && n <= ids.length) && (k >= 0 && k < ids.length)) {
+        if ((n > 0 && n <= BigIds.length) && (k >= 0 && k < BigIds.length)) {
             if (n == 1) {
-                return ids[0];
+                return BigIds[0];
             }
             if (k == 0) {
-                return ids[n - 1] * getCoefficient(n - 1, 0);
+                return BigIds[n - 1] * (getCoefficient(n - 1, 0));
             }
             else if (k == n - 1) {
-                return ids[n - 1] + getCoefficient(n - 1, n - 2);
+                return BigIds[n - 1] + (getCoefficient(n - 1, n - 2));
             }
             else {
-                return getCoefficient(n - 1, k) * ids[n - 1] + getCoefficient(n - 1, k - 1);
+                return getCoefficient(n - 1, k) * (BigIds[n - 1]) + getCoefficient(n - 1, k - 1);
             }
         } else {
             throw new UnsupportedOperationException("Wrong n and k, should satisfy（0<n<=arr.length&&0<=k<arr.length）");
@@ -51,16 +53,15 @@ public class LagrangeInterpolation {
     }
 
     //输出多项式展开后的系数表现形式
-    public int[] generateCoefficients() {
-        List<Integer> solution = new ArrayList<>();
+    public double[] generateBigCoefficients() {
+        List<Double> solution = new ArrayList<>();
         // 对于x^n次方(最高次方)来说系数确定为1
-        solution.add(1);
-        for (int i = ids.length - 1; i >= 0; i--) {
-            solution.add(getCoefficient(ids.length, i));
+        solution.add(1.0);
+        for (int i = BigIds.length - 1; i >= 0; i--) {
+            solution.add(getCoefficient(BigIds.length, i));
         }
-        return solution.stream().mapToInt(Integer::intValue).toArray();
+        return solution.stream().mapToDouble(i->i).toArray();
     }
-
 
 }
 

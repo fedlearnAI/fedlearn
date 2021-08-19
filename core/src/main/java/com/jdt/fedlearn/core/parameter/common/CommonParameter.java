@@ -30,7 +30,6 @@ public class CommonParameter {
                 parameterFields = new FgbParameter().obtainPara();
                 break;
             }
-            case RandomForest:
             case DistributedRandomForest:
             case RandomForestJava: {
                 parameterFields = new RandomForestParameter().obtainPara();
@@ -69,6 +68,10 @@ public class CommonParameter {
                 parameterFields = new TreeInferenceParameter().obtainPara();
                 break;
             }
+            case DelphiInference: {
+                parameterFields = new DelphiParameter().obtainPara();
+                break;
+            }
             default: {
                 break;
             }
@@ -100,8 +103,6 @@ public class CommonParameter {
         SuperParameter parameter;
         if (AlgorithmType.VerticalLinearRegression == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, VerticalLinearParameter.class);
-        } else if (AlgorithmType.RandomForest == algorithmType) {
-            parameter = convertListToSuperParameter(parameterFields, RandomForestParameter.class);
         } else if (AlgorithmType.RandomForestJava == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, RandomForestParameter.class);
         } else if (AlgorithmType.DistributedRandomForest == algorithmType) {
@@ -124,6 +125,8 @@ public class CommonParameter {
             parameter = convertListToSuperParameter(parameterFields, VerticalFDNNParameter.class);
         } else if (AlgorithmType.TreeInference == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, TreeInferenceParameter.class);
+        } else if (AlgorithmType.DelphiInference == algorithmType) {
+            parameter = convertListToSuperParameter(parameterFields, DelphiParameter.class);
         } else {
             throw new UnsupportedOperationException();
         }

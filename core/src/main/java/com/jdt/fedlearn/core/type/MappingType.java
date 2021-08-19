@@ -21,13 +21,9 @@ import java.util.Arrays;
  */
 
 public enum MappingType {
-    VERTICAL_MD5("VERTICAL_MD5"),
-    VERTICAL_RSA("VERTICAL_RSA"),
-    VERTICAL_DH("VERTICAL_DH"),
-    MIX_LIN_TRAIN("MIX_LIN_TRAIN"),
-    MIX_LIN_INFER("MIX_LIN_INFER"),
-    MIX_LIN_INFER_DEBUG("MIX_LIN_INFER_DEBUG"),
-    MIX_MD5("MIX_MD5"),
+    MD5("MD5"),
+    RSA("RSA"),
+    DH("DH"),
     EMPTY("EMPTY"),
     FREEDMAN("FREEDMAN");
 

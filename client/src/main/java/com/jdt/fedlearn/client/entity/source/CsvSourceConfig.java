@@ -19,8 +19,16 @@ import com.jdt.fedlearn.common.util.JsonUtil;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * csv 文件配置，包括csv文件位置和 可选的dataset配置，
+ * 配置示例如下
+ * train1.source=csv
+ * train2.path=/export/Data/federated-learning-client/mo17k.csv
+ * train1.dataset=mo17k.csv
+ * 如果不配置dataset，则在base中选取部分字段作为dataset
+ */
 public class CsvSourceConfig extends DataSourceConfig {
-    private String trainBase;
+    private final String trainBase;
     private String dataset;
 
     public CsvSourceConfig(String trainBase, String dataset) {

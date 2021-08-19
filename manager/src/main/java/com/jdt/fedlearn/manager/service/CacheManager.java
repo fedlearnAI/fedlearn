@@ -27,14 +27,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class CacheManager {
 
-    /* 保存每棵树训练所需要的model*/
-    public static Map<String,String> modelCacheMap = new ConcurrentHashMap<>(16);
     /* 保存树的id*/
     public static Map<String,String> treeIdCacheMap = new ConcurrentHashMap<>(16);
     /* 保存训练结果所在worker的地址*/
-    public static Map<String,String> addressCacheMap = new ConcurrentHashMap<>(16);
-    /* 保存首次训练标识*/
-    public static Map<String,String> firstCacheMap = new ConcurrentHashMap<>(16);
+    public static Map<String,String> resultAddressCacheMap = new ConcurrentHashMap<>(16);
+    /* 保存init的model及TrainData所在worker的地址*/
+    public static Map<String,String> modelAddressCacheMap = new ConcurrentHashMap<>(16);
 
     /**
     * @description: 添加缓存
@@ -45,14 +43,12 @@ public class CacheManager {
         String type = param.get(AppConstant.MANAGER_CACHE_TYPE);
         String key = param.get(AppConstant.MANAGER_CACHE_KEY);
         String value = param.get(AppConstant.MANAGER_CACHE_VALUE);
-        if(AppConstant.MODEL_CACHE.equals(type)){
-            modelCacheMap.put(key,value);
-        }else if(AppConstant.TREE_CACHE.equals(type)){
+        if(AppConstant.MODEL_ADDRESS_CACHE.equals(type)){
+            modelAddressCacheMap.put(key,value);
+        }else if(AppConstant.MODEL_COUNT_CACHE.equals(type)){
             treeIdCacheMap.put(key,value);
-        }else if(AppConstant.ADDRESS_CACHE.equals(type)){
-            addressCacheMap.put(key,value);
-        }else if(AppConstant.FIRST_CACHE.equals(type)){
-            firstCacheMap.put(key,value);
+        }else if(AppConstant.RESULT_ADDRESS_CACHE.equals(type)){
+            resultAddressCacheMap.put(key,value);
         }
     }
 
@@ -66,17 +62,15 @@ public class CacheManager {
     public String getCache(Map<String,String> param){
         String type = param.get(AppConstant.MANAGER_CACHE_TYPE);
         String key = param.get(AppConstant.MANAGER_CACHE_KEY);
-        String modelStr = null;
-        if(AppConstant.MODEL_CACHE.equals(type)){
-             modelStr = modelCacheMap.get(key);
-        }else if(AppConstant.TREE_CACHE.equals(type)){
-             modelStr = treeIdCacheMap.get(key);
-        }else if(AppConstant.ADDRESS_CACHE.equals(type)){
-            modelStr = addressCacheMap.get(key);
-        }else if(AppConstant.FIRST_CACHE.equals(type)){
-            modelStr = firstCacheMap.get(key);
+        String result = null;
+        if(AppConstant.MODEL_ADDRESS_CACHE.equals(type)){
+             result = modelAddressCacheMap.get(key);
+        }else if(AppConstant.MODEL_COUNT_CACHE.equals(type)){
+             result = treeIdCacheMap.get(key);
+        }else if(AppConstant.RESULT_ADDRESS_CACHE.equals(type)){
+            result = resultAddressCacheMap.get(key);
         }
-        return modelStr;
+        return result;
     }
 
     /**
@@ -86,18 +80,16 @@ public class CacheManager {
     * @author: geyan29
     * @date: 2021/4/29 4:40 下午
     */
-    public String delCache(Map<String,String> param){
+    public Object delCache(Map<String,String> param){
         String type = param.get(AppConstant.MANAGER_CACHE_TYPE);
         String key = param.get(AppConstant.MANAGER_CACHE_KEY);
-        String modelStr = null;
-        if(AppConstant.MODEL_CACHE.equals(type)){
-             modelStr = modelCacheMap.remove(key);
-        }else if(AppConstant.TREE_CACHE.equals(type)){
+        Object modelStr = null;
+        if(AppConstant.MODEL_ADDRESS_CACHE.equals(type)){
+             modelStr = modelAddressCacheMap.remove(key);
+        }else if(AppConstant.MODEL_COUNT_CACHE.equals(type)){
              modelStr = treeIdCacheMap.remove(key);
-        }else if(AppConstant.ADDRESS_CACHE.equals(type)){
-            modelStr = addressCacheMap.remove(key);
-        }else if(AppConstant.FIRST_CACHE.equals(type)){
-            modelStr = firstCacheMap.remove(key);
+        }else if(AppConstant.RESULT_ADDRESS_CACHE.equals(type)){
+            modelStr = resultAddressCacheMap.remove(key);
         }
         return modelStr;
     }

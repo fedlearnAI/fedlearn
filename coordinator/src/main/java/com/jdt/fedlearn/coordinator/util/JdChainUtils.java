@@ -28,7 +28,7 @@ import com.jd.blockchain.sdk.client.GatewayServiceFactory;
 import com.jd.blockchain.transaction.ContractEventSendOperationBuilder;
 import com.jdt.fedlearn.common.constant.JdChainConstant;
 import com.jdt.fedlearn.common.entity.jdchain.JdChainConfig;
-import com.jdt.fedlearn.common.util.IpAddress;
+import com.jdt.fedlearn.common.util.IpAddressUtil;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +57,7 @@ public class JdChainUtils {
     public static void init(){
         try {
             initGateway(); //初始化网关服务]
-            String ip = IpAddress.getInet4Address();
+            String ip = IpAddressUtil.getLocalHostLANAddress().getHostAddress();
             int port = ConfigUtil.getPortElseDefault();
             invokeRegister(ip+":"+port, JdChainConstant.SERVER,getUUID()); //服务端注册
         }catch (Exception e){

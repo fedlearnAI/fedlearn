@@ -8,11 +8,11 @@ import static org.testng.Assert.*;
 
 public class AlgorithmTypeTest {
     private final AlgorithmType[] algorithmTypes = {AlgorithmType.VerticalLinearRegression, AlgorithmType.LinearRegression,
-            AlgorithmType.FederatedGB, AlgorithmType.MixGBoost, AlgorithmType.RandomForest};
+            AlgorithmType.FederatedGB, AlgorithmType.MixGBoost};
 
     @Test
     public void getAlgorithm() {
-        String[] target = {"VerticalLinearRegression", "LinearRegression", "FederatedGB", "MixGBoost", "RandomForest"};
+        String[] target = {"VerticalLinearRegression", "LinearRegression", "FederatedGB", "MixGBoost"};
         for (int i = 0; i < target.length; i++) {
             assertEquals(algorithmTypes[i].getAlgorithm(), target[i]);
         }

@@ -28,11 +28,9 @@ public interface Constant {
     /**
      * 缓存保存时间
      */
-    int MAX_CACHE_SECONDS = 30;
+    int MAX_CACHE_SECONDS = 300000;
 
     Serializer serializer = new JavaSerializer();
-
-    int DEFAULT_PORT = 8094;
 
     String DEFAULT_CONF = "conf/client.properties";
 

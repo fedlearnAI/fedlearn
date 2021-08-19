@@ -21,9 +21,7 @@ import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.*;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
-//import com.jdt.fedlearn.core.type.KernelModelPhaseType;
 import com.jdt.fedlearn.core.type.NormalizationType;
 import com.jdt.fedlearn.grpc.federatedlearning.*;
 import com.jdt.fedlearn.grpc.federatedlearning.Vector;
@@ -42,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.Random;
 
 import java.util.ArrayList;
 
@@ -148,11 +145,11 @@ public class KernelLinearRegressionModel implements Model {
         NormalizerOutPackage temp_normalized_out;
         boolean could_do_normalization = false;
         if (trainData.hasLabel) {
-            if (trainData.featureDim - 1 > 0) {
+            if (trainData.getFeatureDim() - 1 > 0) {
                 could_do_normalization = true;
             }
         } else {
-            if (trainData.featureDim > 0) {
+            if (trainData.getFeatureDim() > 0) {
                 could_do_normalization = true;
             }
         }
@@ -218,10 +215,10 @@ public class KernelLinearRegressionModel implements Model {
         mapdim = parameter.getMapdim();
         scale = parameter.getScale();
         logger.info("Start initializing training data.");
-        if (trainData.featureDim > 0) {
+        if (trainData.getFeatureDim() > 0) {
             Xs_train = new SimpleMatrix(trainData.getFeature());
-        } else if (trainData.featureDim == 0) {
-            Xs_train = DataUtils.toSmpMatrix(DataUtils.zeroMatrix(trainData.datasetSize, 1));
+        } else if (trainData.getFeatureDim() == 0) {
+            Xs_train = DataUtils.toSmpMatrix(DataUtils.zeroMatrix(trainData.getDatasetSize(), 1));
             hasFeature = false;
         }
         numsample = Xs_train.numRows();
@@ -663,4 +660,5 @@ public class KernelLinearRegressionModel implements Model {
     public AlgorithmType getModelType() {
         return AlgorithmType.KernelBinaryClassification;
     }
+
 }

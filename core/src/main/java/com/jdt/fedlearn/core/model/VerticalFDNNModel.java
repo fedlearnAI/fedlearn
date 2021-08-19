@@ -10,11 +10,10 @@ import com.jdt.fedlearn.core.entity.verticalFDNN.VFDNNMessage;
 import com.jdt.fedlearn.core.entity.verticalFDNN.VerticalFDNNUtils;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
-import com.jdt.fedlearn.core.loader.randomForest.DataFrame;
+import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.parameter.SuperParameter;
 import com.jdt.fedlearn.core.parameter.VerticalFDNNParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.grpc.federatedlearning.CalculateGrpc;
 import com.jdt.fedlearn.grpc.federatedlearning.Matrix;
@@ -68,7 +67,7 @@ public class VerticalFDNNModel implements Model {
     @Override
     public TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter parameter, Features features, Map<String, Object> others) {
         modelToken = "_MLP";
-        DataFrame trainData = new DataFrame(rawData, uids, features);
+        RFTrainData trainData = new RFTrainData(rawData, uids, features);
         logger.info("Init train start");
         this.parameter = (VerticalFDNNParameter) parameter;
         // 初始化 train data
@@ -196,7 +195,7 @@ public class VerticalFDNNModel implements Model {
         // Phase 0 init
         List<ByteString> modelBytes = new ArrayList<>();
         List<Double> modelParameters = new ArrayList<>();
-        // convert train data to bytes and send to grpc
+        // convert train data to bytes and mockSend to grpc
         List<List<Double>> X = DataUtils.MatrixToList(XTrain);
 //            modelBytes.add(ByteString.copyFrom(X.toString(), "unicode"));
         modelBytes.add(ByteString.copyFrom(X.toString().getBytes(StandardCharsets.UTF_8)));
@@ -378,4 +377,5 @@ public class VerticalFDNNModel implements Model {
     public AlgorithmType getModelType() {
         return AlgorithmType.VerticalFDNN;
     }
+
 }

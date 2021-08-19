@@ -11,8 +11,6 @@ import com.jdt.fedlearn.core.entity.kernelLinearRegression.InferenceReqAndRes;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.loader.kernelLinearRegression.KernelLinearRegressionTrainData;
-import com.jdt.fedlearn.core.parameter.KernelLinearRegressionParameter;
-import com.jdt.fedlearn.core.psi.MappingResult;
 import com.jdt.fedlearn.core.type.data.Tuple3;
 import com.jdt.fedlearn.grpc.federatedlearning.Vector;
 import org.ejml.simple.SimpleMatrix;

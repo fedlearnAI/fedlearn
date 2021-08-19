@@ -31,13 +31,13 @@ public interface Control {
      * @param clientInfos 客户端列表
      * @param idMap       id对照表,以及其他自动化预处理信息
      * @param featureList 特征对照表，以及其他用户选择信息
-     * @param other 其他自定义参数
+     * @param other       其他自定义参数
      * @return 初始化请求列表
      */
     List<CommonRequest> initControl(List<ClientInfo> clientInfos, MatchResult idMap, Map<ClientInfo, Features> featureList, Map<String, Object> other);
 
     /**
-     * @param response   客户端返回结果
+     * @param response 客户端返回结果
      * @return 服务端数据聚合，用于下次请求客户端
      */
     List<CommonRequest> control(List<CommonResponse> response);
@@ -62,10 +62,11 @@ public interface Control {
     /**
      * @param clientInfos 客户端列表，包含是否有label，
      * @param predictUid  需要推理的uid
+     * @param others      其他参数，比如部分算法需要的密钥
      * @return 推理初始化请求
      * TODO 后续优化客户端列表参数，对训练阶段的客户端列表参数做持久化保存
      */
-    List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid);
+    List<CommonRequest> initInference(List<ClientInfo> clientInfos, String[] predictUid, Map<String, Object> others);
 
     /**
      * 预测控制端

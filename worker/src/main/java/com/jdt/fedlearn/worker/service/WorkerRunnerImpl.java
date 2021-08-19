@@ -14,6 +14,7 @@ package com.jdt.fedlearn.worker.service;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.worker.runner.Runner;
 import com.jdt.fedlearn.common.constant.AppConstant;
@@ -92,7 +93,6 @@ public class WorkerRunnerImpl implements WorkerRunner {
         commonResultStatus.setStartTime(TimeUtil.getNowTime());
         int localPort = task.getWorkerUnit().getPort();
         CommonResultStatus result = null;
-
         try {
             if ( isReadyMap.get(localPort) == false) {
                 throw new BusinessException("worker " + task.getWorkerUnit() + "is not ready， which can not run task ", ExceptionEnum.ARCH_ERROR);
@@ -108,13 +108,12 @@ public class WorkerRunnerImpl implements WorkerRunner {
                 throw new BusinessException("invalid task type: " + task.getTaskTypeEnum(), ExceptionEnum.ARCH_ERROR);
             }
             result = runner.run(task);
-
         } catch (Exception e) {
             logger.error("worker runner 运行异常", e);
             commonResultStatus.setResultTypeEnum(ResultTypeEnum.BUS_FAIL);
             Map<String, Object> map = new HashMap<>();
-            map.put(AppConstant.MESSAGE, e.getMessage());
-            map.put(AppConstant.CODE, ResultTypeEnum.BUS_FAIL.getCode());
+            map.put(ResponseConstant.MESSAGE, e.getMessage());
+            map.put(ResponseConstant.CODE, ResultTypeEnum.BUS_FAIL.getCode());
             commonResultStatus.setData(map);
             commonResultStatus.setEndTime(TimeUtil.getNowTime());
             return commonResultStatus;

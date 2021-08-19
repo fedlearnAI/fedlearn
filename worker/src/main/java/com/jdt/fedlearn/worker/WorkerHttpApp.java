@@ -14,16 +14,18 @@ package com.jdt.fedlearn.worker;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jdt.fedlearn.client.entity.inference.FetchRemote;
+import com.jdt.fedlearn.client.entity.inference.InferenceRequest;
+import com.jdt.fedlearn.client.entity.inference.PutRemote;
+import com.jdt.fedlearn.client.entity.prepare.MatchRequest;
+import com.jdt.fedlearn.client.service.InferenceService;
+import com.jdt.fedlearn.client.service.PrepareService;
+import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.worker.cache.WorkerResultCache;
-import com.jdt.fedlearn.worker.entity.inference.FetchRemote;
-import com.jdt.fedlearn.worker.entity.inference.InferenceRequest;
-import com.jdt.fedlearn.worker.entity.inference.PutRemote;
-import com.jdt.fedlearn.worker.entity.prepare.MatchRequest;
 import com.jdt.fedlearn.worker.entity.train.QueryProgress;
 import com.jdt.fedlearn.worker.exception.ForbiddenException;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.worker.spring.SpringBean;
-import com.jdt.fedlearn.worker.util.ConfigUtil;
 import com.jdt.fedlearn.worker.util.ExceptionUtil;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.*;
@@ -33,6 +35,7 @@ import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
 import com.jdt.fedlearn.common.util.*;
 import com.jdt.fedlearn.worker.service.*;
 import org.apache.commons.cli.*;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
@@ -145,14 +148,15 @@ public class WorkerHttpApp extends AbstractHandler {
         } catch (Exception e) {
             logger.error("任务处理异常: {} ", request, e);
             commonResultStatus.setResultTypeEnum(ResultTypeEnum.OTHER_FAIL);
-            commonResultStatus.getData().put(AppConstant.MESSAGE, e.getMessage());
+            commonResultStatus.getData().put(ResponseConstant.MESSAGE, e.getMessage());
         } finally {
             commonResultStatus.setEndTime(TimeUtil.getNowTime());
             logger.info("任务处理结束");
         }
 
         String res = JsonUtil.object2json(commonResultStatus);
-        writer.println(HttpClientUtil.compress(res));
+        logger.info("返回结果长度,压缩前:{}，占用内存：{}",res.length(), RamUsageEstimator.shallowSizeOf(res));
+        writer.println(GZIPCompressUtil.compress(res));
         writer.flush();
         baseRequest.setHandled(true);
     }
@@ -178,7 +182,7 @@ public class WorkerHttpApp extends AbstractHandler {
 
         switch (workerCommandEnum) {
             case IS_READY:
-                commonResultStatus.getData().put(AppConstant.DATA, workerRunner.isReady(request.getLocalPort()));
+                commonResultStatus.getData().put(ResponseConstant.DATA, workerRunner.isReady(request.getLocalPort()));
                 break;
             case RUN_TASK: {
                 Task task = JsonUtil.json2Object(content, Task.class);
@@ -190,14 +194,14 @@ public class WorkerHttpApp extends AbstractHandler {
             case GET_TASK_RESULT: {
                 Task task = JsonUtil.json2Object(content, Task.class);
                 TaskResultData taskResultData = workerResultCache.get(task);
-                commonResultStatus.getData().put(AppConstant.DATA, taskResultData);
+                commonResultStatus.getData().put(ResponseConstant.DATA, taskResultData);
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                 break;
             }
             case CLEAR_TASK_CACHE: {
                 Task removeTask = JsonUtil.json2Object(content, Task.class);
                 TaskResultData removeTaskResultData = workerResultCache.remove(removeTask);
-                commonResultStatus.getData().put(AppConstant.DATA, removeTaskResultData);
+                commonResultStatus.getData().put(ResponseConstant.DATA, removeTaskResultData);
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                 break;
             }
@@ -244,15 +248,13 @@ public class WorkerHttpApp extends AbstractHandler {
                     modelMap.put(ResponseConstant.STATUS, "success");
                     modelMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
                     logger.info("inference id " + subRequest.getInferenceId() + " head of predict result is" + LogUtil.logLine(data));
-                } catch (Exception ex) {
-                    logger.error("exInfo: ", ex);
-                    if (ex instanceof ForbiddenException) {
-                        modelMap.put(ResponseConstant.CODE, -2);
-                        modelMap.put(ResponseConstant.STATUS, ex.getMessage());
-                    } else {
-                        modelMap.put(ResponseConstant.CODE, -3);
-                        modelMap.put(ResponseConstant.STATUS, ex.getMessage());
-                    }
+                } catch (ForbiddenException e) {
+                    logger.error("exInfo: ", e);
+                    modelMap.put(ResponseConstant.CODE, -2);
+                    modelMap.put(ResponseConstant.STATUS, e.getMessage());
+                } catch (Exception e){
+                    modelMap.put(ResponseConstant.CODE, -3);
+                    modelMap.put(ResponseConstant.STATUS, e.getMessage());
                 }
                 commonResultStatus.setData(modelMap);
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
@@ -264,7 +266,7 @@ public class WorkerHttpApp extends AbstractHandler {
                 Map<String, Object> modelMap = new HashMap<>();
                 // 先解压
                 InferenceRequest subRequest = new InferenceRequest(content);
-                logger.info("subRequest cost : " + (System.currentTimeMillis() - start));
+                logger.info("subRequest cost : {}",(System.currentTimeMillis() - start));
                 try {
                     logger.info("inferenceid : " + subRequest.getInferenceId() + " inference modelToken:" + subRequest.getModelToken() + " phase:" + subRequest.getPhase() + " algorithm:" + subRequest.getAlgorithm());
                     start = System.currentTimeMillis();
@@ -385,6 +387,48 @@ public class WorkerHttpApp extends AbstractHandler {
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                 break;
             }
+            case API_MODEL_DATA_QUERY: {
+                Map<String, Object> modelMap = new HashMap<>();
+                Map result = TrainService.getLocalModelAndData(content);
+                modelMap.put(ResponseConstant.DATA, result);
+                modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.STATUS, "success");
+                commonResultStatus.setData(modelMap);
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
+            case API_MODEL_QUERY: {
+                Map<String, Object> modelMap = new HashMap<>();
+                String result = TrainService.getLocalModel(content);
+                modelMap.put(ResponseConstant.DATA, result);
+                modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.STATUS, "success");
+                commonResultStatus.setData(modelMap);
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
+            case API_MODEL_UPDATE: {
+                Map<String, Object> modelMap = new HashMap<>();
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String,String> map = mapper.readValue(content, Map.class);
+                TrainService.updateLocalModel(map.get(AppConstant.MODEL_UPDATE_KEY),map.get(AppConstant.MODEL_UPDATE_VALUE));
+                modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.STATUS, "success");
+                commonResultStatus.setData(modelMap);
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
+            case API_TRAIN_DATA_UPDATE: {
+                Map<String, Object> modelMap = new HashMap<>();
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String,String> map = mapper.readValue(content, Map.class);
+                TrainService.updateLocalTrainData(map.get(AppConstant.DATA_UPDATE_KEY),map.get(AppConstant.DATA_UPDATE_Value));
+                modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.STATUS, "success");
+                commonResultStatus.setData(modelMap);
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
             default: {
                 logger.error("不符合条件的url: {}", url);
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.OTHER_FAIL);
@@ -402,7 +446,7 @@ public class WorkerHttpApp extends AbstractHandler {
     private JobResult registerToManager() throws IOException {
         String managerAddress = ConfigUtil.getProperty("manager.address");
         WorkerUnit workerUnit = new WorkerUnit();
-        String ip = IpAddress.getLocalHostLANAddress().getHostAddress();
+        String ip = IpAddressUtil.getLocalHostLANAddress().getHostAddress();
         workerUnit.setIp(ip);
         workerUnit.setPort(Integer.parseInt(ConfigUtil.getProperty("app.port")));
         workerUnit.setName(ip + ":" + ConfigUtil.getProperty("app.port"));

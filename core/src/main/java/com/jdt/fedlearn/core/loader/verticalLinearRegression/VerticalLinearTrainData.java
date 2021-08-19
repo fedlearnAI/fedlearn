@@ -20,25 +20,16 @@ import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 
 
-import java.util.*;
-
 public class VerticalLinearTrainData extends AbstractTrainData implements TrainData {
     private double[][] feature;
     private Scaling scaling = new Scaling();
-    private double[] label;
 
     public VerticalLinearTrainData(String[][] rawTable, String[] idMap, Features features) {
         super.scan(rawTable, idMap, features);
         this.feature = super.sample;
 
-        if (hasLabel) {
-            this.label = super.label;
-        }
-        /**
-         * TODO:
-         *  1) add feature transformation
-         *  2) fill empty data with NIL
-         */
+        // 1.add feature transformation
+        // 2.fill empty data with NIL
         MissingValueFilling filling = new MissingValueFilling(feature);
         if(feature.length > 0) {
             scaling.minMaxScaling(0, 1, feature);
@@ -52,10 +43,6 @@ public class VerticalLinearTrainData extends AbstractTrainData implements TrainD
 
     public double[][] getFeature() {
         return feature;
-    }
-
-    public double[] getLabel() {
-        return label;
     }
 
 }

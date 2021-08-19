@@ -13,7 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.entity;
 
-import com.jdt.fedlearn.coordinator.type.DbType;
+import com.jdt.fedlearn.common.enums.DbType;
 
 public class DbConfig {
     private DbType dbType;
