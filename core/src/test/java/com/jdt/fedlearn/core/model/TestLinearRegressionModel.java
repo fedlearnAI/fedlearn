@@ -38,7 +38,7 @@ public class TestLinearRegressionModel {
     private static final int n = 3;
     private static final int l = 1024;
     private static final long maxNegAbs = Long.MAX_VALUE;
-    private static final boolean usingFakeEnc = true;
+    private static final boolean usingFakeEnc = false;
     private static final HomoEncryptionUtil key = new HomoEncryptionUtil(n, l, usingFakeEnc);
     private static HomoEncryptionDebugUtil decHelper = null;
     private static LinearTrainData clientTrainData;
@@ -62,6 +62,10 @@ public class TestLinearRegressionModel {
     private LinearRegressionTrainInitOthers mockTrainMatchingRes() {
         int phase = 2;
         LinearRegression linearRegression = new LinearRegression(new LinearParameter());
+        Map<String, Object> others = new HashMap<>();
+        others.put("pubKeyStr" , key.getPk().toJson());
+        Map<ClientInfo, Features> features = StructureGenerate.linRegFeatures(clientInfos);
+        linearRegression.initControl(clientInfos, null, features, others);
 
         // mock client response
         List<Message> msgs = new ArrayList<Message>() {
@@ -150,6 +154,8 @@ public class TestLinearRegressionModel {
         others.put("selfPort", clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
         others.put("pubKeyStr" , key.getPk().toJson());
         others.put("privKeyStr", key.getSkAll()[0].toJson());
+        others.put("thisPartyID", 1);
+
         LinearTrainData data = (LinearTrainData) model.trainInit(raw, result, new int[0], new LinearParameter(), features, others);
 
         Assert.assertEquals(data.getDatasetSize(), 4);
@@ -165,25 +171,15 @@ public class TestLinearRegressionModel {
         Assert.assertEquals(ret.getLabelList(), new double[]{1, 2, 3});
     }
 
-    private LinearRegressionModel mockTrainInit() {
-        LinearRegressionModel model = new LinearRegressionModel();
-        Map<String, Object> others = new HashMap<>();
-        others.put("pubKeyStr" , key.getPk().toJson());
-        others.put("privKeyStr", key.getSkAll()[0].toJson());
-        others.put("clientList", clientInfos.stream().map(x -> x.getIp() + x.getPort()).toArray(String[]::new));
-        others.put("selfPort", clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
-        model.trainInit(rawTable, null, null, new LinearParameter(), features, others);
-        return model;
-    }
-
     private LinearRegressionModel mockTrainInit(int skStrIdx, String selfPort) {
         LinearRegressionModel model = new LinearRegressionModel();
 
         Map<String, Object> others = new HashMap<>();
         others.put("pubKeyStr" , key.getPk().toJson());
-        others.put("privKeyStr", key.getSkAll()[0].toJson());
+        others.put("privKeyStr", key.getSkAll()[skStrIdx].toJson());
         others.put("clientList", clientInfos.stream().map(x -> x.getIp() + x.getPort()).toArray(String[]::new));
         others.put("selfPort", selfPort);
+        others.put("thisPartyID", skStrIdx+1);
         model.trainInit(rawTable, null, null, new LinearParameter(), features, others);
         return model;
     }
@@ -198,6 +194,7 @@ public class TestLinearRegressionModel {
         others.put("privKeyStr", key.getSkAll()[0].toJson());
         others.put("clientList", clientInfos.stream().map(x -> x.getIp() + x.getPort()).toArray(String[]::new));
         others.put("selfPort", clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
+        others.put("thisPartyID", 1);
         model.inferenceInit(new String[]{"u1", "u2", "u3"}, rawTableInfer, others);
         return model;
     }
@@ -209,16 +206,11 @@ public class TestLinearRegressionModel {
         others.put("encBits", key.getLength());
         others.put("numP", 3);
         others.put("pubKeyStr" , key.getPk().toJson());
-        others.put("privKeyStr", key.getSkAll()[0].toJson());
+        others.put("privKeyStr", key.getSkAll()[skStrIdx].toJson());
         others.put("clientList", clientInfos.stream().map(x -> x.getIp() + x.getPort()).toArray(String[]::new));
         others.put("selfPort", selfPort);
+        others.put("thisPartyID", skStrIdx+1);
         model.inferenceInit(new String[]{"u1", "u2", "u3"}, rawTableInfer, others);
-        return model;
-    }
-
-    private LinearRegressionModel mockTrainParamInit() {
-        LinearRegressionModel model = mockTrainInit();
-        model.train(2, mockTrainMatchingRes(), clientTrainData);
         return model;
     }
 
@@ -248,7 +240,7 @@ public class TestLinearRegressionModel {
     public void testTrainPhase2() {
 
         int phase = 2;
-        LinearRegressionModel model = mockTrainInit();
+        LinearRegressionModel model = mockTrainInit(0, clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
 
         // calling target func
         model.train(phase, mockTrainMatchingRes(), clientTrainData);
@@ -257,12 +249,13 @@ public class TestLinearRegressionModel {
 
     @Test
     public void testTrainPhase3() {
-        int phase = 3;
+        int phase = 2;
         // model init
-        LinearRegressionModel model = mockTrainParamInit();
+        LinearRegressionModel model = mockTrainInit(0, clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
 
         // calling target func
-        Message ret = model.train(phase, mockTrainMatchingRes(), clientTrainData);
+        model.train(phase, mockTrainMatchingRes(), clientTrainData);
+        Message ret = model.train(phase+1, mockTrainMatchingRes(), clientTrainData);
 
         // assertions
         Assert.assertEquals(
@@ -272,27 +265,30 @@ public class TestLinearRegressionModel {
 
     @Test
     public void testTrainPhase4() {
-        int phase = 4;
+        int phase = 2;
         // model init
-        LinearRegressionModel model = mockTrainParamInit();
-        CypherMessage masterMsg = new CypherMessage(key.encryption(new double[]{1, 2}, key.getPk()));
+        LinearRegressionModel model = mockTrainInit(0, clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
+        CypherMessage masterMsg = new CypherMessage(key.encryption(new double[]{1, 1}, key.getPk()));
         model.privLoss = new WeightedLinRegLossPriv(true);
         model.nonPrivLoss = null;
 
         // calling target func
-        Message ret = model.train(phase, masterMsg, clientTrainData);
+        model.train(phase, mockTrainMatchingRes(), clientTrainData);
+        model.train(phase+1, mockTrainMatchingRes(), clientTrainData);
+        Message ret = model.train(phase+2, masterMsg, clientTrainData);
 
         // assertions
         Assert.assertEquals(
                 decHelper.decDouble(((TwoCypherMessage) ret).getFirst().getBody()),
-                new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+                new double[]{0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.333},
+                0.001);
     }
 
     @Test
     public void testTrainPhase5() {
         int phase = 5;
         // model init
-        LinearRegressionModel model = mockTrainParamInit();
+        LinearRegressionModel model = mockTrainInit(0, clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
         CypherMessage masterMsg = new CypherMessage(key.encryption(new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, key.getPk()));
         model.privLoss = new WeightedLinRegLossPriv(true);
         model.nonPrivLoss = null;
@@ -347,7 +343,7 @@ public class TestLinearRegressionModel {
     public void testTrainPhase7() {
         int phase = 7;
         // model init
-        LinearRegressionModel model = mockTrainParamInit();
+        LinearRegressionModel model = mockTrainInit(0, clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
         CypherMessage masterMsg = new CypherMessage(key.encryption(new double[]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, key.getPk()));
         model.privLoss = new WeightedLinRegLossPriv(true);
         model.nonPrivLoss = null;
@@ -421,6 +417,7 @@ public class TestLinearRegressionModel {
         others.put("selfPort", clientInfos.get(0).getIp() + clientInfos.get(0).getPort());
         others.put("encBits", 1024);
         others.put("numP", 3);
+        others.put("thisPartyID", 1);
 
         Message msg = model.inferenceInit(new String[]{"u1", "u2"}, rawTableInfer, others);
         InferenceInitRes res = (InferenceInitRes) msg;

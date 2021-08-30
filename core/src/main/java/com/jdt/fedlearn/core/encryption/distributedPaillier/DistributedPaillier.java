@@ -35,7 +35,7 @@ public class DistributedPaillier {
     // float point arithmetic is not support yet. To do float number computation, we multiply
     // them by a scalar, i.e SCALE, to turn them into integers. SCALE=100 means precision is
     // rounded to 2 decimal places. E.g. 4.7654321 is rounded to 4.76.
-    public static final long SCALE = 10000;
+    public static final long SCALE = 100;
 
     public static long factorial(long n) {
         if (n == 0) {

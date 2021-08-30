@@ -16,11 +16,13 @@ package com.jdt.fedlearn.coordinator.allocation;
 import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.common.util.FileUtil;
+import com.jdt.fedlearn.coordinator.constant.Constant;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.StartValues;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.exception.UnknownInterfaceException;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
+import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.core.dispatch.common.DispatcherFactory;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.exception.NotMatchException;
@@ -55,6 +57,7 @@ import java.util.stream.IntStream;
 public class MultiTrain implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(MultiTrain.class);
     private final String modelToken;
+
 
     public MultiTrain(String modelToken) {
         this.modelToken = modelToken;
@@ -108,7 +111,8 @@ public class MultiTrain implements Runnable {
         Map<String, Object> others = new HashMap<>();
         List<AlgorithmType> needDistributedKeys = Arrays.asList(AlgorithmType.MixGBoost, AlgorithmType.LinearRegression);
         if (needDistributedKeys.contains(algorithmType)) {
-            String content = FileUtil.loadClassFromFile("/export/data/pubkey");
+            String pubPath = ConfigUtil.getPubKeyDir() + Constant.PUB_KEY;
+            String content = FileUtil.loadClassFromFile(pubPath);
             others.put("pubKeyStr", content);
         }
         if (algorithmParamMap.containsKey("crossValidation")) {

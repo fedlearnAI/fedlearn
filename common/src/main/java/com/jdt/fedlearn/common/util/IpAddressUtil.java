@@ -27,42 +27,38 @@ import java.util.regex.Pattern;
 public class IpAddressUtil {
     static Logger logger = LoggerFactory.getLogger(IpAddressUtil.class);
 
-    public static InetAddress getLocalHostLANAddress() {
-        try {
-            InetAddress candidateAddress = null;
-            // 遍历所有的网络接口
-            Enumeration ifaces = NetworkInterface.getNetworkInterfaces();
-            if (ifaces != null) {
-                for (; ifaces.hasMoreElements(); ) {
-                    NetworkInterface iface = (NetworkInterface) ifaces.nextElement();
-                    // 在所有的接口下再遍历IP
-                    for (Enumeration inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements(); ) {
-                        InetAddress inetAddr = (InetAddress) inetAddrs.nextElement();
-                        if (!inetAddr.isLoopbackAddress()) {// 排除loopback类型地址
-                            if (inetAddr.isSiteLocalAddress()) {
-                                // 如果是site-local地址，就是它了
-                                return inetAddr;
-                            } else if (candidateAddress == null) {
-                                // site-local类型的地址未被发现，先记录候选地址
-                                candidateAddress = inetAddr;
+    public static InetAddress getLocalHostLANAddress(){
+        if (System.getProperty("os.name").toLowerCase().indexOf("windows")>-1) {
+            try {
+                return InetAddress.getLocalHost();
+            } catch (UnknownHostException e) {
+                logger.error("UnknownHostException {}",e);
+            }
+        }else {
+            try {
+                Enumeration<NetworkInterface> en =  NetworkInterface.getNetworkInterfaces();
+                if(en != null){
+                    for(;en.hasMoreElements();) {
+                        NetworkInterface interf = en.nextElement();
+                        String name= interf.getName();
+                        if (!name.contains("docker")&&!name.contains("lo")&&!name.contains("br")) {
+                            for(Enumeration<InetAddress>enumeAddress=interf.getInetAddresses();enumeAddress.hasMoreElements();) {
+                                InetAddress address = enumeAddress.nextElement();
+                                if (!address.isLoopbackAddress()) {
+                                    String ipAddress= address.getHostAddress();
+                                    if (!ipAddress.contains("::")&&!ipAddress.contains("0:0")&&!ipAddress.contains("fe80")) {
+                                        return address;
+                                    }
+                                }
                             }
                         }
-                    }
+                    }   
                 }
+            } catch (Exception e) {
+                logger.error("get Linux local ip error {}",e);
             }
-            if (candidateAddress != null) {
-                return candidateAddress;
-            }
-            // 如果没有发现 non-loopback地址.只能用最次选的方案
-            InetAddress jdkSuppliedAddress = InetAddress.getLocalHost();
-            if (jdkSuppliedAddress == null) {
-                throw new UnknownHostException("The JDK InetAddress.getLocalHost() method unexpectedly returned null.");
-            }
-            return jdkSuppliedAddress;
-        } catch (Exception e) {
-            logger.error("Failed to determine LAN address: {}",e);
-            return null;
         }
+        return null;
     }
 
     /**

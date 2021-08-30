@@ -49,7 +49,6 @@ public class KernelLinearRegressionJava implements Control {
     private static final AlgorithmType algorithmType = AlgorithmType.KernelBinaryClassificationJava;
     private final KernelLinearRegressionParameter parameter;
     private int numClass;
-    private int bestRound = 0;
 
     private List<Double> multiClassUniqueLabelList;
     private int round = 0;
@@ -240,6 +239,28 @@ public class KernelLinearRegressionJava implements Control {
         return bestRound;
     }
 
+
+    private void updateAllMetrics(InferenceReqAndRes res) {
+        if (res.isActive()) {
+            Map<MetricType, List<Double>> metric = res.getMetric();
+            Map<MetricType, List<Double>> metricVali = res.getMetricVali();
+            Map<MetricType, List<Double[][]>> metricArr = res.getMetricArr();
+            Map<MetricType, List<Double[][]>> metricArrVali = res.getMetricArrVali();
+            if (metric != null && metric.size() > 0) {
+                metricMap = getMetricValue(metric);
+            }
+            if (metricArr != null && !metricArr.isEmpty()) {
+                metricMapArr = getArrMetricValue(metricArr);
+            }
+            if (metricVali != null && metricVali.size() > 0) {
+                metricMapVali = getMetricValue(metricVali);
+            }
+            if (metricArrVali != null && !metricArrVali.isEmpty()) {
+                metricMapArrVali = getArrMetricValue(metricArrVali);
+            }
+        }
+    }
+
     /**
      * 获取一维指标
      *
@@ -294,6 +315,7 @@ public class KernelLinearRegressionJava implements Control {
         int numClassRound = trainRes.getNumClassRound();
         List<ClientInfo> clientInfoList = trainRes.getClientInfoList();
         double[][] sumvec = new double[numClass][batchSize];
+        int bestRound = 0;
         for (CommonResponse response : responses) {
             TrainRes res = (TrainRes) response.getBody();
             double[][] temp = res.getVectors();
@@ -302,6 +324,7 @@ public class KernelLinearRegressionJava implements Control {
                     sumvec[j][i] += temp[j][i];
                 }
             }
+            bestRound = getAllMetrics(res, bestRound);
         }
         for (CommonResponse response : responses) {
             ClientInfo info = response.getClient();
@@ -357,6 +380,8 @@ public class KernelLinearRegressionJava implements Control {
         int phase = 5;
         if (message == null) {
             phase = 6;
+        } else if (message instanceof InferenceReqAndRes) {
+            response.forEach(x -> updateAllMetrics(((InferenceReqAndRes) x.getBody())));
         }
         final int phaseFinal = phase;
         logger.info("Algo phase " + phase + " start");
@@ -388,6 +413,7 @@ public class KernelLinearRegressionJava implements Control {
         for (CommonResponse response : responses) {
             if (idIndexArray.length != 0 && response.getBody() != null) {
                 InferenceReqAndRes res = (InferenceReqAndRes) response.getBody();
+                updateAllMetrics(res);
                 double[][] allPre = res.getPredicts();
                 // 需要预测的uid对应index
                 List<Integer> idSet = Arrays.stream(idIndexArray).boxed().collect(Collectors.toList());
@@ -429,6 +455,7 @@ public class KernelLinearRegressionJava implements Control {
         List<CommonRequest> initRequests = new ArrayList<>();
         phase = CommonRequest.inferenceInitialPhase;
         if (!others.containsKey("pubKeyStr")) {
+            useDistributedPailler = false;
             for (ClientInfo clientInfo : clientInfos) {
                 Map<String, Object> extraParamsFromMaster = new HashMap<>();
                 extraParamsFromMaster.put("secureMode", false);
@@ -540,8 +567,8 @@ public class KernelLinearRegressionJava implements Control {
         for (CommonResponse response_i : response) {
             if (response_i.getBody() != null) {
                 InferenceReqAndRes res = (InferenceReqAndRes) response_i.getBody();
+                numClass = res.getNumClass();
                 if (res.getMultiClassUniqueLabelList() != null && res.getMultiClassUniqueLabelList().size() > 1) {
-                    numClass = res.getNumClass();
                     multiClassUniqueLabelList = res.getMultiClassUniqueLabelList();
                     if (numClass <= 2) {
                         headerList.add("label");

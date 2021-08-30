@@ -70,10 +70,7 @@ public class HdfsReader implements DataReader {
     @Override
     public String[][] loadTrain(DataSourceConfig config) {
         HdfsSourceConfig hdfsSourceConfig = (HdfsSourceConfig) config;
-        String uri = hdfsSourceConfig.getUri();
-        String user = hdfsSourceConfig.getUser();
         List<String[]> res = new ArrayList<>();
-        Configuration conf = new Configuration();
         Path dst = new Path(hdfsSourceConfig.getTrainBase() + hdfsSourceConfig.getDataset());
         try (
                 InputStream inputStream = fileSystem.open(dst);

@@ -46,9 +46,6 @@ public class CommonModel {
             case LinearRegression:
                 model = new LinearRegressionModel();
                 break;
-            case KernelBinaryClassification:
-                model = new KernelLinearRegressionModel();
-                break;
             case HorizontalFedAvg:
                 model = new HorizontalFedAvgModel();
                 break;
@@ -95,9 +92,6 @@ public class CommonModel {
                 break;
             case LinearRegression:
                 model = new LinearRegressionModel();
-                break;
-            case KernelBinaryClassification:
-                model = new KernelLinearRegressionModel();
                 break;
             case HorizontalFedAvg:
                 model = new HorizontalFedAvgModel();

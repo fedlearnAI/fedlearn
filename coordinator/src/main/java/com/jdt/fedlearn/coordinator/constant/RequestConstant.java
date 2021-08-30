@@ -58,6 +58,7 @@ public interface RequestConstant {
      * 请求训练数据id
      */
     String TRAIN_MATCH = "/api/train/match";
+    String KEY_GENERATE = "/co/prepare/key/generate";
 
     String DELETE_MODEL = "/system/model/delete";
 

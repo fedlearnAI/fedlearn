@@ -89,7 +89,6 @@ public class HttpClientUtil {
     }
 
     public static String doHttpPost(String uri, Object content) {
-        PoolStats totalStats = connectionManager.getTotalStats();
         CloseableHttpResponse response = null;
         HttpEntity httpEntity = null;
         try {

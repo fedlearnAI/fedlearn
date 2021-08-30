@@ -52,11 +52,6 @@ public class DispatcherFactory {
                 algorithm = new LinearRegression(linearParameter);
                 break;
             }
-            case KernelBinaryClassification:{
-                KernelLinearRegressionParameter kernelLinearRegressionParameter = (KernelLinearRegressionParameter) parameter;
-                algorithm = new KernelLinearRegression(kernelLinearRegressionParameter);
-                break;
-            }
             case KernelBinaryClassificationJava: {
                 KernelLinearRegressionParameter kernelLinearRegressionParameter = (KernelLinearRegressionParameter) parameter;
                 algorithm = new KernelLinearRegressionJava(kernelLinearRegressionParameter);

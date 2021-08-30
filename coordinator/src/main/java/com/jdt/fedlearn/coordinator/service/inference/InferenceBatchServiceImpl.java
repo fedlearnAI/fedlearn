@@ -46,6 +46,7 @@ public class InferenceBatchServiceImpl implements IDispatchService {
     public Map<String, Object> service(String content){
         Map<String, Object> modelMap = Maps.newHashMap();
         try {
+            logger.info("batch content: "+content);
             InferenceRequest query = new InferenceRequest(content);
             Map<String, Object> data = batchInference(query);
             return new AbstractDispatchService() {

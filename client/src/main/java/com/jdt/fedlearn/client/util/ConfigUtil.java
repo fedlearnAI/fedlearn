@@ -126,6 +126,7 @@ public class ConfigUtil {
 
     private static final String INFERENCE = "inference";
     private static final String SOURCE = ".source";
+
     private static List<DataSourceConfig> inferenceConfigList() {
         List<DataSourceConfig> res = new ArrayList<>();
         //
@@ -145,6 +146,7 @@ public class ConfigUtil {
     }
 
     private static final String TRAIN = "train";
+
     // key 是 数据集名称，value是数据集各项配置
     private static List<DataSourceConfig> trainConfigList() {
         List<DataSourceConfig> res = new ArrayList<>();
@@ -168,6 +170,8 @@ public class ConfigUtil {
             return readDbConfig(key);
         } else if (SourceType.HDFS.getSourceType().equalsIgnoreCase(sourceType)) {
             return readHdfsConfig(key);
+        } else if (SourceType.EMPTY.getSourceType().equalsIgnoreCase(sourceType)) {
+            return readEmptyConfig(key);
         } else {
             throw new UnsupportedOperationException();
         }
@@ -182,6 +186,7 @@ public class ConfigUtil {
     private static final String USERNAME = "username";
     private static final String PASS_KEY = "password";
     private static final String TABLE = "table";
+
     private static CsvSourceConfig readCsvConfig(String key) {
         String base = getProperty(key + BASE);
         String dataset = getProperty(key + DATASET);
@@ -205,6 +210,11 @@ public class ConfigUtil {
         return new DbSourceConfig(driver, username, password, url, table);
     }
 
+    private static EmptySourceConfig readEmptyConfig(String key){
+        String base = getProperty(key + BASE);
+        String dataset = getProperty(key + DATASET);
+        return new EmptySourceConfig(base,dataset);
+    }
     public static ClientConfig getClientConfig() {
         return clientConfig;
     }
@@ -237,6 +247,7 @@ public class ConfigUtil {
 
     /**
      * 获取端口号
+     *
      * @return
      */
     public static int getPortElseDefault() {
@@ -246,8 +257,10 @@ public class ConfigUtil {
         }
         return 0;
     }
+
     /**
      * 模型保存路径
+     *
      * @return
      */
     public static String getModelDir() {

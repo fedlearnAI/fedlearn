@@ -249,10 +249,12 @@ public class FileUtil {
         List<String> uidList = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8))) {
             int index = 0;
-            String[] header = br.readLine().split(",");
-            for (int i = 0; i < header.length; i++) {
-                if (columnName != null && columnName.equals(header[i])) {
-                    index = i;
+            if (br.readLine() != null) {
+                String[] header = br.readLine().split(",");
+                for (int i = 0; i < header.length; i++) {
+                    if (columnName != null && columnName.equals(header[i])) {
+                        index = i;
+                    }
                 }
             }
             String line = "";

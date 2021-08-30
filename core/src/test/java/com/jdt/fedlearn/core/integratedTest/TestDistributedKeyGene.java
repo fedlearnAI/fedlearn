@@ -5,6 +5,7 @@ import com.jdt.fedlearn.core.encryption.nativeLibLoader;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.example.CommonRunKeyGene;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -15,7 +16,7 @@ public class TestDistributedKeyGene {
     private List<ClientInfo> clientList;
     private String[] allAddr;
     private final String testLogFileName;
-    private final int bitLen = 1024;
+    private final int bitLen = 128;
 
     public TestDistributedKeyGene(String testLogFileName) {
         this.testLogFileName = testLogFileName;
@@ -39,29 +40,41 @@ public class TestDistributedKeyGene {
         }
     }
 
-    public void generateKeys(int batchSize) {
+    public void generateKeys(int batchSize) throws IOException {
         DistributedKeyGeneCoordinator coordinator = new DistributedKeyGeneCoordinator(batchSize, clientList.size(), bitLen, allAddr, true, testLogFileName);
         CommonRunKeyGene.generate(coordinator, clientList.toArray(new ClientInfo[0]));
     }
 
-    public static void doOneTest(String testLogFileeName, int batchSize) {
+    public static void doOneTest(String testLogFileeName, int batchSize) throws IOException {
         TestDistributedKeyGene newTest = new TestDistributedKeyGene(testLogFileeName);
         newTest.setUp();
         newTest.generateKeys(batchSize);
     }
 
-    public static void main(String[] args) throws ExecutionException, InterruptedException {
+    public static void main(String[] args) throws ExecutionException, InterruptedException, IOException {
         final int numTestAll = 128;
         final String fileName1 = "KeyGeneTestLog-" + System.currentTimeMillis();
         final int parallelism = 8;
-//        doOneTest(fileName);
+        doOneTest(fileName1, 100);
 
         ForkJoinPool forkJoinPool = new ForkJoinPool(parallelism);
         final int   batchSize1 = 100;
-        forkJoinPool.submit(() -> IntStream.range(0, numTestAll).parallel().forEach(x -> doOneTest(fileName1, batchSize1))).get();
+        forkJoinPool.submit(() -> IntStream.range(0, numTestAll).parallel().forEach(x -> {
+            try {
+                doOneTest(fileName1, batchSize1);
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+        })).get();
 
         final int   batchSize2 = 1;
         final String fileName2 = "KeyGeneTestLog-" + System.currentTimeMillis();
-        forkJoinPool.submit(() -> IntStream.range(0, numTestAll).parallel().forEach(x -> doOneTest(fileName2, batchSize2))).get();
+        forkJoinPool.submit(() -> IntStream.range(0, numTestAll).parallel().forEach(x -> {
+            try {
+                doOneTest(fileName2, batchSize2);
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+        })).get();
     }
 }

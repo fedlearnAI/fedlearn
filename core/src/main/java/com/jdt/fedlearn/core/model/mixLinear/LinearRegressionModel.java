@@ -722,16 +722,15 @@ public class LinearRegressionModel implements Model {
         this.p = new LinearParameter();
         this.p.setEncBits((Integer) others.get("encBits"));
         this.p.setNump((Integer) others.get("numP"));
-        // Standalone version, master generates Keys, clients receive.
+        this.numP = this.p.getNump();
         this.pheKeys = new HomoEncryptionUtil(p.getNump(), p.getEncBits(), useFakeDec);
-
-        this.pheKeys = new HomoEncryptionUtil(numP, p.getEncBits(), useFakeDec);
-        this.clientPortList = (String[]) others.get("clientList");
-        this.selfPort = (String) others.get("selfPort");
-        this.thisPartyID =  (Integer) others.get("thisPartyID") ;
 
         DistributedPaillier.DistPaillierPubkey pubkey = new DistributedPaillier.DistPaillierPubkey();
         DistributedPaillier.DistPaillierPrivkey privkey = new DistributedPaillier.DistPaillierPrivkey();
+
+        this.clientPortList = (String[]) others.get("clientList");
+        this.selfPort = (String) others.get("selfPort");
+        this.thisPartyID =  (Integer) others.get("thisPartyID") ;
         pubkey.parseJson((String)others.get("pubKeyStr"));
         privkey.parseJson((String)others.get("privKeyStr"));
 

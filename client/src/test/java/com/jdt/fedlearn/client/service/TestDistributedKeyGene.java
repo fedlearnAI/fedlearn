@@ -5,6 +5,7 @@ import com.jdt.fedlearn.core.encryption.nativeLibLoader;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.example.CommonRunKeyGene;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -25,7 +26,7 @@ public class TestDistributedKeyGene {
         try {
             nativeLibLoader.load();
         } catch (UnsatisfiedLinkError e) {
-            System.exit(1);
+
         }
 
         ClientInfo party1 = new ClientInfo("127.0.0.1", 80, "http", "", "0");
@@ -39,12 +40,12 @@ public class TestDistributedKeyGene {
         }
     }
 
-    public void generateKeys() {
+    public void generateKeys() throws IOException {
         DistributedKeyGeneCoordinator coordinator = new DistributedKeyGeneCoordinator(10 ,clientList.size(), bitLen, allAddr, true, testLogFileName);
         CommonRunKeyGene.generate(coordinator, clientList.toArray(new ClientInfo[0]));
     }
 
-    public static void doOneTest(String testLogFileeName) {
+    public static void doOneTest(String testLogFileeName) throws IOException {
         TestDistributedKeyGene newTest = new TestDistributedKeyGene(testLogFileeName);
         newTest.setUp();
         newTest.generateKeys();
@@ -56,6 +57,12 @@ public class TestDistributedKeyGene {
         final int parallelism = 4;
 
         ForkJoinPool forkJoinPool = new ForkJoinPool(parallelism);
-        forkJoinPool.submit(() -> IntStream.range(0, numTestAll).parallel().forEach(x -> doOneTest(fileName))).get();
+        forkJoinPool.submit(() -> IntStream.range(0, numTestAll).parallel().forEach(x -> {
+            try {
+                doOneTest(fileName);
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+        })).get();
     }
 }

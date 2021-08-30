@@ -10,6 +10,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -30,7 +31,7 @@ public class TestDistPaillierDistribute {
     HomoEncryptionDebugUtil decHelper;
 
     @BeforeMethod
-    private void setUp() {
+    private void setUp() throws IOException {
 
         List<ClientInfo> clientList;
         String[] allAddr;

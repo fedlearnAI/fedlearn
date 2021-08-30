@@ -55,6 +55,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -357,7 +358,7 @@ public class RandomForestJavaModel implements Model {
             }
         }
     }
-    
+
     /**
      * 首次执行phase1
      * 回传样本和特征采样信息，主动方回传加密后的label和公钥
@@ -472,7 +473,6 @@ public class RandomForestJavaModel implements Model {
         RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), isInit, "", metricMap, metricArrMap, featureImportance, treeSampleIDs);
         res.setActive(true);
         res.setMessageType(RFDispatchPhaseType.CALCULATE_METRIC);
-
         return res;
     }
 
@@ -503,32 +503,35 @@ public class RandomForestJavaModel implements Model {
             // 结束流程
             RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), "active", isActive, parameter.getNumTrees());
             res.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
+            setMetrics(res);
             return res;
         }
 
+        List<Integer> treeIDs = new ArrayList<>();
         Map<Integer, List<Integer>> treeSampleIDs = new HashMap<>();
         for (Map.Entry<Integer, TreeNodeRF> keyi : currentNodeMap.entrySet()) {
+            treeIDs.add(keyi.getValue().treeId);
             int tid = keyi.getValue().treeId;
             treeSampleIDs.put(tid, keyi.getValue().sampleIds);
         }
+        Integer[] treeIds = treeIDs.toArray(new Integer[0]);
+        Arrays.sort(treeIds);
 
         if (req.isSkip()) {
             RandomForestTrainRes res = new RandomForestTrainRes(req.getClient());
             res.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
+            res.setActive(isActive);
+            setMetrics(res);
             return res;
         }
         int numTrees = treeSampleIDs.size();
         Matrix[][] matrices = new Matrix[numTrees][1];
         Vector[][] vectors = new Vector[numTrees][1];
-        String[] treeIds = new String[numTrees];
         List<Integer>[] sampleIds1 = new ArrayList[numTrees];
         int idx = 0;
-        for (Map.Entry<Integer, List<Integer>> entry : treeSampleIDs.entrySet()) {
-            int treeIdi = entry.getKey();
-            String treeIdiStr = entry.getKey().toString();
-            treeIds[idx] = treeIdiStr;
-            List<Integer> sampleIdi = entry.getValue();
-            sampleIds1[idx] = entry.getValue();
+        for (int treeIdi : treeIds) {
+            List<Integer> sampleIdi = treeSampleIDs.get(treeIdi);
+            sampleIds1[idx] = treeSampleIDs.get(treeIdi);
             SimpleMatrix y = DataUtils.selecRows(yTrain, sampleIdi);
             SimpleMatrix X = DataUtils.selecRows(XsTrain[treeIdi], sampleIdi);
             matrices[idx][0] = DataUtils.toMatrix(X);
@@ -539,7 +542,7 @@ public class RandomForestJavaModel implements Model {
         double[][][] resMatrices = new double[treeIds.length][][];
 
         IntStream.range(0, treeIds.length).parallel().forEach(i -> {
-            int treeIdi = Integer.parseInt(treeIds[i]);
+            int treeIdi = treeIds[i];
             double[][] matrix = new double[sampleIds1[i].size()][XsTrain[treeIdi].numCols() + 1];
             for (int j = 0; j < sampleIds1[i].size(); j++) {
                 int k;
@@ -585,7 +588,7 @@ public class RandomForestJavaModel implements Model {
                 "active",
                 isActive, bodyArr.length);
         res.setMessageType(RFDispatchPhaseType.COMBINATION_MESSAGE);
-
+        setMetrics(res);
         return res;
     }
 
@@ -615,15 +618,20 @@ public class RandomForestJavaModel implements Model {
 
         Map<Integer, List<Integer>> tidToSampleId = req.getTidToSampleID();
         int numTrees = tidToSampleId.size();
-        String[] treeIds = new String[numTrees];
         List<Integer>[] sampleIds = new ArrayList[numTrees];
-        int idx = 0;
-        for (HashMap.Entry<Integer, List<Integer>> entry : tidToSampleId.entrySet()) {
-            String treeIdi = entry.getKey().toString();
-            treeIds[idx] = treeIdi;
-            sampleIds[idx] = entry.getValue();
-            idx = idx + 1;
+
+        List<Integer> treeIDs = new ArrayList<>();
+        for (HashMap.Entry<Integer, List<Integer>> entry : req.getTidToSampleID().entrySet()) {
+            treeIDs.add(entry.getKey());
         }
+        Integer[] treeIds = treeIDs.toArray(new Integer[0]);
+        Arrays.sort(treeIds);
+        int idx = 0;
+        for (int treeIdi : treeIds) {
+            sampleIds[idx] = req.getTidToSampleID().get(treeIdi);
+            idx++;
+        }
+
         if (!hasReceivedY) {
             // get all Y from active
             encryptData = Arrays.stream(req.getEncryptY()).map(x -> encryptionTool.restoreCiphertext(x)).toArray(Ciphertext[]::new);
@@ -642,7 +650,7 @@ public class RandomForestJavaModel implements Model {
             encryptDataUseful[i] = encryptDataTemp;
         }
         IntStream.range(0, treeIds.length).parallel().forEach(i -> {
-            int treeIdi = Integer.parseInt(treeIds[i]);
+            int treeIdi = treeIds[i];
             Integer[] sampleIdi = sampleIds[i].toArray(new Integer[0]);
 
             SimpleMatrix X = DataUtils.selecRows(XsTrain[treeIdi], sampleIdi);
@@ -720,11 +728,15 @@ public class RandomForestJavaModel implements Model {
             nodei.Y1ClientMapping = clientInfos;
         }
 
+        List<Integer> treeIDs = new ArrayList<>();
         Map<Integer, List<Integer>> treeSampleIDs = new HashMap<>();
         for (Map.Entry<Integer, TreeNodeRF> keyi : currentNodeMap.entrySet()) {
+            treeIDs.add(keyi.getValue().treeId);
             int tid = keyi.getValue().treeId;
             treeSampleIDs.put(tid, keyi.getValue().sampleIds);
         }
+        Integer[] treeIds = treeIDs.toArray(new Integer[0]);
+        Arrays.sort(treeIds);
 
         ClientInfo client = null;
         String[] jsonStr = req.getBodyAll();
@@ -739,7 +751,6 @@ public class RandomForestJavaModel implements Model {
             if ("active".equals(phase2ResString[0])) {
 //                client = tmp.getClient();
                 sampleId = new int[Y1s.length][];
-                int[] tid_arr = treeSampleIDs.keySet().stream().mapToInt(Integer::intValue).toArray();
                 for (int j = 0; j < Y1s.length; j++) {
                     List<Double[]> listTemp = new ArrayList<>();
                     for (int k = 0; k < activePhase2body[j].split("::").length; k++) {
@@ -753,7 +764,7 @@ public class RandomForestJavaModel implements Model {
                         }
                     }
                     Y1s[j][i] = listTemp;
-                    sampleId[j] = treeSampleIDs.get(tid_arr[j]).stream().mapToInt(Integer::intValue).toArray();
+                    sampleId[j] = treeSampleIDs.get(treeIds[j]).stream().mapToInt(Integer::intValue).toArray();
                 }
 
             } else {
@@ -853,7 +864,7 @@ public class RandomForestJavaModel implements Model {
 
         for (int i = 0; i < Y1s.length; i++) {
             int ownerId = values[i][0].intValue();
-            int treeId = (int) (treeSampleIDs.keySet().toArray()[i]);
+            int treeId = treeIds[i];
             TreeNodeRF nodei = currentNodeMap.get(treeId);
             nodei.featureId = values[i][1].intValue();
             double optPercentile = values[i][2];
@@ -902,6 +913,7 @@ public class RandomForestJavaModel implements Model {
         RandomForestTrainRes res = new RandomForestTrainRes(client, "", isActive, splitMessage);
         res.setTidToSampleIds(tidToSampleIds);
         res.setMessageType(RFDispatchPhaseType.SPLIT_NODE);
+        setMetrics(res);
         return res;
     }
 
@@ -962,6 +974,7 @@ public class RandomForestJavaModel implements Model {
                 try {
                     Map<String, Double> tmp = mapper.readValue(si, Map.class);
                     int idx = (int) Math.round(tmp.get("treeId"));
+                    treeIds[i] = String.valueOf(idx);
                     matrices[i][0] = DataUtils.toMatrix(DataUtils.selecRows(XsTrain[idx],
                             treeSampleMap.get(idx)));
                     double[][] matrix = new double[treeSampleMap.get(idx).size()][XsTrain[idx].numCols()];
@@ -1025,6 +1038,7 @@ public class RandomForestJavaModel implements Model {
             }
         }
         res.setMessageType(RFDispatchPhaseType.CREATE_CHILD_NODE);
+        setMetrics(res);
         return res;
 
     }
@@ -1044,6 +1058,9 @@ public class RandomForestJavaModel implements Model {
         if (isActive) {
             for (int j = 0; j < allTreeIds.size(); j++) {
 //                Map<Integer, TreeNodeRF> currentNodeMap = forest.getTrainNodeAllTrees();
+                if (allTreeIds.get(j) == null) {
+                    continue;
+                }
                 for (int i = 0; i < allTreeIds.get(j).length; i++) {
                     ClientInfo targetClient = clientInfos.get(j);
                     int treeId = Integer.parseInt(allTreeIds.get(j)[i]);
@@ -1098,6 +1115,8 @@ public class RandomForestJavaModel implements Model {
         }
         RandomForestTrainRes randomForestRes = new RandomForestTrainRes(req.getClient());
         randomForestRes.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
+        randomForestRes.setActive(isActive);
+        setMetrics(randomForestRes);
         return randomForestRes;
     }
 
@@ -1123,6 +1142,7 @@ public class RandomForestJavaModel implements Model {
             }
             res.setMessageType(RFDispatchPhaseType.SEND_FINAL_MODEL);
             res.setBody("success");
+            setMetrics(res);
             return res;
         } else {
             String responseStr;
@@ -1181,6 +1201,8 @@ public class RandomForestJavaModel implements Model {
             // TODO: Add acc, F1 and others for cross entropy
             RandomForestTrainRes res = new RandomForestTrainRes(responseStr);
             res.setMessageType(RFDispatchPhaseType.SEND_FINAL_MODEL);
+            setMetrics(res);
+            res.setActive(isActive);
             return res;
         }
     }
@@ -1239,7 +1261,7 @@ public class RandomForestJavaModel implements Model {
     public Message inferenceOneShot(int phase, Message jsonData) {
         if (phase == -1) {
             Map<Integer, Map<Integer, String>> treeInfo = parseModel(modelString);
-            Map<Integer, Map<Integer, List<String>>> res = new HashMap<>();
+            Map<Integer, Map<Integer, List<String>>> res = new ConcurrentHashMap<>();
             IntStream.range(0, treeInfo.size()).parallel().forEach(id -> {
                 Integer treeId = id;
                 Map<Integer, List<String>> tmp = new HashMap<>();
@@ -1511,6 +1533,13 @@ public class RandomForestJavaModel implements Model {
         }
     }
 
+
+    private void setMetrics(RandomForestTrainRes res) {
+        res.setTrainMetric(metricMap);
+        res.setTrainMetric2Dim(metricArrMap);
+        res.setFeatureImportance(featureImportance);
+    }
+
     private void printMetricMap() {
         String mapAsString = metricMap.keySet().stream()
                 .map(key -> key + "=" + metricMap.get(key))
@@ -1520,7 +1549,7 @@ public class RandomForestJavaModel implements Model {
 
     /**
      * 根据参数初始化对应的加密Tool
-     * 
+     *
      * @return 加密Tool
      */
     private EncryptionTool getEncryptionTool() {

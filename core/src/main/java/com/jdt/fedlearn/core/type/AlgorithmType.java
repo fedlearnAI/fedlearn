@@ -27,7 +27,7 @@ public enum AlgorithmType {
 //    RandomForest("RandomForest"),
     RandomForestJava("RandomForestJava"),
     //KernelLinearRegression("KernelLinearRegression"),
-    KernelBinaryClassification("KernelBinaryClassification"),
+//    KernelBinaryClassification("KernelBinaryClassification"),
     KernelBinaryClassificationJava("KernelBinaryClassificationJava"),
     HorizontalFedAvg("HorizontalFedAvg"),
     VerticalLR("VerticalLR"),

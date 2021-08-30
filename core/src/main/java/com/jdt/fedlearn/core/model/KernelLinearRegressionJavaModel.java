@@ -545,7 +545,7 @@ public class KernelLinearRegressionJavaModel implements Model {
         }
         predicts[numClassRound] = DataUtils.vectorToArray(DataUtils.toVector(innerProd));
         res = new TrainRes(client, predicts, para_norm, isActive, clientInd, numClassRound, clientInfoList, KernelDispatchJavaPhaseType.COMPUTE_LOSS);
-        return res;
+        return resUpdateMetric(res);
     }
 
     /**
@@ -600,8 +600,17 @@ public class KernelLinearRegressionJavaModel implements Model {
         predicts[numClassRound] = predArray.clone();
         //TODO return double[numclass][samplenum] preds
         res = new TrainRes(client, predicts, para_norm, isActive, clientInd, numClassRound, clientInfoList, KernelDispatchJavaPhaseType.COMPUTE_LOSS);
+        return resUpdateMetric(res);
+    }
+
+    private TrainRes resUpdateMetric(TrainRes res) {
+        res.setMetric(metricMap);
+        res.setMetricArr(metricMapArr);
+        res.setMetricVali(metricMapVali);
+        res.setMetricArrVali(metricMapArrVali);
         return res;
     }
+
 
     private static double clip(double val) {
         if (val < 0.00001) {
@@ -723,10 +732,10 @@ public class KernelLinearRegressionJavaModel implements Model {
                     modelParas[numClassRound] = DataUtils.allzeroVector((int) mapdim);
                 }
             }
-            res = new TrainRes(client, numClassRound, isActive, kernelDispatchJavaPhaseType);
+            res = new TrainRes(client, numClassRound, isActive, metricMap, metricMapArr, metricMapVali, metricMapArrVali, kernelDispatchJavaPhaseType);
             logger.info("Phase 2 finish.");
         } else {
-            res = new TrainRes(client, numClassRound, isActive, kernelDispatchJavaPhaseType);
+            res = new TrainRes(client, numClassRound, isActive, metricMap, metricMapArr, metricMapVali, metricMapArrVali, kernelDispatchJavaPhaseType);
         }
         return res;
     }
@@ -780,7 +789,7 @@ public class KernelLinearRegressionJavaModel implements Model {
      * @return
      */
     private Message validateResult(Message jsonData, int numSample, int batchSize, int numBatch) {
-        Message res = null;
+        InferenceReqAndRes res = null;
         if (jsonData instanceof InferenceReqAndRes) {
             InferenceReqAndRes req = (InferenceReqAndRes) jsonData;
             ClientInfo client = req.getClient();
@@ -804,6 +813,15 @@ public class KernelLinearRegressionJavaModel implements Model {
             logger.info("Inner product result");
             res = new InferenceReqAndRes(client, predict, results, numClass - 1, isActive, numClass, testUid, KernelDispatchJavaPhaseType.VALIDATION_RESULT);
         }
+        assert res != null;
+        return valiResUpdateMetric(res);
+    }
+
+    private InferenceReqAndRes valiResUpdateMetric(InferenceReqAndRes res) {
+        res.setMetric(metricMap);
+        res.setMetricArr(metricMapArr);
+        res.setMetricVali(metricMapVali);
+        res.setMetricArrVali(metricMapArrVali);
         return res;
     }
 
@@ -894,6 +912,8 @@ public class KernelLinearRegressionJavaModel implements Model {
                 this.pheKeys.setSk(privkey);
                 this.pheKeys.getSk().setRank(thisPartyID);
             }
+        }else{
+            useDistributedPillar = false;
         }
         return InferenceFilter.filter(uidList, inferenceData);
     }
@@ -956,7 +976,11 @@ public class KernelLinearRegressionJavaModel implements Model {
         } else {
             res = new InferenceReqAndRes(new ArrayList<>(), false, numClass, kernelDispatchJavaPhaseType);
         }
-        return res;
+        if (phase == 4) {
+            return valiResUpdateMetric(res);
+        } else {
+            return res;
+        }
     }
 
     /**

@@ -34,8 +34,8 @@ public class TestMixGBoostRegHouse {
     private static final MetricType[] metrics = new MetricType[]{MetricType.MAPE, MetricType.RMSE};
     private static final MixGBParameter parameter = new MixGBParameter(1.0, 1.0,
             10, 1, 0,
-            ObjectiveType.regSquare, metrics, 3,
-            3, 0.3, 33, 0.6, "", 512);
+            ObjectiveType.regSquare, metrics, 5,
+            10, 0.3, 33, 0.6, "", 512);
 
     private static final MixGBoost boost = new MixGBoost(parameter);
     private ClientInfo[] clientInfos;
@@ -117,9 +117,9 @@ public class TestMixGBoostRegHouse {
             modelMap.put(clientInfo, tmp);
         }
         //根据需要预测的id，和任务id，生成预测请求
-//        String[] predictUid = DataParseUtil.loadInferenceUidList(baseDir + "inference0.csv");
+        String[] predictUid = DataParseUtil.loadInferenceUidList(baseDir + "reg0_test.csv");
 //        String[] predictUid = new String[]{"291B", "292A", "293B", "294", "295", "296"};
-        String[] predictUid = new String[]{"291B", "TEST"};
+//        String[] predictUid = new String[]{"291B", "TEST"};
         System.out.println("predictUid.length " + predictUid.length);
         List<CommonRequest> requests = boost.initInference(Arrays.asList(clientInfos.clone()), predictUid, new HashMap<>()); //initial request
 

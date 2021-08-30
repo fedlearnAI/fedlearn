@@ -29,7 +29,6 @@ public class CommonLoad {
         switch (algorithm) {
             case VerticalLinearRegression:
             case VerticalLR:
-            case KernelBinaryClassification:
             case KernelBinaryClassificationJava:
             case FederatedGB:
             case HorizontalFedAvg:

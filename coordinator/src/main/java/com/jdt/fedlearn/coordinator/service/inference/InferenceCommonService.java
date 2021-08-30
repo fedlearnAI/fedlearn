@@ -17,6 +17,7 @@ import com.jdt.fedlearn.common.entity.project.PartnerInfoNew;
 import com.jdt.fedlearn.common.util.FileUtil;
 import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.allocation.ResourceManager;
+import com.jdt.fedlearn.coordinator.constant.Constant;
 import com.jdt.fedlearn.coordinator.dao.UniversalMapper;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTrainMapper;
@@ -88,21 +89,15 @@ public class InferenceCommonService {
         long ss = System.currentTimeMillis();
         Map<String, Object> others = new HashMap<>();
         if (secureMode) {
-            String content = FileUtil.loadClassFromFile("/export/data/pubkey");
+            String pubPath = ConfigUtil.getPubKeyDir() + Constant.PUB_KEY;
+            String content = FileUtil.loadClassFromFile(pubPath);
             others.put("pubKeyStr", content);
         }
         List<CommonRequest> requests = algorithm.initInference(clientList, distinctQueryId, others);
         List<CommonResponse> responses = new ArrayList<>();
         while (algorithm.isInferenceContinue()) {
 
-            Map<String, Object> context = new HashMap<>();
-            context.put("modelToken", modelId);
-            context.put("algorithm", algorithmType);
-            context.put("inferenceId", subInferenceId);
-            // todo inference request add index
-            context.put("index", "uid");
-
-            responses = SendAndRecv.broadcastInference(requests, context, partnerInfoNews);
+            responses = SendAndRecv.broadcastInference(requests, modelId, algorithmType, subInferenceId, partnerInfoNews);
             logger.info("response size : " + responses.size());
             requests = algorithm.inferenceControl(responses);
         }

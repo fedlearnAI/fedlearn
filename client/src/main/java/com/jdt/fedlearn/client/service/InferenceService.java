@@ -92,15 +92,18 @@ public class InferenceService {
             InferenceInit init = (InferenceInit) messageData;
             //1.检测uid 在不在训练集, 2.检测uid在不在推理数据集中
             String[] uid = init.getUid();
+            logger.info("client get dataset : " + req.getDataset());
             String[][] rawData = InferenceDataCache.loadAndCache(inferenceId, algorithm, uid, req.getDataset());
-            Map<String,Object> others = init.getOthers();
-            if (others!=null && others.containsKey("secureMode") && (boolean)others.get("secureMode")){
-                String pubkeyContent = FileUtil.loadClassFromFile("/export/Data/pubkey");
-                String prikeyPath = ConfigUtil.getClientConfig().getModelDir();
-
-                String prikeyContent = FileUtil.loadClassFromFile(prikeyPath + "prikey");
+            Map<String, Object> others = init.getOthers();
+            if (others != null && others.containsKey("secureMode") && (boolean) others.get("secureMode")) {
+                String keyPath = ConfigUtil.getClientConfig().getModelDir();
+                String pubkeyContent = FileUtil.loadClassFromFile(keyPath + Constant.PUB_KEY);
+                String prikeyContent = FileUtil.loadClassFromFile(keyPath + Constant.PRIV_KEY);
                 others.put("pubKeyStr", pubkeyContent);
                 others.put("privKeyStr", prikeyContent);
+            }
+            if (others == null) {
+                others = new HashMap<>();
             }
             Message message = model.inferenceInit(uid, rawData, others);
 //            int[] filterIndexArray = filterIndexList.stream().mapToInt(i->i).toArray();

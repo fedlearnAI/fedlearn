@@ -34,7 +34,7 @@ public class TestMixGBoostBinaryVertical {
     private static final MetricType[] metrics = new MetricType[]{MetricType.ACC, MetricType.AUC};
     private static final MixGBParameter parameter = new MixGBParameter(1.0, 1.0,
             10, 1, 0,
-            ObjectiveType.binaryLogistic, metrics, 3, 3, 0.3, 33, 0.6,
+            ObjectiveType.binaryLogistic, metrics, 3, 15, 0.3, 33, 0.6,
             "", 512);
 
     private static final MixGBoost boost = new MixGBoost(parameter);

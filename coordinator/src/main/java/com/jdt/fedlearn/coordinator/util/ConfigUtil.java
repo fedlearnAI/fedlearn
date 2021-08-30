@@ -127,4 +127,11 @@ public class ConfigUtil {
         return jdChainConfig;
     }
 
+    public static String getPubKeyDir() {
+        String pubKeyPath = getProperty("pubKey.dir");
+        if (pubKeyPath != null) {
+            return pubKeyPath;
+        }
+        return Constant.PUB_PATH;
+    }
 }

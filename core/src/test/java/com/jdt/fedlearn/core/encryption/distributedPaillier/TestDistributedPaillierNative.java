@@ -27,15 +27,15 @@ public class TestDistributedPaillierNative {
 
     @Test
     public void testTest_IO() {
-        for(int try_cnt =1; try_cnt < 10000; try_cnt ++) {
-            byte[] b = new byte[try_cnt];
+        for(int tryCnt =1; tryCnt < 10000; tryCnt ++) {
+            byte[] b = new byte[tryCnt];
             new Random().nextBytes(b);
 
             // because b will be transferred into ZZ type, the last position of b should not be 0. Otherwise
             // the last bit of output will contain no zero.
-            b[try_cnt-1] = 1;
+            b[tryCnt-1] = 1;
 
-            DistributedPaillierNative.signedByteArray in = new DistributedPaillierNative.signedByteArray(b, try_cnt % 2 == 0, 1);
+            DistributedPaillierNative.signedByteArray in = new DistributedPaillierNative.signedByteArray(b, tryCnt % 2 == 0, 1);
             DistributedPaillierNative.signedByteArray out = new DistributedPaillierNative.signedByteArray();
             DistributedPaillierNative.testIO(out, in);
             Assert.assertTrue(out.equals(in));
@@ -44,30 +44,30 @@ public class TestDistributedPaillierNative {
 
     @Test
     public void testTest_IOVec() {
-        for(int try_cnt =1; try_cnt < 100; try_cnt ++) {
+        for(int tryCnt =1; tryCnt < 100; tryCnt ++) {
 
-            DistributedPaillierNative.signedByteArray[] inArray = new DistributedPaillierNative.signedByteArray[try_cnt-1];
-            for(int i = 1; i < try_cnt; i++) {
-                byte[] b = new byte[try_cnt];
+            DistributedPaillierNative.signedByteArray[] inArray = new DistributedPaillierNative.signedByteArray[tryCnt-1];
+            for(int i = 1; i < tryCnt; i++) {
+                byte[] b = new byte[tryCnt];
                 new Random().nextBytes(b);
                 // because b will be transferred into ZZ type, the last position of b should not be 0. Otherwise
                 // the last bit of output will contain no zero.
-                b[try_cnt-1] = 1;
+                b[tryCnt-1] = 1;
 
-                DistributedPaillierNative.signedByteArray in = new DistributedPaillierNative.signedByteArray(b, try_cnt % 2 == 0, 1);
+                DistributedPaillierNative.signedByteArray in = new DistributedPaillierNative.signedByteArray(b, tryCnt % 2 == 0, 1);
                 inArray[i-1] = in;
             }
 
             // each element in DistributedPaillierNative.signedByteArray[] must be initialized first!
-            DistributedPaillierNative.signedByteArray[] outArray = new DistributedPaillierNative.signedByteArray[try_cnt-1];
-            for(int i = 1; i < try_cnt; i++) {
+            DistributedPaillierNative.signedByteArray[] outArray = new DistributedPaillierNative.signedByteArray[tryCnt-1];
+            for(int i = 1; i < tryCnt; i++) {
                 outArray[i-1] = new DistributedPaillierNative.signedByteArray();
             }
 
             DistributedPaillierNative.testIOVec(outArray, inArray);
 
-            for(int i = 1; i < try_cnt; i++) {
-                Assert.assertTrue(outArray[i-1].equals(inArray[i-1]));
+            for(int i = 1; i < tryCnt; i++) {
+                Assert.assertEquals(inArray[i - 1], outArray[i - 1]);
             }
         }
     }

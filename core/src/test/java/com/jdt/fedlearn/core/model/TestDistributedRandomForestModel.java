@@ -171,7 +171,11 @@ public class TestDistributedRandomForestModel {
         list.add(0);
         tidToSampleID.put(0, list);
         randomForestTrainReq.setTidToSampleID(tidToSampleID);
-        randomForestTrainReq.setEncryptY(new String[]{"273528226727648925423170667841758849463700135880489494825533923025024880259788:63455457545184325638614290698892501826867760554590297940153703143543331363464199167661252644065086782867228673307273467237084074922033318461128466682579785891095097603442017943526080021558872370124591800005450175413005098612111991774119926700449193788087689780656730490782485010375387424102729547719578258174:92107868912499681809813834703129068392570839898502438937010495023204930248090080865859505101124126475992987573575847275655252567537864685238781976656902641966408470686445589766976138653634849670333899288796819026407362409703046040230876159580198409013324761920634222736578148823043046811641741332726171899503:1125899906842624:1125899906842624:0:1125899906842624"});
+
+        String[] temp1 = new String[]{"273528226727648925423170667841758849463700135880489494825533923025024880259788:63455457545184325638614290698892501826867760554590297940153703143543331363464199167661252644065086782867228673307273467237084074922033318461128466682579785891095097603442017943526080021558872370124591800005450175413005098612111991774119926700449193788087689780656730490782485010375387424102729547719578258174:92107868912499681809813834703129068392570839898502438937010495023204930248090080865859505101124126475992987573575847275655252567537864685238781976656902641966408470686445589766976138653634849670333899288796819026407362409703046040230876159580198409013324761920634222736578148823043046811641741332726171899503:1125899906842624:1125899906842624:0:1125899906842624"};
+        String[][] temp = new String[1][];
+        temp[0] = temp1;
+        randomForestTrainReq.setDistributedEncryptY(temp);
         randomForestTrainReq.setPublickey("{a1\u0003830780530034885498861952145659012758497346332380048319425236632933107256860100539089363151039829892868103060126445793512249735944758756184008547050311729893342957966341195251508067219720143358582879200840058501987803501608753813875777149758407\u0002n0\u000310019513461850466042843216497049817520077473038151342172062787792060385693365679340105675989749518434413828886462863065848278037093509097683029097971827940634993554319709962392970517057953750288799041830714101301489952767003250084499645287109661598305\u0002encodedPrecision\u00039223372036854775808\u0002n1\u000392107868912499681809813834703129068392570839898502438937010495023204930248090080865859505101124126475992987573575847275655252567537864685238781976656902641966408470686445589766976138653634849670333899288796819026407362409703046040230876159580198409013324761920634222736578148823043046811641741332726171899503\u0002key_round\u00032\u0002g\u0003371299234601250649431571412842\u0002x\u00031212622101150891960289782033326297194857032745566\u0002ainv0\u00035505190552734840070831159532442676049497307863432721020872276088900734627211877202311074568223674081439264423128508739048798738700152434192808846739965269716385967035615615213293469157516036039944806648817130749074788057661580428143006698980985777598\u0002ainv1\u000343815585411269525130358535366333722066045872993377304849706852114583465801685983892284946172269660128842887264278744408018662460972221395128422128004606792445706485528875462258231139125264540869137565729755600706146549664196898066218453949338606298166911973135315703656607054813279197102601283355452984356350\u0002a0\u00032137152869400823138041411552307}");
         model.setCurrentNodeMap(currentNodeMap);
         model.setActive(false);
@@ -180,7 +184,7 @@ public class TestDistributedRandomForestModel {
         map.put(0,0);
         sampleMap.put(0, map);
         model.setSampleMap(sampleMap);
-//        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(2, randomForestTrainReq, trainData);
+        RandomForestTrainRes randomForestTrainRes = (RandomForestTrainRes)model.train(2, randomForestTrainReq, trainData);
 //        Assert.assertEquals(randomForestTrainRes.getTrainMetric().get(MetricType.ACC).get(0).toString(), "1=0.6666666666666666")
     }
 
@@ -524,7 +528,67 @@ public class TestDistributedRandomForestModel {
         randomForestTrainRes = new RandomForestTrainRes();
         list.add(randomForestTrainRes);
         list.add(randomForestTrainRes);
-        model.merge(1, list);
+        res = (RandomForestTrainRes)model.merge(1, list);
+        assertEquals(res.getBody(), null);
+
+        model = new DistributedRandomForestModel();
+        list = new ArrayList<>();
+        randomForestTrainRes = new RandomForestTrainRes();
+        randomForestTrainRes1 = new RandomForestTrainRes();
+        randomForestTrainRes.setTreeIds(new String[]{"0"});
+        randomForestTrainRes1.setTreeIds(new String[]{"1"});
+        randomForestTrainRes.setBody("1.0");
+        randomForestTrainRes1.setBody("2.0");
+
+        list.add(randomForestTrainRes);
+        list.add(randomForestTrainRes1);
+        res = (RandomForestTrainRes)model.merge(2, list);
+        assertEquals(res.getBody(), "1.0:::2.0");
+        assertEquals(res.getTreeIds(), new String[]{"0", "1"});
+
+        List<Integer> list1 = new ArrayList<>();
+        Map<Integer, List<Integer>> tidToSampleID1 = new HashMap<>();
+        Map<Integer, List<Integer>> tidToSampleID2 = new HashMap<>();
+        list1.add(0);
+        list1.add(1);
+        list1.add(2);
+        tidToSampleID1.put(0, list1);
+        tidToSampleID2.put(1, list1);
+        Map<String, Map<Integer, List<Integer>>> tidToSampleIDs1 = new HashMap<>();
+        Map<String, Map<Integer, List<Integer>>> tidToSampleIDs2 = new HashMap<>();
+        tidToSampleIDs1.put("0", tidToSampleID1);
+        tidToSampleIDs2.put("1", tidToSampleID2);
+        Map<String, String> splitMessagei1 = new HashMap<>();
+        splitMessagei1.put("0", "1111");
+        Map<String, String> splitMessagei2 = new HashMap<>();
+        splitMessagei2.put("1", "2222");
+        randomForestTrainRes = new RandomForestTrainRes();
+        randomForestTrainRes1 = new RandomForestTrainRes();
+        randomForestTrainRes.setSplitMessageMap(splitMessagei1);
+        randomForestTrainRes1.setSplitMessageMap(splitMessagei2);
+        randomForestTrainRes.setTidToSampleIds(tidToSampleIDs1);
+        randomForestTrainRes1.setTidToSampleIds(tidToSampleIDs2);
+        list = new ArrayList<>();
+        list.add(randomForestTrainRes);
+        list.add(randomForestTrainRes1);
+        res = (RandomForestTrainRes)model.merge(3, list);
+        assertEquals(res.getSplitMessageMap().get("0"),"1111");
+        assertEquals(res.getSplitMessageMap().get("1"),"2222");
+
+
+        randomForestTrainRes = new RandomForestTrainRes();
+        randomForestTrainRes1 = new RandomForestTrainRes();
+        randomForestTrainRes.setSplitMess(new String[]{"111"});
+        randomForestTrainRes.setTreeIds(new String[]{"0"});
+        Map<Integer, double[]> maskLeft = new HashMap<>();
+        maskLeft.put(0, new double[]{0.1});
+        randomForestTrainRes.setMaskLeft(maskLeft);
+
+        list = new ArrayList<>();
+        list.add(randomForestTrainRes);
+        list.add(randomForestTrainRes);
+        res = (RandomForestTrainRes)model.merge(4, list);
+        assertEquals(res.getSplitMess(), new String[]{"111", "111"});
     }
 
 }

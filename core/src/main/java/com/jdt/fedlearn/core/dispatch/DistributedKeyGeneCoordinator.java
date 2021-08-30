@@ -31,7 +31,7 @@ public class DistributedKeyGeneCoordinator {
     public final String[] allAddress;
     public final Map<Integer, String> rank2Addr;
     public final Map<String, Integer> addr2Rank;
-    private final int trailNum = 40;
+    private static final int trailNum = 40;
     private final boolean debugMode;
     public RunningStat runningStat;
     private int stateCode;
@@ -356,6 +356,22 @@ public class DistributedKeyGeneCoordinator {
 
     public boolean generationFinished() {
         return generationFinished;
+    }
+
+    public void setStateCode(int stateCode) {
+        this.stateCode = stateCode;
+    }
+
+    public void setGenerationFinished(boolean generationFinished) {
+        this.generationFinished = generationFinished;
+    }
+
+    public void setTestPassCnt(int testPassCnt) {
+        this.testPassCnt = testPassCnt;
+    }
+
+    public void setAllGeneratedN(List<signedByteArray> allGeneratedN) {
+        this.allGeneratedN = allGeneratedN;
     }
 
     public static class RunningStat {

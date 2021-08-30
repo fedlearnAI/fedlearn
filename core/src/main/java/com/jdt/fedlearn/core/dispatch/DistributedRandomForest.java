@@ -89,12 +89,8 @@ public class DistributedRandomForest implements Control {
         int numTrees = parameter.getNumTrees();
         int maxTreeSamples = parameter.getMaxTreeSamples();
 
-        // 训练集整体采样比例，即划分多少比例用于训练
-        double splitRatio = (double) other.get("splitRatio");
-        if (splitRatio >= 1) {
-            splitRatio = 0;
-        }
-        Tuple2<List<Integer>, List<Integer>> trainTestSplit = TrainTestSplit.trainTestSplit(idMap.getLength(), splitRatio, 666);
+
+        Tuple2<List<Integer>, List<Integer>> trainTestSplit = TrainTestSplit.trainTestSplit(idMap.getLength(), 0, 666);
         assert trainTestSplit != null;
 
         int numSamples = trainTestSplit._1().size();
@@ -230,6 +226,10 @@ public class DistributedRandomForest implements Control {
         for (CommonResponse response : responses) {
             RandomForestTrainReq req = new RandomForestTrainReq(response.getClient());
             commonRequests.add(new CommonRequest(response.getClient(), req, 1));
+            if (response.getBody() instanceof RandomForestTrainRes) {
+                RandomForestTrainRes rfRes = (RandomForestTrainRes) response.getBody();
+                updateMetrics(rfRes);
+            }
         }
         logger.info("control phase 1 end{}", splitLine);
         return commonRequests;
@@ -318,6 +318,7 @@ public class DistributedRandomForest implements Control {
             res[i] = resi;
             bodyAll[i] = resi.getBody();
             clientInfos.add(response.getClient());
+            updateMetrics(resi);
         }
 
         List<CommonRequest> commonRequests = new ArrayList<>();
@@ -355,6 +356,7 @@ public class DistributedRandomForest implements Control {
         // 先解包 Phase 3 返回结果
         for (CommonResponse response : responses) {
             RandomForestTrainRes res = (RandomForestTrainRes) response.getBody();
+            updateMetrics(res);
             boolean isActive = res.isActive();
             if (isActive) {
                 splitMessage = res.getSplitMessageMap();
@@ -389,6 +391,7 @@ public class DistributedRandomForest implements Control {
         // 收集 Phase 4 的信息
         for (CommonResponse response : responses) {
             RandomForestTrainRes res = (RandomForestTrainRes) response.getBody();
+            updateMetrics(res);
             if (res.getTreeIds() != null) {
                 String[] treeIds = res.getTreeIds();
                 clientInfos.add(res.getClient());
@@ -424,11 +427,16 @@ public class DistributedRandomForest implements Control {
         List<CommonRequest> commonRequests = new ArrayList<>();
         if (response.get(0).getBody() != null && ((RandomForestTrainRes) response.get(0).getBody()).getBody().equals("finish")) {
             isForestSent = true;
+            for (CommonResponse responsei : response) {
+                RandomForestTrainRes res = (RandomForestTrainRes) responsei.getBody();
+                updateMetrics(res);
+            }
             return createNullRequest(response, 99);
         } else if (response.get(0).getBody() != null && ((RandomForestTrainRes) response.get(0).getBody()).getBody().equals("success")) {
             Map<String, String> jsonForest = new HashMap<>();
             for (CommonResponse responsei : response) {
                 RandomForestTrainRes res = (RandomForestTrainRes) responsei.getBody();
+                updateMetrics(res);
                 if (res.isActive() && "success".equals(res.getBody())) {
                     jsonForest = res.getJsonForest();
                 }
@@ -439,6 +447,8 @@ public class DistributedRandomForest implements Control {
             return commonRequests;
         } else {
             for (CommonResponse responsei : response) {
+                RandomForestTrainRes res = (RandomForestTrainRes) responsei.getBody();
+                updateMetrics(res);
                 commonRequests.add(new CommonRequest(responsei.getClient(), new RandomForestTrainReq(responsei.getClient(), "init"), 99));
             }
             return commonRequests;
@@ -647,6 +657,14 @@ public class DistributedRandomForest implements Control {
             req.add(reqi);
         }
         return req;
+    }
+
+    private void updateMetrics(RandomForestTrainRes rfRes) {
+        if (rfRes.isActive()) {
+            metricMap = rfRes.getTrainMetric();
+            metric2DimMap = rfRes.getTrainMetric2Dim();
+            featureImportance = rfRes.getFeatureImportance();
+        }
     }
 
     public AlgorithmType getAlgorithmType() {

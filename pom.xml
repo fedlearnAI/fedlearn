@@ -5,7 +5,7 @@
     <groupId>com.jdt.fedlearn</groupId>
     <artifactId>all</artifactId>
     <packaging>pom</packaging>
-    <version>0.9.1</version>
+    <version>0.9.2</version>
 
     <modules>
         <module>manager</module>
@@ -14,7 +14,8 @@
         <module>client</module>
         <module>coordinator</module>
         <module>frontend</module>
-        <module>assembly</module>
+	<module>assembly</module>
+	<module>core</module>
     </modules>
     <name>fedlearn-all</name>
     <url>http://maven.apache.org</url>
@@ -22,7 +23,7 @@
     <properties>
         <jdk.version>1.8</jdk.version>                  <!-- JDK version -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <fedlearn-core.version>0.9.2-SNAPSHOT</fedlearn-core.version>
+        <fedlearn-core.version>0.9.3-SNAPSHOT</fedlearn-core.version>
         <!--        logging related-->
         <logback.version>1.2.3</logback.version>           <!-- 日志版本号 -->
         <slf4j.version>1.7.25</slf4j.version>           <!-- 日志版本号 -->
@@ -57,7 +58,7 @@
             <dependency>
                 <groupId>com.jdt.fedlearn</groupId>
                 <artifactId>core</artifactId>
-                <version>${fedlearn-core.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
@@ -69,13 +70,13 @@
             <dependency>
                 <groupId>com.jdt.fedlearn</groupId>
                 <artifactId>common</artifactId>
-                <version>${version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.jdt.fedlearn</groupId>
                 <artifactId>client</artifactId>
-                <version>${version}</version>
+                <version>${project.version}</version>
             </dependency>
 
 
@@ -312,48 +313,6 @@
     </dependencyManagement>
 
     <dependencies>
-        <dependency>
-            <groupId>com.jdt.fedlearn</groupId>
-            <artifactId>core</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-annotations</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>commons-cli</artifactId>
-                    <groupId>commons-cli</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>error_prone_annotations</artifactId>
-                    <groupId>com.google.errorprone</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>animal-sniffer-annotations</artifactId>
-                    <groupId>org.codehaus.mojo</groupId>
-                </exclusion>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-classic</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>commons-beanutils</artifactId>
-                    <groupId>commons-beanutils</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-server -->
         <dependency>
@@ -727,6 +686,12 @@
             <groupId>com.jd.blockchain</groupId>
             <artifactId>crypto-sm</artifactId>
             <version>${jdchain.sdk}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.jd.security.codesec</groupId>
+            <artifactId>ajdv</artifactId>
+            <version>0.1</version>
         </dependency>
 
     </dependencies>

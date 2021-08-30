@@ -33,5 +33,6 @@ public interface Constant {
     Serializer serializer = new JavaSerializer();
 
     String DEFAULT_CONF = "conf/client.properties";
-
+    String PRIV_KEY = "privKey";
+    String PUB_KEY = "pubKey";
 }

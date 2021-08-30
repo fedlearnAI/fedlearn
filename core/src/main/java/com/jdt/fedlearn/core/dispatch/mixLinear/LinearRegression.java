@@ -26,6 +26,7 @@ import com.jdt.fedlearn.core.entity.common.*;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.mixedLinearRegression.*;
 import com.jdt.fedlearn.core.exception.NotMatchException;
+import com.jdt.fedlearn.core.exception.WrongValueException;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.model.mixLinear.idmatcher.LinRegMatcher;
 import com.jdt.fedlearn.core.model.mixLinear.idmatcher.LinregMatchAlg;
@@ -119,6 +120,9 @@ public class LinearRegression implements Control {
         this.clientFeatMap = linRegParam.clientFeatMap;
         this.hessInv = DenseMatrix.Factory.eye(M, M).toDoubleArray();
 
+        if(pheKeys.getPk().getN()==null) {
+            throw new WrongValueException("PK is not initialized");
+        }
         this.gEnc = pheKeys.getAllZero(M);
         this.weightEnc = pheKeys.getAllZero(M);
         if(debugMode) {

@@ -176,6 +176,23 @@ public class TrainRes implements Message {
     public KernelDispatchJavaPhaseType getKernelDispatchJavaPhaseType() {
         return kernelDispatchJavaPhaseType;
     }
+
+    public void setMetricArr(Map<MetricType, List<Double[][]>> metricArr) {
+        this.metricArr = metricArr;
+    }
+
+    public void setMetricVali(Map<MetricType, List<Double>> metricVali) {
+        this.metricVali = metricVali;
+    }
+
+    public void setMetricArrVali(Map<MetricType, List<Double[][]>> metricArrVali) {
+        this.metricArrVali = metricArrVali;
+    }
+
+    public void setMetric(Map<MetricType, List<Double>> metric) {
+        this.metric = metric;
+    }
+
 }
 
 

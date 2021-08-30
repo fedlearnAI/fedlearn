@@ -318,12 +318,18 @@ public class SendAndRecv {
         return resData;
     }
 
-    public static List<CommonResponse> broadcastInference(List<CommonRequest> intiRequests, Map<String, Object> context, List<PartnerInfoNew> partnerInfoNews) {
+    public static List<CommonResponse> broadcastInference(List<CommonRequest> intiRequests, String modelId, AlgorithmType algorithmType, String subInferenceId, List<PartnerInfoNew> partnerInfoNews) {
         return IntStream.range(0, intiRequests.size()).parallel().mapToObj(i -> {
             CommonRequest r = intiRequests.get(i);
             CommonResponse commonResponse = new CommonResponse(r.getClient(), null);
             int phase = intiRequests.get(0).getPhase();
 
+            Map<String, Object> context = new HashMap<>();
+            context.put("modelToken", modelId);
+            context.put("algorithm", algorithmType);
+            context.put("inferenceId", subInferenceId);
+            // todo inference request add index
+            context.put("index", "uid");
             context.put("phase", phase);
             context.put("dataset", partnerInfoNews.get(i).getDataset());
             // todo inference request add index

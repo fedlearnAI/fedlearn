@@ -16,7 +16,7 @@ import static com.jdt.fedlearn.core.util.Tool.factorial;
 
 public class DistributedPaillierKeyGenerator {
     public static String fileBase = "/export/Data/";
-    public String priFileBase = "";
+//    public String priFileBase = "";
     public int thisPartyID;
     public int batchSize;
     public int bitLen;
@@ -26,7 +26,7 @@ public class DistributedPaillierKeyGenerator {
 
     public List<signedByteArray> pi;
     public List<signedByteArray> qi;
-    private List<signedByteArray> N_share;
+    private List<signedByteArray> nShare;
     public int chosenIdx;
 
     public List<signedByteArray> g;
@@ -44,11 +44,10 @@ public class DistributedPaillierKeyGenerator {
     // pubKey -- thetaInv
     private signedByteArray thetaInv;
 
-    public DistributedPaillierKeyGenerator() {
-    }
+    DistributedPaillier.DistPaillierPrivkey privKey;
+    DistributedPaillier.DistPaillierPubkey pubKey;
 
-    public DistributedPaillierKeyGenerator(String path) {
-        priFileBase = path;
+    public DistributedPaillierKeyGenerator() {
     }
 
     public Message stateMachine(Message coordinatorReqMsg) {
@@ -198,11 +197,10 @@ public class DistributedPaillierKeyGenerator {
     }
 
     private void saveKeys(KeyGeneMsg inMsg) {
-        DistributedPaillier.DistPaillierPubkey pubKey = new DistributedPaillier.DistPaillierPubkey();
+        pubKey = new DistributedPaillier.DistPaillierPubkey();
         pubKey.n = generatedN.deep_copy();
         pubKey.bitLen = bitLen;
         pubKey.t = t;
-        pubKey.saveToFile(fileBase + "pubKey");
 
         if (((SbArrayMsg) inMsg).getBody().size() != 1) {
             throw new WrongValueException("expecting " + 1 + " elements, but got "
@@ -218,10 +216,8 @@ public class DistributedPaillierKeyGenerator {
             thetaInv = tmp;
         }
         long n_fat = factorial(numP);
-        DistributedPaillier.DistPaillierPrivkey privKey = new DistributedPaillier.DistPaillierPrivkey(
+        privKey = new DistributedPaillier.DistPaillierPrivkey(
                 lambdaTimesBetaShare, generatedN, thetaInv, thisPartyID, t, bitLen, n_fat);
-        privKey.saveToFile(priFileBase + "privKey");
-
     }
 
     private List<signedByteArray> geneLambdaTimesBetaSharesOnClient(KeyGeneMsg inMsg) {
@@ -355,7 +351,7 @@ public class DistributedPaillierKeyGenerator {
         this.batchSize = msg.batchSize;
         this.piSharesOnOneParty = new ArrayList<>();
         this.qiSharesOnOneParty = new ArrayList<>();
-        this.N_share = new ArrayList<>();
+        this.nShare = new ArrayList<>();
         this.pi = new ArrayList<>();
         this.qi = new ArrayList<>();
         this.allGeneratedN = new ArrayList<>();
@@ -400,9 +396,9 @@ public class DistributedPaillierKeyGenerator {
                 }
             }
             geneNShares(piSumOnOneParty, qiSumOnOneParty, nShareTmp, bitLen, t, numP, P);
-            N_share.add(nShareTmp);
+            nShare.add(nShareTmp);
         }
-        return N_share;
+        return nShare;
     }
 
     private Map<Integer, List<List<signedByteArray>>> genePiQiSharesOnClient(KeyGeneMsg body) {
@@ -417,7 +413,7 @@ public class DistributedPaillierKeyGenerator {
         qi.clear();
         pi.clear();
         allGeneratedN.clear();
-        N_share.clear();
+        nShare.clear();
         g.clear();
 
         // generate pi qi batch
@@ -468,5 +464,19 @@ public class DistributedPaillierKeyGenerator {
         ret.add(P);
 //        }
         return ret;
+    }
+
+    public Map<String, Object> postGeneration() {
+        if(pubKey == null) {
+            throw new WrongValueException("pubKey is not generated");
+        }
+        if(privKey == null) {
+            throw new WrongValueException("privKey is not generated");
+        }
+
+        Map<String, Object> keys = new HashMap<>();
+        keys.put("pubKey", pubKey);
+        keys.put("privKey", privKey);
+        return keys;
     }
 }

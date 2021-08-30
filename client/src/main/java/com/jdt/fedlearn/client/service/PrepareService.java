@@ -19,16 +19,17 @@ import com.jdt.fedlearn.client.constant.Constant;
 import com.jdt.fedlearn.client.dao.IdMatchProcessor;
 import com.jdt.fedlearn.client.entity.prepare.KeyGenerateRequest;
 import com.jdt.fedlearn.client.entity.prepare.MatchRequest;
-import com.jdt.fedlearn.client.entity.source.ClientConfig;
 import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.client.util.PacketUtil;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.exception.NotAcceptableException;
 import com.jdt.fedlearn.common.util.FileUtil;
 import com.jdt.fedlearn.common.tool.internel.ResponseConstruct;
+import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillier;
 import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierKeyGenerator;
 import com.jdt.fedlearn.core.encryption.nativeLibLoader;
 import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.entity.base.SingleElement;
 import com.jdt.fedlearn.core.entity.psi.MatchInit;
 import com.jdt.fedlearn.core.psi.CommonPrepare;
 import com.jdt.fedlearn.core.psi.PrepareClient;
@@ -37,6 +38,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +54,8 @@ import static com.jdt.fedlearn.client.util.PacketUtil.msgMap;
 public class PrepareService {
     private static final Logger logger = LoggerFactory.getLogger(PrepareService.class);
     Map<String, PrepareClient> clientMap = new ConcurrentHashMap<>();
-    private static DistributedPaillierKeyGenerator keyGenerator = null;
-    private static boolean loaded = false;
+    private DistributedPaillierKeyGenerator keyGenerator = null;
+    private boolean loaded = false;
 
     public Map<String, Object> match(MatchRequest request) {
         Map<String, Object> modelMap = new HashMap<>();
@@ -100,6 +104,8 @@ public class PrepareService {
             modelMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
             modelMap.put(ResponseConstant.STATUS, ResponseConstant.SUCCESS);
 
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             modelMap.put(ResponseConstant.CODE, ResponseConstant.FAIL_CODE);
             modelMap.put(ResponseConstant.STATUS, ResponseConstant.FAIL);
@@ -135,17 +141,18 @@ public class PrepareService {
         String[] matchIds = clientMap.get(matchToken).getCommonIds();
         logger.info("clientmap size: " + clientMap.size());
         logger.info("matched size: " + matchIds.length);
-
         // 储存id对齐结果
         boolean success = IdMatchProcessor.saveResult(matchToken, matchIds);
         // 清楚client端缓存
         clientMap.remove(matchToken);
-        logger.info("Match Result saved successfully: ", success);
-
+        logger.info("Match Result saved successfully: "+success);
         return ResponseConstruct.success();
     }
 
-    public Message generateKey(KeyGenerateRequest request) {
+    public Message generateKey(KeyGenerateRequest request) throws IOException {
+        if(request.getPhase()==999){
+            return saveKey();
+        }
         try {
             if (!loaded) {
                 nativeLibLoader.load();
@@ -153,15 +160,33 @@ public class PrepareService {
             loaded = true;
         } catch (UnsatisfiedLinkError e) {
             logger.error("load jni error", e);
-            System.exit(1);
+            throw new UnsatisfiedLinkError(e.getMessage());
         }
         if (keyGenerator == null) {
-            String prikeyPath = ConfigUtil.getClientConfig().getModelDir();
-            //TODO
-            keyGenerator = new DistributedPaillierKeyGenerator(prikeyPath);
+            keyGenerator = new DistributedPaillierKeyGenerator();
         }
         Message message = Constant.serializer.deserialize(request.getBody());
         ///mock receive message serialize and deserialize
         return  (keyGenerator.stateMachine(message));
+    }
+
+
+    private Message saveKey() throws IOException {
+        String priPath = ConfigUtil.getClientConfig().getModelDir() + Constant.PRIV_KEY;
+        String pubPath = ConfigUtil.getClientConfig().getModelDir() + Constant.PUB_KEY;
+        Map<String, Object> keys = keyGenerator.postGeneration();
+        Files.write(Paths.get(priPath),
+                ((DistributedPaillier.DistPaillierPrivkey)keys
+                        .get(Constant.PRIV_KEY))
+                        .toJson()
+                        .getBytes(StandardCharsets.UTF_8));
+        Files.write(Paths.get(pubPath),
+                ((DistributedPaillier.DistPaillierPubkey)keys.
+                        get(Constant.PUB_KEY))
+                        .toJson()
+                        .getBytes(StandardCharsets.UTF_8));
+        logger.info("key saved successfully!");
+        String pubKey = ((DistributedPaillier.DistPaillierPubkey)keys.get(Constant.PUB_KEY)).toJson();
+        return new SingleElement(pubKey);
     }
 }

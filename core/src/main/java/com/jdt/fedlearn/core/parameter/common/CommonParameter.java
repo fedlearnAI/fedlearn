@@ -47,8 +47,7 @@ public class CommonParameter {
                 parameterFields = new MixGBParameter().obtainPara();
                 break;
             }
-            case KernelBinaryClassification:
-            case KernelBinaryClassificationJava:{
+            case KernelBinaryClassificationJava: {
                 parameterFields = new KernelLinearRegressionParameter().obtainPara();
                 break;
             }
@@ -113,8 +112,6 @@ public class CommonParameter {
             parameter = convertListToSuperParameter(parameterFields, MixGBParameter.class);
         } else if (AlgorithmType.LinearRegression == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, LinearParameter.class);
-        } else if (AlgorithmType.KernelBinaryClassification == algorithmType) {
-            parameter = convertListToSuperParameter(parameterFields, KernelLinearRegressionParameter.class);
         } else if (AlgorithmType.KernelBinaryClassificationJava == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, KernelLinearRegressionParameter.class);
         } else if (AlgorithmType.HorizontalFedAvg == algorithmType) {

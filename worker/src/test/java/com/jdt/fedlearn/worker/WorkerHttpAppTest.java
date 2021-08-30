@@ -61,7 +61,7 @@ public class WorkerHttpAppTest extends PowerMockTestCase {
         InferenceInit inferenceInit = new InferenceInit(uids);
         String serialize = Constant.serializer.serialize(inferenceInit);
         String data = GZIPCompressUtil.compress(serialize);
-        inferenceRequest.setData(data);
+        inferenceRequest.setBody(data);
     }
 
     private void mockRequest(){

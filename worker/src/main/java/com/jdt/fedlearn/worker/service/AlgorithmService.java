@@ -50,6 +50,7 @@ public class AlgorithmService implements IAlgorithm {
     private static final Logger logger = LoggerFactory.getLogger(AlgorithmService.class);
     private static final TrainService trainService = new TrainService();
     private INetWorkService netWorkService = INetWorkService.getNetWorkService();
+
     @Override
     public Map<String, Object> run(Task task) {
         final TrainRequest trainRequest = task.getSubRequest();
@@ -77,7 +78,7 @@ public class AlgorithmService implements IAlgorithm {
     }
 
     @Override
-    public List<Task> init(Task task){
+    public List<Task> init(Task task) {
         List<Task> taskList = new ArrayList<>();
         List<Task> mapTaskList = new ArrayList<>();
         ReduceType reduceType;
@@ -90,35 +91,36 @@ public class AlgorithmService implements IAlgorithm {
         Message restoreMessage = Constant.serializer.deserialize(jsonData);
         int phase = trainRequest.getPhase();
         Model model = CommonModel.constructModel(trainRequest.getAlgorithm());
-        SplitResult mapResult = model.split(phase,restoreMessage);
-        reduceType = mapResult.getReduceType();
-        List<String> modelIDList = mapResult.getModelIDs();
-        List<Message> messageBodyList = mapResult.getMessageBodys();
-        List<Task> tasks;
-        if(modelIDList != null){
-            List<TrainRequest> trainRequests = new ArrayList<>();
-            for (int i = 0; i < modelIDList.size() ; i++) {
-                TrainRequest trainRequestSlip = new TrainRequest();
-                BeanUtils.copyProperties(trainRequest, trainRequestSlip);
-                trainRequestSlip.setData(Constant.serializer.serialize(messageBodyList.get(i)));
-                trainRequestSlip.setRequestId(modelIDList.get(i));
-                trainRequestSlip.setGzip(false);
-                trainRequests.add(trainRequestSlip);
+        SplitResult mapResult = model.split(phase, restoreMessage);
+        if (mapResult != null) {
+            reduceType = mapResult.getReduceType();
+            List<String> modelIDList = mapResult.getModelIDs();
+            List<Message> messageBodyList = mapResult.getMessageBodys();
+            List<Task> tasks;
+            if (modelIDList != null) {
+                List<TrainRequest> trainRequests = new ArrayList<>();
+                for (int i = 0; i < modelIDList.size(); i++) {
+                    TrainRequest trainRequestSlip = new TrainRequest();
+                    BeanUtils.copyProperties(trainRequest, trainRequestSlip);
+                    trainRequestSlip.setData(Constant.serializer.serialize(messageBodyList.get(i)));
+                    trainRequestSlip.setRequestId(modelIDList.get(i));
+                    trainRequestSlip.setGzip(false);
+                    trainRequests.add(trainRequestSlip);
+                }
+                tasks = buildMapTaskList(trainRequests, task);
+            } else {
+                tasks = buildMapTaskFromTreeNodes(task, trainRequest);
             }
-            tasks = buildMapTaskList(trainRequests, task);
-        }else {
-            tasks = buildMapTaskFromTreeNodes(task, trainRequest);
-        }
-        taskList.addAll(tasks);
-        mapTaskList.addAll(tasks);
-
+            taskList.addAll(tasks);
+            mapTaskList.addAll(tasks);
         /* 构建reduce 要传入trainRequest因为job中（在ManagerLocalApp.initTaskForJob）已经删除，
             task中的也已经删除（buildMapTaskList） 避免preTaskList中重复引用
         * */
-        Task reduceTask = buildReduceTask(task.getJob(), reduceType, mapTaskList, taskList,trainRequest);
-        // 构建finish
-        Task finishTask = buildFinishTask(task.getJob(), reduceTask);
-        taskList.add(finishTask);
+            Task reduceTask = buildReduceTask(task.getJob(), reduceType, mapTaskList, taskList, trainRequest);
+            // 构建finish
+            Task finishTask = buildFinishTask(task.getJob(), reduceTask);
+            taskList.add(finishTask);
+        }
         return taskList;
     }
 
@@ -135,9 +137,9 @@ public class AlgorithmService implements IAlgorithm {
         List<Message> stampResult = new ArrayList<>();
         result.stream().map(a -> (Map<String, Object>) a).forEach(b -> {
             String data = (String) b.get(DATA);
-            String stamp = (String) JsonUtil.json2Object(data,Map.class).get(STAMP);
+            String stamp = (String) JsonUtil.json2Object(data, Map.class).get(STAMP);
             if (stamp != null) {
-                String workerResult = (String)queryTrainResulFromWorker(stamp);
+                String workerResult = (String) queryTrainResulFromWorker(stamp);
                 stampResult.add(Constant.serializer.deserialize(workerResult));
             }
         });
@@ -146,12 +148,12 @@ public class AlgorithmService implements IAlgorithm {
         // 合并结果
         Model model = CommonModel.constructModel(trainRequest.getAlgorithm());
         Message message = model.merge(phase, stampResult);
-        String s  = Constant.serializer.serialize(message);
+        String s = Constant.serializer.serialize(message);
         Map<String, Object> modelMap = new HashMap<>();
         // 先保存结果所在服务器地址
         String trainResultAddressKey = CacheConstant.getTrainResultAddressKey(stamp);
         String address = IpAddressUtil.getLocalHostLANAddress().getHostAddress() + ":" + ConfigUtil.getPortElseDefault();
-        ManagerCache.putCache(AppConstant.RESULT_ADDRESS_CACHE,trainResultAddressKey,address);
+        ManagerCache.putCache(AppConstant.RESULT_ADDRESS_CACHE, trainResultAddressKey, address);
         // 保存结果
         String fianlTrainResultKey = CacheConstant.getTrainResultKey(stamp);
         TrainService.responseQueue.put(fianlTrainResultKey, s);
@@ -176,18 +178,18 @@ public class AlgorithmService implements IAlgorithm {
      * @return 返回最后一个reduce task
      */
     private Task buildReduceTask(Job job, ReduceType reduceType, List<Task> mapTaskList, List<Task> allTaskList, TrainRequest trainRequest) {
-        return order(job, reduceType, mapTaskList, allTaskList,trainRequest);
+        return order(job, reduceType, mapTaskList, allTaskList, trainRequest);
     }
 
     /**
      * 遍历任务
      *
      * @param reduceType
-     * @param mapTasklist    MapTask 或者 ReduceTask
+     * @param mapTasklist MapTask 或者 ReduceTask
      * @param allTaskList
      * @return
      */
-    private Task order(Job job, ReduceType reduceType, List<Task> mapTasklist, List<Task> allTaskList ,TrainRequest trainRequest) {
+    private Task order(Job job, ReduceType reduceType, List<Task> mapTasklist, List<Task> allTaskList, TrainRequest trainRequest) {
         // taksList 可能是MapTask, 也可能是ReduceTask，
         // 如果是mapTask 不管数量如何，都可以继续执行
         // 如果是reduceTask 那么需要判断数量，如果size=1, 说明是最后一个task，无需继续遍历任务，返回即可
@@ -208,22 +210,25 @@ public class AlgorithmService implements IAlgorithm {
             requestReduce.setStatus(trainRequest.getStatus());
             reduceTask.setSubRequest(requestReduce);
             String s = JsonUtil.object2json(preTaskList);
-            List<Task> newPreList = JsonUtil.parseArray(s,Task.class);
-            newPreList.stream().forEach(t -> t.setSubRequest(null));
-            reduceTask.setPreTaskList(newPreList);
+            List<Task> newPreList;
+            newPreList = JsonUtil.parseArray(s, Task.class);
+            if (newPreList != null) {
+                newPreList.forEach(t -> t.setSubRequest(null));
+                reduceTask.setPreTaskList(newPreList);
+            }
             nexTaskList.add(reduceTask);
             // 所以任务的列表
             allTaskList.add(reduceTask);
         }
-        return order(job, reduceType, nexTaskList, allTaskList,trainRequest);
+        return order(job, reduceType, nexTaskList, allTaskList, trainRequest);
     }
 
-    private List<Task>  buildMapTaskFromTreeNodes(Task task, TrainRequest trainRequest) {
+    private List<Task> buildMapTaskFromTreeNodes(Task task, TrainRequest trainRequest) {
         List<TrainRequest> trainRequests = new ArrayList<>();
         String treeKey = CacheConstant.getTreeKey(trainRequest.getModelToken());
-        String treeList = ManagerCache.getCache(AppConstant.MODEL_COUNT_CACHE,treeKey);
+        String treeList = ManagerCache.getCache(AppConstant.MODEL_COUNT_CACHE, treeKey);
         List<Integer> list = JsonUtil.parseArray(treeList, Integer.class);
-        if(list != null && list.size()>0){
+        if (list != null && list.size() > 0) {
             for (Integer treeId : list) {
                 TrainRequest trainRequestSlip = new TrainRequest();
                 BeanUtils.copyProperties(trainRequest, trainRequestSlip);
@@ -231,7 +236,7 @@ public class AlgorithmService implements IAlgorithm {
                 trainRequests.add(trainRequestSlip);
             }
         }
-        List<Task> tasks = buildMapTaskList(trainRequests,task);
+        List<Task> tasks = buildMapTaskList(trainRequests, task);
         return tasks;
     }
 
@@ -257,9 +262,9 @@ public class AlgorithmService implements IAlgorithm {
     private Object queryTrainResulFromWorker(String stamp) {
         try {
             String trainResultAddressKey = CacheConstant.getTrainResultAddressKey(stamp);
-            String resultAddress = ManagerCache.getCache(AppConstant.RESULT_ADDRESS_CACHE,trainResultAddressKey);
+            String resultAddress = ManagerCache.getCache(AppConstant.RESULT_ADDRESS_CACHE, trainResultAddressKey);
             // 删除缓存
-            ManagerCache.delCache(AppConstant.RESULT_ADDRESS_CACHE,trainResultAddressKey);
+            ManagerCache.delCache(AppConstant.RESULT_ADDRESS_CACHE, trainResultAddressKey);
             String address = IpAddressUtil.getLocalHostLANAddress().getHostAddress() + ":" + ConfigUtil.getPortElseDefault();
             // 判断是结果地址是不是在本地
             if (StringUtils.equals(resultAddress, address)) {
@@ -278,7 +283,7 @@ public class AlgorithmService implements IAlgorithm {
         }
     }
 
-    private Task buildFinishTask(Job job , Task reduceTask) {
+    private Task buildFinishTask(Job job, Task reduceTask) {
         Task finishTask = new Task(job, RunStatusEnum.INIT, TaskTypeEnum.FINISH);
         finishTask.setPreTaskList(Lists.newArrayList(reduceTask));
         return finishTask;

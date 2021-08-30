@@ -178,11 +178,11 @@ public class JdchainForwardController {
      * @return ResponseEntity<Map>
      * TODO 后续会优化前端，
      */
-    public List<String> matchList(String taskId) {
+    public List<String> matchList(String randomServer,String taskId) {
         Map<String, Object> request = new HashMap<>();
         request.put("taskList", Collections.singletonList(taskId));
         request.put("type", "COMPLETE");
-        String modelMap = HttpClientUtil.doHttpPost(baseUrl + RequestConstant.MATCH_LIST, request);
+        String modelMap = HttpClientUtil.doHttpPost(randomServer + RequestConstant.MATCH_LIST, request);
         ModelMap res = JsonUtil.json2Object(modelMap, ModelMap.class);
         Map data = (Map) res.get("data");
         List matchList = (List) data.get("matchList");
@@ -211,11 +211,11 @@ public class JdchainForwardController {
                 })
                 .collect(Collectors.toList());
         request.put(CLIENT_LIST, partnerInfos);
-        request.put("matchId", matchList(taskId).get(0));
-        request.remove(USER_NAME);
-        request.remove("commonParams");
         //获取id对齐的server
         String randomServer = getRandomServer(taskId);
+        request.put("matchId", matchList(randomServer,taskId).get(0));
+        request.remove(USER_NAME);
+        request.remove("commonParams");
         String modelMap = HttpClientUtil.doHttpPost(randomServer + CHAIN_TRAIN_START, request);
         ModelMap res = JsonUtil.json2Object(modelMap, ModelMap.class);
         return ResponseEntity.status(HttpStatus.OK).body(res);
@@ -480,7 +480,6 @@ public class JdchainForwardController {
     }
 
     private static final String TASK_KEY = "taskPwd";
-    private static final String TASK_PWD = "taskPwd";
     private static final String URL = "url";
 
     //特征查询
@@ -502,7 +501,7 @@ public class JdchainForwardController {
         }
         request.remove(USER_NAME);
         request.remove(TASK_ID);
-        request.remove(TASK_PWD);
+        request.remove(TASK_KEY);
         String url = request.get("clientUrl").toString();
         request.put(URL, url);
         request.remove("clientUrl");
@@ -583,8 +582,8 @@ public class JdchainForwardController {
 
     private String parseRandomServer(String result) {
         ModelMap modelMap = JsonUtil.json2Object(result, ModelMap.class);
-//        String server = (String) JsonUtil.object2map(modelMap.get(JdChainConstant.SERVER)).get(IDENTITY);
-        String server = "127.0.0.1:8092";
+        String server = (String) JsonUtil.object2map(modelMap.get(JdChainConstant.SERVER)).get(IDENTITY);
+//        String server = "127.0.0.1:8092";
         return AppConstant.HTTP_PREFIX + server + API;
     }
 

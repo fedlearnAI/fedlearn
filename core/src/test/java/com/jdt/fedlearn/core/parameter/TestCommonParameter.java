@@ -45,7 +45,7 @@ public class TestCommonParameter {
         ParameterField numBoostRound = new NumberParameter("batchSize", "随机样本采样个数", 100000, new String[]{"1000", "5000000"}, ParameterType.NUMS);
         parameterFieldList.add(numBoostRound);
         Map<String, Object> parameters = new HashMap<>();
-        KernelLinearRegressionParameter a = (KernelLinearRegressionParameter) CommonParameter.parseParameter(parameters, AlgorithmType.KernelBinaryClassification);
+        KernelLinearRegressionParameter a = (KernelLinearRegressionParameter) CommonParameter.parseParameter(parameters, AlgorithmType.KernelBinaryClassificationJava);
         //System.out.println("a: " + a.getBatchSize());
     }
 

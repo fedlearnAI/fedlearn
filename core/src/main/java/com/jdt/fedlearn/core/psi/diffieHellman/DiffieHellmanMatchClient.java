@@ -102,75 +102,85 @@ public class DiffieHellmanMatchClient implements PrepareClient {
 
     //对传入的以加密的uid进行二次加密，同时把本地的uid加密后传出; 非active方的每一方都要处理
     private Message phase1(Message parameterData, String[] uid) {
-        DhMatchReq1 req2 = (DhMatchReq1) (parameterData);
-        String[] cipherUid = req2.getCipherUid();
-        BigInteger g = req2.getG();
-        BigInteger n = req2.getN();
-        // active方和本地各加密一次的active方的uid
-        String[] doubleCipherUid = Arrays.stream(cipherUid).map(x -> DiffieHellman.trans2(x, g, n, random)).toArray(String[]::new);
-        // 本地加密一次的本地的uid
-        String[] localCipherUid = Arrays.stream(uid).map(x -> DiffieHellman.trans1(x, g, n, random)).toArray(String[]::new);
-        return new DhMatchRes1(localCipherUid, doubleCipherUid);
+        if (parameterData != null) {
+            DhMatchReq1 req2 = (DhMatchReq1) (parameterData);
+            String[] cipherUid = req2.getCipherUid();
+            BigInteger g = req2.getG();
+            BigInteger n = req2.getN();
+            // active方和本地各加密一次的active方的uid
+            String[] doubleCipherUid = Arrays.stream(cipherUid).map(x -> DiffieHellman.trans2(x, g, n, random)).toArray(String[]::new);
+            // 本地加密一次的本地的uid
+            String[] localCipherUid = Arrays.stream(uid).map(x -> DiffieHellman.trans1(x, g, n, random)).toArray(String[]::new);
+            return new DhMatchRes1(localCipherUid, doubleCipherUid);
+        } else {
+            return EmptyMessage.message();
+        }
     }
 
     //active 方 处理
     private Message phase2(Message parameterData, String[] uid) {
-        DhMatchReq2 req = (DhMatchReq2) (parameterData);
-        // active和本地加密过的active方的uid
-        Map<ClientInfo, String[]> activeUidMap = req.getDoubleCipherUid();
-        // 只在各个本地加密过的uid，再经过active方加密一次
-        Map<ClientInfo, String[]> clientCipherMap = req.getCipherUid();
-        Map<ClientInfo, String[]> clientDoubleCipher = new HashMap<>();
-        // 两两的intersection
-        Map<ClientInfo, String[]> intersectionMap = new HashMap<>();
-        for (Map.Entry<ClientInfo, String[]> clientEntry : clientCipherMap.entrySet()) {
-            //当前处理client
-            ClientInfo clientInfo = clientEntry.getKey();
-            // active方和当前client对应的二次加密activeID
-            String[] activeDoubleCipher = activeUidMap.get(clientInfo);
-            String[] activeDoubleCipherCopy = activeDoubleCipher.clone();
-            // 本地加密
-            String[] clientCipher = clientEntry.getValue();
-            // 本地和active均加密
-            String[] doubleCipher = new String[clientCipher.length];
-            IntStream.range(0, doubleCipher.length).forEach(i -> doubleCipher[i]=DiffieHellman.trans2(clientCipher[i], req.getG(), req.getN(), random));
-            String[] doubleCipherCopy = doubleCipher.clone();
-            clientDoubleCipher.put(clientInfo, doubleCipherCopy);
-            String[] intersection = Md5Match.mix(doubleCipher, activeDoubleCipherCopy);
-            intersectionMap.put(clientInfo, intersection);
+        if (parameterData != null) {
+            DhMatchReq2 req = (DhMatchReq2) (parameterData);
+            // active和本地加密过的active方的uid
+            Map<ClientInfo, String[]> activeUidMap = req.getDoubleCipherUid();
+            // 只在各个本地加密过的uid，再经过active方加密一次
+            Map<ClientInfo, String[]> clientCipherMap = req.getCipherUid();
+            Map<ClientInfo, String[]> clientDoubleCipher = new HashMap<>();
+            // 两两的intersection
+            Map<ClientInfo, String[]> intersectionMap = new HashMap<>();
+            for (Map.Entry<ClientInfo, String[]> clientEntry : clientCipherMap.entrySet()) {
+                //当前处理client
+                ClientInfo clientInfo = clientEntry.getKey();
+                // active方和当前client对应的二次加密activeID
+                String[] activeDoubleCipher = activeUidMap.get(clientInfo);
+                String[] activeDoubleCipherCopy = activeDoubleCipher.clone();
+                // 本地加密
+                String[] clientCipher = clientEntry.getValue();
+                // 本地和active均加密
+                String[] doubleCipher = new String[clientCipher.length];
+                IntStream.range(0, doubleCipher.length).forEach(i -> doubleCipher[i]=DiffieHellman.trans2(clientCipher[i], req.getG(), req.getN(), random));
+                String[] doubleCipherCopy = doubleCipher.clone();
+                clientDoubleCipher.put(clientInfo, doubleCipherCopy);
+                String[] intersection = Md5Match.mix(doubleCipher, activeDoubleCipherCopy);
+                intersectionMap.put(clientInfo, intersection);
+            }
+            String[] finalIntersection = new String[]{};
+            for (Map.Entry<ClientInfo, String[]> entry: intersectionMap.entrySet()) {
+                ClientInfo clientInfo = entry.getKey();
+                String[] intersection = entry.getValue();
+                String[] doubleCipher = activeUidMap.get(clientInfo);
+                // index in the form of String
+                String[] interTmp = Arrays.stream(intersection).map(i -> String.valueOf(getIndexString(doubleCipher, i))).toArray(String[]::new);
+                finalIntersection = Md5Match.mix(finalIntersection, interTmp);
+            }
+            String[] finalIntersection1 = finalIntersection;
+            Map<ClientInfo, String[]> finalInterMap = activeUidMap.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> getClientIntersection(finalIntersection1, e.getValue())));
+            // active方直接将commonId放进全局变量缓存
+            commonIds = Arrays.stream(finalIntersection).map(s -> uid[Integer.parseInt(s)]).toArray(String[]::new);
+            return new DhMatchRes2(finalInterMap, clientDoubleCipher);
+        } else {
+            return EmptyMessage.message();
         }
-        String[] finalIntersection = new String[]{};
-        for (Map.Entry<ClientInfo, String[]> entry: intersectionMap.entrySet()) {
-            ClientInfo clientInfo = entry.getKey();
-            String[] intersection = entry.getValue();
-            String[] doubleCipher = activeUidMap.get(clientInfo);
-            // index in the form of String
-            String[] interTmp = Arrays.stream(intersection).map(i -> String.valueOf(getIndexString(doubleCipher, i))).toArray(String[]::new);
-            finalIntersection = Md5Match.mix(finalIntersection, interTmp);
-        }
-        String[] finalIntersection1 = finalIntersection;
-        Map<ClientInfo, String[]> finalInterMap = activeUidMap.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> getClientIntersection(finalIntersection1, e.getValue())));
-        // active方直接将commonId放进全局变量缓存
-        commonIds = Arrays.stream(finalIntersection).map(s -> uid[Integer.parseInt(s)]).toArray(String[]::new);
-        return new DhMatchRes2(finalInterMap, clientDoubleCipher);
+
     }
 
     private Message phase3(Message parameterData, String[] uid) {
         if (!(parameterData instanceof MatchTransit)) {
-            throw new UnsupportedOperationException("DH Phase 3 should be instance of MatchTransit");
-        }
-        MatchTransit matchTransit = (MatchTransit) parameterData;
-        // 对于passtive方需要将commonIds放入缓存
-        if (matchTransit.getIntersection() != null) {
-            String[] passiveUid = matchTransit.getDoubleCipher();
-            Map<String, String> uidMap = new HashMap<>();
-            if (passiveUid.length != uid.length) {
-                throw new WrongValueException("doubled encoded uid does not match with original uid");
+            return EmptyMessage.message();
+        } else {
+            MatchTransit matchTransit = (MatchTransit) parameterData;
+            // 对于passtive方需要将commonIds放入缓存
+            if (matchTransit.getIntersection() != null) {
+                String[] passiveUid = matchTransit.getDoubleCipher();
+                Map<String, String> uidMap = new HashMap<>();
+                if (passiveUid.length != uid.length) {
+                    throw new WrongValueException("doubled encoded uid does not match with original uid");
+                }
+                IntStream.range(0, passiveUid.length).forEach(i -> uidMap.put(passiveUid[i], uid[i]));
+                String[] intersection = matchTransit.getIntersection();
+                commonIds = Arrays.stream(intersection).map(uidMap::get).toArray(String[]::new);
             }
-            IntStream.range(0, passiveUid.length).forEach(i -> uidMap.put(passiveUid[i], uid[i]));
-            String[] intersection = matchTransit.getIntersection();
-            commonIds = Arrays.stream(intersection).map(uidMap::get).toArray(String[]::new);
         }
         return EmptyMessage.message();
     }

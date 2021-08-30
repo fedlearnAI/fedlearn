@@ -16,6 +16,7 @@ package com.jdt.fedlearn.core.entity.kernelLinearRegression;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.type.KernelDispatchJavaPhaseType;
+import com.jdt.fedlearn.core.type.MetricType;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +33,12 @@ public class InferenceReqAndRes implements Message {
     private int numClass;
     private List<Integer> testUid;
     private KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType;
+
+    private Map<MetricType, List<Double>> metric;
+    private Map<MetricType, List<Double[][]>> metricArr;
+    private Map<MetricType, List<Double>> metricVali;
+    private Map<MetricType, List<Double[][]>> metricArrVali;
+
 
     public InferenceReqAndRes(ClientInfo client) {
         this.client = client;
@@ -112,5 +119,37 @@ public class InferenceReqAndRes implements Message {
 
     public KernelDispatchJavaPhaseType getKernelDispatchJavaPhaseType() {
         return kernelDispatchJavaPhaseType;
+    }
+
+    public Map<MetricType, List<Double>> getMetric() {
+        return metric;
+    }
+
+    public void setMetric(Map<MetricType, List<Double>> metric) {
+        this.metric = metric;
+    }
+
+    public Map<MetricType, List<Double[][]>> getMetricArr() {
+        return metricArr;
+    }
+
+    public void setMetricArr(Map<MetricType, List<Double[][]>> metricArr) {
+        this.metricArr = metricArr;
+    }
+
+    public Map<MetricType, List<Double>> getMetricVali() {
+        return metricVali;
+    }
+
+    public void setMetricVali(Map<MetricType, List<Double>> metricVali) {
+        this.metricVali = metricVali;
+    }
+
+    public Map<MetricType, List<Double[][]>> getMetricArrVali() {
+        return metricArrVali;
+    }
+
+    public void setMetricArrVali(Map<MetricType, List<Double[][]>> metricArrVali) {
+        this.metricArrVali = metricArrVali;
     }
 }

@@ -119,6 +119,9 @@ public class HttpApp extends AbstractHandler {
 
     private Map<String, Object> localDispatch(String url, String content) throws JsonProcessingException {
         LocalUrlType urlType = LocalUrlType.urlOf(url);
+        if (urlType == null) {
+            return ResponseHandler.error("urlType is null ");
+        }
         switch (urlType) {
             // 模型下载
             case MODEL_DOWNLOAD: {
@@ -318,11 +321,16 @@ public class HttpApp extends AbstractHandler {
                 return prepareService.match(request);
             }
             case "/co/prepare/key/generate": {
-                KeyGenerateRequest request = new KeyGenerateRequest();
-                request.parseJson(content);
-                logger.info("request: " + LogUtil.logLine(content));
-                Message retData = prepareService.generateKey(request);
-                return ResponseConstruct.success(retData);
+                try {
+                    KeyGenerateRequest request = new KeyGenerateRequest();
+                    request.parseJson(content);
+                    logger.info("request: " + LogUtil.logLine(content));
+                    Message retData = prepareService.generateKey(request);
+                    return ResponseConstruct.success(retData);
+                } catch (IOException e) {
+                    logger.error("prepare key generate api error :", e);
+                    return ResponseConstruct.error(e.getMessage());
+                }
             }
             case "/api/system/model/delete": {
                 ObjectMapper mapper = new ObjectMapper();

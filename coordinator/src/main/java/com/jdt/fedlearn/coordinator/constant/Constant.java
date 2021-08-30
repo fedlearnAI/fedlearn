@@ -60,4 +60,7 @@ public interface Constant {
     String TASK_INVISIBLE_PART = "4";
 
     String MATCH_ID = "matchId";
+
+    String PUB_PATH = "/export/data/pubKey";
+    String PUB_KEY = "pubKey";
 }

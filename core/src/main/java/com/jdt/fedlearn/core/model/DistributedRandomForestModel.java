@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -569,6 +570,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
             // 结束流程
             RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), "active", isActive, parameter.getNumTrees());
             res.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
+            setMetrics(res);
             return res;
         }
 
@@ -587,6 +589,8 @@ public class DistributedRandomForestModel implements Model, Serializable {
         if (req.isSkip()) {
             RandomForestTrainRes res = new RandomForestTrainRes(req.getClient());
             res.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
+            res.setActive(isActive);
+            setMetrics(res);
             return res;
         }
         int numTrees = treeSampleIDs.size();
@@ -669,7 +673,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), "active", isActive, bodyArr.length);
         res.setTreeIds(treeIds);
         res.setMessageType(RFDispatchPhaseType.COMBINATION_MESSAGE);
-
+        setMetrics(res);
         return res;
     }
 
@@ -1055,6 +1059,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         RandomForestTrainRes res = new RandomForestTrainRes(client, "", isActive, splitMessage);
         res.setTidToSampleIds(tidToSampleIds);
         res.setMessageType(RFDispatchPhaseType.SPLIT_NODE);
+        setMetrics(res);
         return res;
     }
 
@@ -1170,6 +1175,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
             }
         }
         res.setMessageType(RFDispatchPhaseType.CREATE_CHILD_NODE);
+        setMetrics(res);
         return res;
 
     }
@@ -1252,6 +1258,8 @@ public class DistributedRandomForestModel implements Model, Serializable {
         }
         RandomForestTrainRes randomForestRes = new RandomForestTrainRes(req.getClient());
         randomForestRes.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
+        randomForestRes.setActive(isActive);
+        setMetrics(randomForestRes);
         return randomForestRes;
     }
 
@@ -1277,6 +1285,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
             }
             res.setMessageType(RFDispatchPhaseType.SEND_FINAL_MODEL);
             res.setBody("success");
+            setMetrics(res);
             return res;
         } else {
             String responseStr;
@@ -1336,6 +1345,8 @@ public class DistributedRandomForestModel implements Model, Serializable {
             // TODO: Add acc, F1 and others for cross entropy
             RandomForestTrainRes res = new RandomForestTrainRes(responseStr);
             res.setMessageType(RFDispatchPhaseType.SEND_FINAL_MODEL);
+            setMetrics(res);
+            res.setActive(isActive);
             return res;
         }
     }
@@ -1394,7 +1405,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
     public Message inferenceOneShot(int phase, Message jsonData) {
         if (phase == -1) {
             Map<Integer, Map<Integer, String>> treeInfo = parseModel(modelString);
-            Map<Integer, Map<Integer, List<String>>> res = new HashMap<>();
+            Map<Integer, Map<Integer, List<String>>> res = new ConcurrentHashMap<>();
             IntStream.range(0, treeInfo.size()).parallel().forEach(id -> {
                 Integer treeId = id;
                 Map<Integer, List<String>> tmp = new HashMap<>();
@@ -1661,7 +1672,14 @@ public class DistributedRandomForestModel implements Model, Serializable {
         }
     }
 
-    public void printMetricMap() {
+
+    private void setMetrics(RandomForestTrainRes res) {
+        res.setTrainMetric(metricMap);
+        res.setTrainMetric2Dim(metricArrMap);
+        res.setFeatureImportance(featureImportance);
+    }
+
+    private void printMetricMap() {
         String mapAsString = metricMap.keySet().stream()
                 .map(key -> key + "=" + metricMap.get(key))
                 .collect(Collectors.joining(", ", "{", "}"));

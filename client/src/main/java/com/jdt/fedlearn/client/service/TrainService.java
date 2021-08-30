@@ -61,7 +61,7 @@ public class TrainService {
     public static Map<String, String> responseQueue = new ConcurrentSkipListMap<>();
     //TODO 此处需要入参队列和出餐队列
     //TODO 文件初始化即加载，且不区分算法
-   private static INetWorkService netWorkService =  INetWorkService.getNetWorkService();
+    private static INetWorkService netWorkService = INetWorkService.getNetWorkService();
 
     /**
      * @param trainRequest 服务端请求的数据
@@ -107,10 +107,9 @@ public class TrainService {
                 Map<String, Object> others = trainInit.getOthers();
                 List<AlgorithmType> needDistributedKeys = Arrays.asList(AlgorithmType.MixGBoost, AlgorithmType.LinearRegression);
                 if (needDistributedKeys.contains(algorithm)) {
-                    String pubkeyContent = FileUtil.loadClassFromFile("/export/data/pubkey");
-                    String prikeyPath = ConfigUtil.getClientConfig().getModelDir();
-
-                    String prikeyContent = FileUtil.loadClassFromFile(prikeyPath + "prikey");
+                    String keyPath = ConfigUtil.getClientConfig().getModelDir();
+                    String pubkeyContent = FileUtil.loadClassFromFile(keyPath + Constant.PUB_KEY);
+                    String prikeyContent = FileUtil.loadClassFromFile(keyPath + Constant.PRIV_KEY);
                     others.put("pubKeyStr", pubkeyContent);
                     others.put("privKeyStr", prikeyContent);
                 }
@@ -207,9 +206,9 @@ public class TrainService {
             String server = JsonUtil.json2Object(map.get(SERVER).toString(), Map.class).get(IDENTITY).toString();
             String url = AppConstant.HTTP_PREFIX + server + JdChainConstant.API_RANDOM_SERVER;
 //            String url = "http://127.0.0.1:8092/api/train/random";
-            netWorkService.sendAndRecv(url,modelMap);
-            logger.info("random server is {} , this key is {}",url, modelToken+"-"+trainRequest.getPhase());
-        }else{//找不到选举的master 默认一个或者直接抛出异常
+            netWorkService.sendAndRecv(url, modelMap);
+            logger.info("random server is {} , this key is {}", url, modelToken + "-" + trainRequest.getPhase());
+        } else {//找不到选举的master 默认一个或者直接抛出异常
             throw new ServerNotFoundException("master server not found！");
         }
     }

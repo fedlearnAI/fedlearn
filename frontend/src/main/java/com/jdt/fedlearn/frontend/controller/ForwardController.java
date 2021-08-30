@@ -378,7 +378,7 @@ public class ForwardController {
     }
 
     private static final String TASK_ID = "taskId";
-    private static final String TASK_PWD = "taskPwd";
+    private static final String TASK_KEY = "taskPwd";
     private static final String URL = "url";
 
     @RequestMapping(value = "system/query/dataset", method = RequestMethod.POST, produces = "application/json; charset=utf-8")
@@ -388,7 +388,7 @@ public class ForwardController {
         Object taskId = request.get(TASK_ID);
         if (taskId != null) {
             String taskIdStr = String.valueOf(taskId);
-            String taskPwd = String.valueOf(request.get(TASK_PWD));
+            String taskPwd = String.valueOf(request.get(TASK_KEY));
             ProjectDO task = (ProjectDO) projectService.queryTaskById(taskIdStr);
             if (StringUtils.isNotBlank(taskPwd) && !taskPwd.equals(task.getTaskPwd())) {
                 res.put(ResponseConstant.DATA, "任务密码错误,无法加入任务！");
@@ -399,7 +399,7 @@ public class ForwardController {
         }
         request.remove(USER_NAME);
         request.remove(TASK_ID);
-        request.remove(TASK_PWD);
+        request.remove(TASK_KEY);
         String url = request.get("clientUrl").toString();
         request.put(URL, url);
         request.remove("clientUrl");

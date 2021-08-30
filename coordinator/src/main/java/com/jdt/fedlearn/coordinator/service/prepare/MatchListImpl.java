@@ -103,7 +103,7 @@ public class MatchListImpl implements TrainService {
             }
             data.addAll(matchListRes);
         }
-        logger.info("queryList: " + taskList + " enter !");
+        logger.info("queryList: " + taskList + " enter !" + " result is " + data.size());
         return data;
     }
 }

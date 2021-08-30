@@ -1518,27 +1518,38 @@ public class MixGBModel implements Model {
 
     private Message decPaillierFinalScores(CypherMessageList boostBodyRes) {
         DistributedPaillierNative.signedByteArray[][] othersDec = boostBodyRes.getBody().toArray(new DistributedPaillierNative.signedByteArray[0][]);
+        /* finalScores are preds for those in inferScoreMap */
         double[] finalScores = finalDecrypt(pheKeys, othersDec, decPartialSum, partialSum);
-        return new BoostInferScoreRes(finalScores, true);
+        if (finalScores.length != inferScoreMap.size()) {
+            throw new AssertionError("final Score len should be equal to inferScoreMap size!");
+        }
+        double[] pred = new double[inferUid.size()];
+        Arrays.fill(pred, Double.NaN);
+        int i = 0;
+        for (int j = 0; j < pred.length; j++) {
+            if (inferScoreMap.containsKey(inferUid.get(j))){
+                pred[j] = finalScores[i];
+                i++;
+            }
+        }
+        return new BoostInferScoreRes(pred, true);
     }
 
     private Message inferScores() {
-        double[] pred = inferUid.parallelStream()
-                .map(id -> inferScoreMap.getOrDefault(id, Double.NaN))
-                .mapToDouble(Double::doubleValue).toArray();
-        if (secureMode) {
+        if (!inferScoreMap.isEmpty() && secureMode) {
+            double[] pred = inferUid.parallelStream()
+                    .filter(id -> inferScoreMap.containsKey(id))
+                    .map(id -> inferScoreMap.get(id))
+                    .mapToDouble(Double::doubleValue).toArray();
             DistributedPaillierNative.signedByteArray[] predEnc = Arrays.stream(pred).parallel()
                     .mapToObj(x -> pheKeys.encryption(x, pheKeys.getPk()))
                     .toArray(DistributedPaillierNative.signedByteArray[]::new);
             String pkStr = pheKeys.getPk().toJson();
             return new BoostInferEncRes(predEnc, pkStr);
         }
-
-        for (int i = 0; i < pred.length; i++) {
-            if (!inferScoreMap.containsKey(inferUid.get(i))) {
-                pred[i] = Double.NaN;
-            }
-        }
+        double[] pred = inferUid.parallelStream()
+                .map(id -> inferScoreMap.getOrDefault(id, Double.NaN))
+                .mapToDouble(Double::doubleValue).toArray();
         return new BoostInferScoreRes(pred, false);
     }
 

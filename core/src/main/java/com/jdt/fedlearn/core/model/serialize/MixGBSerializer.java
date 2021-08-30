@@ -6,7 +6,6 @@ import com.jdt.fedlearn.core.model.common.loss.SquareLoss;
 import com.jdt.fedlearn.core.model.common.loss.crossEntropy;
 import com.jdt.fedlearn.core.model.common.tree.MixTreeNode;
 import com.jdt.fedlearn.core.parameter.MixGBParameter;
-import com.jdt.fedlearn.core.type.data.Pair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,13 +23,12 @@ public class MixGBSerializer implements ModelSerializer {
     private static final String FEATURE_TYPE = "splitFeatureType";
     private static final String FEATURE_NAME = "splitFeatureName";
     private static final String FEATURE_THRESHOLD = "splitThreshold";
-    private static final String LEFT_CHILD_RECORDID = "leftRecordId";
-    private static final String RIGHT_CHILD_RECORDID = "rightRecordId";
-    private static final String PARENT_CHILD_RECORDID = "parentRecordId";
+    private static final String LEFT_RECORD_ID = "leftRecordId";
+    private static final String RIGHT_RECORD_ID = "rightRecordId";
+    private static final String PARENT_RECORD_ID = "parentRecordId";
     private static final String FIRST_PRED = "first_round_predict";
     private static final String MAP = "recordIdTreeNodeMap";
     private static final String LEAF = "leaf";
-
 
     private Loss loss;
     private MixGBParameter mixParams;
@@ -46,7 +44,7 @@ public class MixGBSerializer implements ModelSerializer {
     }
 
     public MixGBSerializer(String content) {
-        Map<Integer, MixTreeNode> recordIdTreeNodeMap = loadMixGBModel(content);
+        Map<Integer, MixTreeNode> recordIdTreeNodeMap = loadModel(content);
         nodeList = new ArrayList<>(recordIdTreeNodeMap.values());
         recordId = recordIdTreeNodeMap.keySet().stream().mapToInt(Integer::intValue).toArray();
     }
@@ -57,9 +55,9 @@ public class MixGBSerializer implements ModelSerializer {
                 FEATURE_TYPE + EQUAL_SIGN + node.getSplitFeatureType() + SEPARATOR +
                 FEATURE_NAME + EQUAL_SIGN + node.getSplitFeatureName() + SEPARATOR +
                 FEATURE_THRESHOLD + EQUAL_SIGN + node.getSplitThreshold() + SEPARATOR +
-                PARENT_CHILD_RECORDID + EQUAL_SIGN + (node.getParent() == null ? "-1" : node.getParent().getRecordId()) + SEPARATOR +
-                LEFT_CHILD_RECORDID + EQUAL_SIGN + (node.getLeftChild() == null ? "-1" : node.getLeftChild().getRecordId()) + SEPARATOR +
-                RIGHT_CHILD_RECORDID + EQUAL_SIGN + (node.getRightChild() == null ? "-1" : node.getRightChild().getRecordId()) + "\n";
+                PARENT_RECORD_ID + EQUAL_SIGN + (node.getParent() == null ? "-1" : node.getParent().getRecordId()) + SEPARATOR +
+                LEFT_RECORD_ID + EQUAL_SIGN + (node.getLeftChild() == null ? "-1" : node.getLeftChild().getRecordId()) + SEPARATOR +
+                RIGHT_RECORD_ID + EQUAL_SIGN + (node.getRightChild() == null ? "-1" : node.getRightChild().getRecordId()) + "\n";
     }
 
     private static String serializeLeafNode(MixTreeNode node) {
@@ -69,92 +67,32 @@ public class MixGBSerializer implements ModelSerializer {
         sb.append(String.format("leaf=%.16f", node.getLeafScore()));
         if (node.getDepth() > 1) {
             if (node.getParent() == null) {
-                sb.append(SEPARATOR).append(PARENT_CHILD_RECORDID).append(EQUAL_SIGN).append("-1");
+                sb.append(SEPARATOR).append(PARENT_RECORD_ID).append(EQUAL_SIGN).append("-1");
             } else {
-                sb.append(SEPARATOR).append(PARENT_CHILD_RECORDID).append(EQUAL_SIGN).append(node.getParent().getRecordId());
+                sb.append(SEPARATOR).append(PARENT_RECORD_ID).append(EQUAL_SIGN).append(node.getParent().getRecordId());
             }
         }
         sb.append("\n");
         return sb.toString();
     }
-
-
-    private static String shareLeafNode(MixTreeNode node) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(RECORD_ID).append(EQUAL_SIGN).append(node.getRecordId()).append(SEPARATOR);
-        sb.append(DEPTH).append(EQUAL_SIGN).append(node.getDepth()).append(SEPARATOR);
-        sb.append(String.format("leaf=%.16f", node.getLeafScore()));
-        if (node.getDepth() > 1) {
-            if (node.getParent() == null) {
-                sb.append(SEPARATOR).append(PARENT_CHILD_RECORDID).append(EQUAL_SIGN).append("-1");
-            } else {
-                sb.append(SEPARATOR).append(PARENT_CHILD_RECORDID).append(EQUAL_SIGN).append(node.getParent().getRecordId());
-            }
-        }
-        sb.append("\n");
-        return sb.toString();
-    }
-
-    public Pair<int[], int[]> shareStartEndNodes(Map<Integer, MixTreeNode> recordIdTreeNodeMap) {
-        if (recordIdTreeNodeMap == null || recordIdTreeNodeMap.isEmpty()) {
-            return new Pair<>(new int[0], new int[0]);
-        }
-        int[] startNodes = recordIdTreeNodeMap.entrySet().parallelStream()
-                .filter(entry -> isStartNode(entry.getValue()))
-                .mapToInt(Map.Entry::getKey)
-                .toArray();
-        int[] endNodes = recordIdTreeNodeMap.entrySet().parallelStream()
-                .filter(entry -> isEndNode(entry.getValue()))
-                .mapToInt(Map.Entry::getKey)
-                .toArray();
-        return new Pair<>(startNodes, endNodes);
-    }
-
 
     public int[] shareStartNodes(Map<Integer, MixTreeNode> recordIdTreeNodeMap) {
         if (recordIdTreeNodeMap == null || recordIdTreeNodeMap.isEmpty()) {
             return new int[0];
         }
+        Map<Integer, MixTreeNode> localNodes = new HashMap<>(recordIdTreeNodeMap);
         return recordIdTreeNodeMap.entrySet().parallelStream()
-                .filter(entry -> isStartNode(entry.getValue()))
+                .filter(entry -> isStartNode(entry.getValue(), localNodes))
                 .mapToInt(Map.Entry::getKey)
                 .toArray();
     }
 
-    private boolean isStartNode(MixTreeNode node) {
+    private boolean isStartNode(MixTreeNode node, Map<Integer, MixTreeNode> recordIdTreeNodeMap) {
         /* leaf root */
         if (node.isLeaf() && node.getDepth() == 1) {
             return false;
         }
-        return node.getParent() == null;
-    }
-
-    private boolean isEndNode(MixTreeNode node) {
-        /* leaf root */
-        if (node.isLeaf()) {
-            return false;
-        }
-        return node.getLeftChild() == null || node.getRightChild() == null;
-    }
-
-
-    public String shareInferenceStructure(Map<Integer, MixTreeNode> recordIdTreeNodeMap) {
-        StringBuilder sb = new StringBuilder();
-        if (recordIdTreeNodeMap == null || recordIdTreeNodeMap.isEmpty()) {
-            return sb.toString();
-        }
-        for (Map.Entry<Integer, MixTreeNode> entry : recordIdTreeNodeMap.entrySet()) {
-            MixTreeNode node = entry.getValue();
-            if (node == null) {
-                continue;
-            }
-            if (node.isLeaf()) {
-                sb.append(shareLeafNode(node));
-            } else if (node.getRecordId() >= 0) {
-                sb.append(serializeInternalNode(node));
-            }
-        }
-        return sb.toString();
+        return node.getParent() == null || !recordIdTreeNodeMap.containsKey(node.getParent().getRecordId());
     }
 
     public String saveMixGBModel(Map<Integer, MixTreeNode> recordIdTreeNodeMap) {
@@ -203,7 +141,7 @@ public class MixGBSerializer implements ModelSerializer {
         return loss;
     }
 
-    private Map<Integer, MixTreeNode> loadMixGBModel(String content) {
+    private Map<Integer, MixTreeNode> loadModel(String content) {
         if (content.isEmpty()) {
             return new HashMap<>();
         }
@@ -250,7 +188,7 @@ public class MixGBSerializer implements ModelSerializer {
                         elements[7].split(EQUAL_SIGN)[1]);
             }
         }
-        setFinalParentChilden(recordIdTreeNodeMap);
+        setFinalParentChildren(recordIdTreeNodeMap);
         return recordIdTreeNodeMap;
     }
 
@@ -278,7 +216,7 @@ public class MixGBSerializer implements ModelSerializer {
         node.setRightChild(right);
     }
 
-    private void setFinalParentChilden(Map<Integer, MixTreeNode> recordIdTreeNodeMap) {
+    private void setFinalParentChildren(Map<Integer, MixTreeNode> recordIdTreeNodeMap) {
         recordIdTreeNodeMap.forEach((key, value) -> {
             if (value.getParent() != null &&
                     recordIdTreeNodeMap.containsKey(value.getParent().getRecordId())) {

@@ -126,6 +126,9 @@ public class DiffieHellmanMatch implements Prepare {
                 DhMatchReq1 req2 = new DhMatchReq1(activeUid, g, n);
                 CommonRequest request = new CommonRequest(clientInfo, req2, p);
                 commonRequests.add(request);
+            } else {
+                CommonRequest request = new CommonRequest(clientInfo, null, p);
+                commonRequests.add(request);
             }
         }
         return commonRequests;
@@ -138,34 +141,52 @@ public class DiffieHellmanMatch implements Prepare {
         // 只在本地加密过的各个client的本地uid
         Map<ClientInfo, String[]> otherUidMap = new HashMap<>();
         for (CommonResponse response : responses) {
-            if (!(response.getBody() instanceof DhMatchRes1)) {
-                throw new UnsupportedOperationException("DH phase2 should be of instance DhMatchRes1");
+            if (response.getBody() instanceof DhMatchRes1) {
+                ClientInfo clientInfo = response.getClient();
+                DhMatchRes1 dhMatchRes1 = (DhMatchRes1) response.getBody();
+                activeCipherUid.put(clientInfo, dhMatchRes1.getDoubleCipherUid());
+                otherUidMap.put(clientInfo, dhMatchRes1.getCipherUid());
             }
-            ClientInfo clientInfo = response.getClient();
-            DhMatchRes1 dhMatchRes1 = (DhMatchRes1) response.getBody();
-            activeCipherUid.put(clientInfo, dhMatchRes1.getDoubleCipherUid());
-            otherUidMap.put(clientInfo, dhMatchRes1.getCipherUid());
         }
         List<CommonRequest> commonRequests = new ArrayList<>();
         DhMatchReq2 dhMatchReq2 = new DhMatchReq2(activeCipherUid, otherUidMap, g, n);
-        CommonRequest request = new CommonRequest(activeClient, dhMatchReq2, p);
-        commonRequests.add(request);
+
+        // 对于非主动方发送空请求
+        for (ClientInfo clientInfo : clientInfos) {
+            if (clientInfo != activeClient) {
+                CommonRequest request = new CommonRequest(clientInfo, null, p);
+                commonRequests.add(request);
+            } else {
+                CommonRequest request = new CommonRequest(clientInfo, dhMatchReq2, p);
+                commonRequests.add(request);
+            }
+        }
         return commonRequests;
     }
 
     //最终结果
     private List<CommonRequest> phase3(List<CommonResponse> responses) {
-        DhMatchRes2 dhMatchRes2 = (DhMatchRes2) (responses.get(0).getBody());
-        Map<ClientInfo, String[]> doubleCipherMap = dhMatchRes2.getClientDoubleCipher();
-        Map<ClientInfo, String[]> interCipherMap = dhMatchRes2.getIntersection();
-        List<ClientInfo> passiveClients = clientInfos.stream().filter(i -> i != activeClient).collect(Collectors.toList());
-        this.matchRes = interCipherMap.get(passiveClients.get(0)).length;
         List<CommonRequest> res = new ArrayList<>();
+        Map<ClientInfo, String[]> interCipherMap = new HashMap<>();
+        Map<ClientInfo, String[]> doubleCipherMap = new HashMap<>();
+        for (CommonResponse response : responses) {
+            if (response.getBody() instanceof DhMatchRes2) {
+                DhMatchRes2 dhMatchRes2 = (DhMatchRes2) (response.getBody());
+                doubleCipherMap = dhMatchRes2.getClientDoubleCipher();
+                interCipherMap = dhMatchRes2.getIntersection();
+                List<ClientInfo> passiveClients = clientInfos.stream().filter(i -> i != activeClient).collect(Collectors.toList());
+                this.matchRes = interCipherMap.get(passiveClients.get(0)).length;
+            }
+
+        }
         for (ClientInfo clientInfo : clientInfos) {
             if (!clientInfo.equals(activeClient)) {
                 CommonRequest commonRequest = new CommonRequest(clientInfo,
                         new MatchTransit(clientInfo, interCipherMap.get(clientInfo), doubleCipherMap.get(clientInfo)), p);
                 res.add(commonRequest);
+            } else {
+                CommonRequest request = new CommonRequest(clientInfo, null, p);
+                res.add(request);
             }
         }
         return res;

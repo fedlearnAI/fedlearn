@@ -174,7 +174,7 @@ public class SendAndRecvTest {
         // todo inference request add index
         context.put("index", "uid");
 
-        List<CommonResponse> responses = SendAndRecv.broadcastInference(intiRequests, context, null);
+        List<CommonResponse> responses = SendAndRecv.broadcastInference(intiRequests, modelToken, AlgorithmType.FederatedGB, inferenceId, null);
         Assert.assertEquals(responses.size(), 1);
         Assert.assertEquals(((BoostN1Res) responses.get(0).getBody()).getFirstRoundPred(), 0.0);
 

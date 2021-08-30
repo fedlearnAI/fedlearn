@@ -62,7 +62,7 @@ public class MixGBoost implements Control {
      * 是否完成推理
      */
     private boolean isStopInference = false;
-    private static boolean secureMode = false;
+    private boolean secureMode = false;
     private static final int ENC_BITS = 1024;
 
     public MixGBoost(MixGBParameter parameter) {
