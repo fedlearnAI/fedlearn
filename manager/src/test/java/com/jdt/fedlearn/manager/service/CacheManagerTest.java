@@ -33,6 +33,7 @@ public class CacheManagerTest {
         Map<String,String> param = new HashMap();
         param.put(AppConstant.MANAGER_CACHE_KEY,CACHE_KEY);
         param.put(AppConstant.MANAGER_CACHE_VALUE,CACHE_VALUE);
+        param.put(AppConstant.MANAGER_CACHE_TYPE,AppConstant.MODEL_ADDRESS_CACHE);
         cacheManager.putCache(param);
     }
 
@@ -47,6 +48,7 @@ public class CacheManagerTest {
         putCache();
         Map<String,String> param = new HashMap();
         param.put(AppConstant.MANAGER_CACHE_KEY,CACHE_KEY);
+        param.put(AppConstant.MANAGER_CACHE_TYPE,AppConstant.MODEL_ADDRESS_CACHE);
         CacheManager cacheManager = new CacheManager();
         String test = cacheManager.getCache(param);
         Assert.assertEquals(CACHE_VALUE,test);

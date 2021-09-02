@@ -30,7 +30,7 @@ public class TestMatchInitRes {
         Message message = serializer.deserialize(content);
 
         MatchInitRes boostP3Req = (MatchInitRes) message;
-        Assert.assertEquals(boostP3Req.getClient(), new ClientInfo("127.0.0.1", 8092, "http", "","1"));
+        Assert.assertEquals(boostP3Req.getClient(), new ClientInfo("127.0.0.1", 8092, "http", null,"1"));
         Assert.assertEquals(boostP3Req.getIds(), new String[]{"a", "b"});
     }
 

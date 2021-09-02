@@ -1,15 +1,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-<modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <artifactId>all</artifactId>
         <groupId>com.jdt.fedlearn</groupId>
-        <version>0.9.2</version>
+        <version>0.9.3</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>core</artifactId>
+    <packaging>jar</packaging>
     <name>fedlearn-core</name>
 
     <properties>
@@ -253,7 +254,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
+				<version>${maven-surefire-plugin.version}</version>
+				<configuration>
+                        <skipTests>false</skipTests>
+						<testFailureIgnore>true</testFailureIgnore>
+                </configuration>
             </plugin>
 
             <plugin>
@@ -278,7 +283,17 @@
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>2.3</version>
                 <configuration>
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
+		    <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                  </filters>
                 </configuration>
                 <executions>
                     <execution>
@@ -354,17 +369,5 @@
             </plugin>
         </plugins>
     </build>
-
-<!--    对外开源需删除-->
-    <distributionManagement>
-        <repository>
-            <id>releases</id>
-            <url>http://nexus.cbpmgt.com/nexus/content/repositories/releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>snapshots</id>
-            <url>http://nexus.cbpmgt.com/nexus/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
 
 </project>

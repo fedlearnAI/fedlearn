@@ -12,7 +12,6 @@ limitations under the License.
 */
 package com.jdt.fedlearn.common.util;
 
-import com.jd.security.codesec.JDSafeObjectInputStream;
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
 
@@ -47,7 +46,7 @@ public class SerializationUtils {
     public static Object deserialize(String str) throws IOException, ClassNotFoundException {
         try(
                 ByteArrayInputStream b = new ByteArrayInputStream(new BASE64Decoder().decodeBuffer(str));
-                JDSafeObjectInputStream o = new JDSafeObjectInputStream(b);
+                ObjectInputStream o = new ObjectInputStream(b);
             ){
             return o.readObject();
         }

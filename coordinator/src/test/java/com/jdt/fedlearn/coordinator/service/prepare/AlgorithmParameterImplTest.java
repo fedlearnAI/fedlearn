@@ -39,7 +39,7 @@ public class AlgorithmParameterImplTest {
     public void testQueryAlgoParams() {
         AlgorithmParameterImpl algorithmParameterImpl = new AlgorithmParameterImpl();
         List<ParameterField> parameterFields = algorithmParameterImpl.queryAlgoParams(AlgorithmType.FederatedGB);
-        Assert.assertEquals(parameterFields.size(), 23);
+        Assert.assertEquals(parameterFields.size(), 22);
     }
 
 

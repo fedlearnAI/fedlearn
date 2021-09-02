@@ -35,7 +35,7 @@ public class TestTrainInit {
 
     @Test
     public void jsonDeserialize() throws ParseException {
-        String jsonStr = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.common.TrainInit\",\"DATA\":{\"trainId\":{\"projectId\":\"1\",\"algorithm\":\"FederatedGB\",\"createTime\":1580528123000},\"parameter\":{\"CLASS\":\"com.jdt.fedlearn.core.parameter.MixGBParameter\",\"DATA\":{\"trainingEpoch\":1,\"maxTreeNum\":30,\"verticalFeatureSampling\":0.8,\"maxBinNum\":32,\"minSampleSplit\":10,\"lambda\":1.0,\"gamma\":0.0,\"evalMetric\":[\"RMSE\"],\"maxDepth\":10,\"eta\":0.1,\"evalDataRatio\":0.6,\"evalIdRemoval\":false,\"horizontalFeaturesRatio\":0.8,\"needVerticalSplitRatio\":0.98,\"objective\":\"regSquare\",\"numClass\":1,\"catFeatures\":\"\",\"bitLength\":1024}},\"featureList\":{\"featureList\":[],\"index\":\"uid\"},\"idMap\":{\"content\":{}},\"others\":{\"newTree\":true,\"dataset\":\"dataset\"}}}";
+        String jsonStr = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.common.TrainInit\",\"DATA\":{\"trainId\":{\"projectId\":\"1\",\"algorithm\":\"FederatedGB\",\"createTime\":1580528123000},\"parameter\":{\"CLASS\":\"com.jdt.fedlearn.core.parameter.MixGBParameter\",\"DATA\":{\"trainingEpoch\":1,\"maxTreeNum\":30,\"verticalFeatureSampling\":1.0,\"maxBinNum\":32,\"minSampleSplit\":10,\"lambda\":1.0,\"gamma\":0.0,\"evalMetric\":[\"RMSE\"],\"maxDepth\":10,\"eta\":0.1,\"horizontalFeaturesRatio\":1.0,\"needVerticalSplitRatio\":1.0,\"objective\":\"regSquare\",\"numClass\":1,\"catFeatures\":\"\",\"bitLength\":1024}},\"featureList\":{\"featureList\":[],\"index\":\"uid\"},\"idMap\":{\"content\":{}},\"others\":{\"newTree\":true,\"dataset\":\"dataset\"}}}";
 
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(jsonStr);

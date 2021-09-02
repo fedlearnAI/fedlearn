@@ -292,19 +292,26 @@ public class TestDistributedRandomForest {
         List<ClientInfo> clientInfos = new ArrayList<>();
         clientInfos.add(new ClientInfo("127.0.0.1", 80, "HTTP", "", "0"));
         clientInfos.add(new ClientInfo("127.0.0.1", 81, "HTTP", "", "1"));
-        clientInfos.add(new ClientInfo("127.0.0.1", 82, "HTTP", "", "2"));
         DistributedRandomForest randomForest = new DistributedRandomForest(new RandomForestParameter());
-
+        RandomForestTrainRes[] randomForestTrainRes = new RandomForestTrainRes[2];
+        randomForestTrainRes[0] = new RandomForestTrainRes();
+        randomForestTrainRes[0].setClient(clientInfos.get(0));
+        randomForestTrainRes[0].setBody("");
+//        randomForestTrainRes[0].setBody("{\"numTrees\":\"2\",\"Tree1\":\"{}\",\"Tree0\":\"{\\\"0\\\":{\\\"referenceJson\\\":\\\"{}\\\",\\\"isLeaf\\\":\\\"0\\\",\\\"nodeId\\\":\\\"0\\\",\\\"party\\\":\\\"{\\\\\\\"ip\\\\\\\":\\\\\\\"127.0.0.1\\\\\\\",\\\\\\\"port\\\\\\\":80,\\\\\\\"path\\\\\\\":null,\\\\\\\"protocol\\\\\\\":\\\\\\\"HTTP\\\\\\\",\\\\\\\"uniqueId\\\\\\\":0}\\\"}}\"}");
+        randomForestTrainRes[0].setActive(true);
+        randomForestTrainRes[1] = new RandomForestTrainRes();
+        randomForestTrainRes[1].setClient(clientInfos.get(1));
+//        randomForestTrainRes[0].setBody("{\"numTrees\":\"2\",\"Tree1\":\"{\\\"0\\\":{\\\"referenceJson\\\":\\\"{}\\\",\\\"isLeaf\\\":\\\"0\\\",\\\"nodeId\\\":\\\"0\\\",\\\"party\\\":\\\"{\\\\\\\"ip\\\\\\\":\\\\\\\"127.0.0.1\\\\\\\",\\\\\\\"port\\\\\\\":81,\\\\\\\"path\\\\\\\":null,\\\\\\\"protocol\\\\\\\":\\\\\\\"HTTP\\\\\\\",\\\\\\\"uniqueId\\\\\\\":1}\\\"}}\",\"Tree0\":\"{}\"}");
+        randomForestTrainRes[1].setActive(false);
+        randomForestTrainRes[0].setBody("");
         List<CommonResponse> response = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            CommonResponse commonResponse = new CommonResponse(clientInfos.get(i), null);
+        for (int i = 0; i < 2; i++) {
+            CommonResponse commonResponse = new CommonResponse(clientInfos.get(i), randomForestTrainRes[i]);
             response.add(commonResponse);
         }
         List<CommonRequest>  res = randomForest.sendForest(response);
-        CommonRequest[] commonRequest = new CommonRequest[3];
-        commonRequest[0] = new CommonRequest(clientInfos.get(0), new RandomforestMessage("{\"numTrees\":\"2\",\"Tree1\":\"{}\",\"Tree0\":\"{\\\"0\\\":{\\\"referenceJson\\\":\\\"{}\\\",\\\"isLeaf\\\":\\\"0\\\",\\\"nodeId\\\":\\\"0\\\",\\\"party\\\":\\\"{\\\\\\\"ip\\\\\\\":\\\\\\\"127.0.0.1\\\\\\\",\\\\\\\"port\\\\\\\":80,\\\\\\\"path\\\\\\\":null,\\\\\\\"protocol\\\\\\\":\\\\\\\"HTTP\\\\\\\",\\\\\\\"uniqueId\\\\\\\":0}\\\"}}\"}"), 0);
-        commonRequest[1] = new CommonRequest(clientInfos.get(1), new RandomforestMessage("{\"numTrees\":\"2\",\"Tree1\":\"{\\\"0\\\":{\\\"referenceJson\\\":\\\"{}\\\",\\\"isLeaf\\\":\\\"0\\\",\\\"nodeId\\\":\\\"0\\\",\\\"party\\\":\\\"{\\\\\\\"ip\\\\\\\":\\\\\\\"127.0.0.1\\\\\\\",\\\\\\\"port\\\\\\\":81,\\\\\\\"path\\\\\\\":null,\\\\\\\"protocol\\\\\\\":\\\\\\\"HTTP\\\\\\\",\\\\\\\"uniqueId\\\\\\\":1}\\\"}}\",\"Tree0\":\"{}\"}"), 0);
-        commonRequest[2] = new CommonRequest(clientInfos.get(2), new RandomforestMessage("{\"numTrees\":\"2\",\"Tree1\":\"{}\",\"Tree0\":\"{}\"}"), 0);
+        Assert.assertEquals(((RandomForestTrainReq)res.get(0).getBody()).getBody(), "init");
+        Assert.assertEquals(((RandomForestTrainReq)res.get(0).getBody()).getBody(), "init");
     }
 
 

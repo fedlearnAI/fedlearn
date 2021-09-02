@@ -2,6 +2,7 @@ package com.jdt.fedlearn.coordinator.Inference;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jdt.fedlearn.common.entity.project.PartnerInfoNew;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.coordinator.dao.db.InferenceLogMapper;
 import com.jdt.fedlearn.coordinator.entity.inference.InferenceFetchDTO;
@@ -47,15 +48,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * 推理是master端的单元测试, 使用testng+Jmock,支持并发测试
  * @author geyan29
  * 2020/12/1 17:18
-**/
+ **/
 public class InferenceTest {
 
     private static final Logger logger = LoggerFactory.getLogger(InferenceTest.class);
 
     private static final Random random = new Random();
-    private static final String USERNAME_KEY = "username";
-    private static final String USERNAME_VALUE = "geyan";
-    private static final String MODEL_KEY = "model";
+    private static final String MODEL_KEY = "modelToken";
     private static final String UID_KEY = "uid";
     private static final String PRE_MODEL = "3-FederatedGB-";
     private static final String PATH = "path";
@@ -104,12 +103,17 @@ public class InferenceTest {
         String[] uids = allUids;
 
         Map<String, Object> paramMap = new HashMap<>();
-        paramMap.put(USERNAME_KEY, USERNAME_VALUE);
+//        paramMap.put(USERNAME_KEY, USERNAME_VALUE);
         paramMap.put(MODEL_KEY, model);
         paramMap.put(UID_KEY, uids);
+        List<PartnerInfoNew> clientList = new ArrayList<>();
+        clientList.add(new PartnerInfoNew("http://127.0.0.1:80", "a"));
+        clientList.add(new PartnerInfoNew("http://127.0.0.1:81", "b"));
+        clientList.add(new PartnerInfoNew("http://127.0.0.1:82", "c"));
+        paramMap.put("clientList", clientList);
 
         InferenceBatchServiceImpl inferenceBatchService = new InferenceBatchServiceImpl();
-        Map serviceResult = inferenceBatchService.service(JsonUtil.object2json(paramMap));
+        Map<String, Object> serviceResult = inferenceBatchService.service(JsonUtil.object2json(paramMap));
         logger.info("推理结果:{}", serviceResult);
         int code = (int) serviceResult.get(CODE_KEY);
         Map<String, List> data = (Map) serviceResult.get(DATA_KEY);
@@ -126,10 +130,20 @@ public class InferenceTest {
         logger.info("推理uid个数={}", count);
 //        String[] uids = randomUids(allUids, count, model);
         String[] uids = allUids;
-//        StringBuilder stringBuilder = new StringBuilder(PRE_MODEL);
-//        String model = stringBuilder.append(getSubUUID()).toString();
 
-        String content = "{\"path\":\"/root/path\",\"username\":\"lijingxi\",\"modelToken\":\"1-FederatedGB-4522552445\"}";
+        Map<String, Object> paramMap = new HashMap<>();
+//        paramMap.put(USERNAME_KEY, USERNAME_VALUE);
+        paramMap.put(MODEL_KEY, "1-FederatedGB-4522552445");
+        paramMap.put("path", "/root/path");
+
+        List<PartnerInfoNew> clientList = new ArrayList<>();
+        clientList.add(new PartnerInfoNew("http://127.0.0.1:80", "a"));
+        clientList.add(new PartnerInfoNew("http://127.0.0.1:81", "b"));
+        clientList.add(new PartnerInfoNew("http://127.0.0.1:82", "c"));
+        paramMap.put("clientList", clientList);
+        paramMap.put("userAddress", "http://127.0.0.1:80");
+
+        String content = JsonUtil.object2json(paramMap);
         InferenceRemoteServiceImpl inferenceRemoteService = new InferenceRemoteServiceImpl();
         Map serviceResult = inferenceRemoteService.service(content);
         logger.info("推理结果:{}", serviceResult);
@@ -139,8 +153,7 @@ public class InferenceTest {
         List predict = data.get(PREDICT_KEY);
 
         // TODO 当前待修改
-//        Assert.assertTrue(0 == code);
-//        Assert.assertEquals(uids.length+1, predict.size());
+        Assert.assertEquals(code, 0);
     }
 
 //    @Test
@@ -188,7 +201,7 @@ public class InferenceTest {
     private void mockPostClientInfo() {
         new MockUp<SendAndRecv>() {
             @Mock
-            public List<CommonResponse> broadcastInference(List<CommonRequest> intiRequests, String modelToken, AlgorithmType algorithm, String inferenceId) {
+            public List<CommonResponse> broadcastInference(List<CommonRequest> intiRequests, String modelToken, AlgorithmType algorithm, String inferenceId, List<PartnerInfoNew> partnerInfoNews) {
                 int phase = intiRequests.get(0).getPhase();
                 if (phase == -255) {
                     List<CommonResponse> fullRet255 = buildResponse(uidsMap.get(modelToken), -255);
@@ -400,8 +413,8 @@ public class InferenceTest {
             fullRet.add(cr255Three);
         } else if (phase == -1) {
             ArrayList<Tree> trees = new ArrayList<>();
-            TreeNode root1 = new TreeNode(1, 4, new ClientInfo(null, 0, "null", ""), 1, 1.0);
-            TreeNode root2 = new TreeNode(1, 4, new ClientInfo(null, 0, "null", ""), 2, 1.0);
+            TreeNode root1 = new TreeNode(1, 4, new ClientInfo("127.0.0.1", 80, "http", ""), 1, 1.0);
+            TreeNode root2 = new TreeNode(1, 4, new ClientInfo("127.0.0.1", 81, "http", ""), 2, 1.0);
             // left
             TreeNode left1 = new TreeNode(2, -0.6666666666666666);
             TreeNode left2 = new TreeNode(2, -0.5590094712505657);
@@ -413,7 +426,7 @@ public class InferenceTest {
             root2.internalNodeSetterSecure(0.0, null, left1, right1, false);
             trees.add(new Tree(root1));
             trees.add(new Tree(root2));
-            BoostN1Res bn1r1 = new BoostN1Res(trees, 0.0, new ArrayList<Double>());
+            BoostN1Res bn1r1 = new BoostN1Res(trees, 0.0, new ArrayList<>());
             CommonResponse cr = new CommonResponse(C1.toClientInfo(), bn1r1);
             CommonResponse cr2 = new CommonResponse(C2.toClientInfo(), null);
             CommonResponse cr3 = new CommonResponse(C3.toClientInfo(), null);

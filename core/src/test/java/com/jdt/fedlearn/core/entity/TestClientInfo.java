@@ -15,10 +15,8 @@ public class TestClientInfo {
     @Test
     public void testDeserialize(){
         ClientInfo clientInfo = new ClientInfo("127.0.0.1", 92, "http");
-        String ser = clientInfo.serialize();
-        ClientInfo clientInfo2 = new ClientInfo();
-        clientInfo2.deserialize(ser);
-        //System.out.println(clientInfo2);
+        String ser = clientInfo.url();
+        ClientInfo clientInfo2 = ClientInfo.parseUrl(ser);
         Assert.assertEquals(clientInfo2,clientInfo);
     }
 }

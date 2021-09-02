@@ -57,25 +57,12 @@ public class MatchProgressImplTest {
         MappingId mappingId = new MappingId(projectId, mappingType);
         String matchToken = mappingId.getMappingId();
         MatchQueryReq q = new MatchQueryReq(matchToken);
-        String content = JsonUtil.object2json(q);
-        System.out.println(content);
-        MatchQueryReq q2 = new MatchQueryReq(content);
-        // null
         MatchProgressImpl matchProgressimpl = new MatchProgressImpl();
-        Map<String, Object> resNull = matchProgressimpl.query(q2);
+        Map<String, Object> resNull = matchProgressimpl.query(q);
         System.out.println(JsonUtil.object2json(resNull));
-//        Assert.assertEquals(resNull.get("percent"), 0);
-        Assert.assertEquals(resNull.get("status"), "任务不存在");
-        // 10%
-        Map<String, Object> res = matchProgressimpl.query(q2);
-        Assert.assertEquals(res.get("percent"), 10);
-        Assert.assertTrue(res.get("describes").equals("正在对齐"));
-        // 100%
-        String[] commonUids = new String[]{"1B", "2A", "3A", "4A", "5C", "6C", "7C", "8B", "9B", "10B"};
-        List<String> uids = Arrays.stream(commonUids).collect(Collectors.toList());
-        MatchStartImpl.matchEntityMap.put(q2.getMatchId(), new MatchEntity(q2.getMatchId().split("-")[0],q2.getMatchId(), commonUids.length, "report", RunningType.COMPLETE,new ArrayList<>()));
-        Map<String, Object> res2 = matchProgressimpl.query(q2);
-        Assert.assertEquals(res2.get("percent"), 100);
+        Assert.assertEquals(resNull.get("describe"), "任务不存在");
+        Assert.assertEquals(resNull.get("percent"), 0);
+
     }
 
     private void mockConfigInit() {

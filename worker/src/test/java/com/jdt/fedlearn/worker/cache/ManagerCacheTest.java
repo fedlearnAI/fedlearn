@@ -20,6 +20,7 @@ import com.jdt.fedlearn.common.util.ManagerCommandUtil;
 
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 
 import org.powermock.modules.testng.PowerMockTestCase;
@@ -31,7 +32,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-
+@PowerMockIgnore("javax.net.ssl.*")
 @PrepareForTest({ManagerCommandUtil.class})
 public class ManagerCacheTest extends PowerMockTestCase {
     private static final String cacheValue = "test";

@@ -10,11 +10,11 @@ import org.testng.annotations.Test;
 public class TestBoostP1Req {
     @Test
     public void jsonSerialize() {
-        BoostP1Req boostP1Req = new BoostP1Req(new ClientInfo(), true);
+        BoostP1Req boostP1Req = new BoostP1Req(new ClientInfo("127.0.0.1", 10, "http", null, "0"), true);
 
         Serializer jsonSerialize = new JsonSerializer();
         String res = jsonSerialize.serialize(boostP1Req);
-        String realRes = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP1Req\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"newTree\":true}}";
+        String realRes = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP1Req\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":10,\"protocol\":\"http\",\"uniqueId\":\"0\"},\"newTree\":true}}";
         Assert.assertEquals(res, realRes);
     }
 

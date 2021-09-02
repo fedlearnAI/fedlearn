@@ -16,12 +16,13 @@ import java.util.stream.Collectors;
 public class TestBoostP4Req {
     @Test
     public void jsonDeserialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"kOpt\":1,\"vOpt\":2,\"accept\":true}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{ip='127.0.0.1', port=8000, protocol='http', uniqueId=1},\"kOpt\":1,\"vOpt\":2,\"accept\":true}}";
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
 
         BoostP4Req boostP4Req = (BoostP4Req) message;
-        Assert.assertEquals(boostP4Req.getClient(), new ClientInfo());
+        ClientInfo clientInfo = new ClientInfo("127.0.0.1", 8000, "http", null, "1");
+        Assert.assertEquals(boostP4Req.getClient(), clientInfo);
         Assert.assertEquals(boostP4Req.getkOpt(), 1);
         Assert.assertEquals(boostP4Req.getvOpt(), 2);
     }
@@ -29,12 +30,13 @@ public class TestBoostP4Req {
     @Test
     public void jsonSerialize(){
         Serializer serializer = new JsonSerializer();
-        BoostP4Req boostP4Req = new BoostP4Req(new ClientInfo(null,0,null,null,null), 1,3 ,true);
+        ClientInfo clientInfo = new ClientInfo("127.0.0.1", 8000, "http", null, "1");
+        BoostP4Req boostP4Req = new BoostP4Req(clientInfo, 1,3 ,true);
         String str = serializer.serialize(boostP4Req);
         System.out.println(str);
 
 //        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"kOpt\":1,\"vOpt\":3,\"accept\":true}}";
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{\"port\":0},\"kOpt\":1,\"vOpt\":3,\"accept\":true}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"kOpt\":1,\"vOpt\":3,\"accept\":true}}";
         Assert.assertEquals(str, content);
     }
 

@@ -32,6 +32,7 @@ import com.jdt.fedlearn.core.loader.common.CommonLoad;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;

@@ -47,7 +47,7 @@ public class ValidateServiceTest {
     private static final String PRE = "inference_";
     public static final String INFERENCE_ID = "inferenceId";
 
-    private static List<PartnerProperty> partnerPropertyList = null;
+    private static List<PartnerProperty> partnerPropertyList = new ArrayList<>();
     private static Map<String, String[]> uidsMap = new ConcurrentHashMap<>(32);
 
 
@@ -75,10 +75,10 @@ public class ValidateServiceTest {
     public void testCommonValidate() {
         // CACHE中储存，不用调取数据库
         //    public String commonValidate(ValidateRequest query, Map<String, Object> percentMap)
-        Date endTime = new Date();
         Map<String, Object> percentMap = new HashMap<>();
         percentMap.put(PERCENT, ONE_HUNDRED);
         percentMap.put(PREDICT_INFO, INFERENCE_SUCCESS);
+        Date endTime = new Date();
         percentMap.put(END_TIME, endTime.getTime());
 
 //        ResourceManager.CACHE.putValue(INFERENCE_ID, percentMap);

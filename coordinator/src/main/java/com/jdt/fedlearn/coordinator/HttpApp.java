@@ -24,6 +24,7 @@ import com.jdt.fedlearn.coordinator.exception.UnknownInterfaceException;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.coordinator.constant.Constant;
 import org.apache.commons.cli.*;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
@@ -37,6 +38,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 
@@ -61,7 +63,8 @@ public class HttpApp extends AbstractHandler {
             return;
         }
         // 根据URL，使用对应的类处理content
-        Map<String, Object> result = dispatch(url, FileUtil.getBodyData(request));
+        String content = IOUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
+        Map<String, Object> result = dispatch(url, content);
         // 设置响应参数
         buildResponse(baseRequest, response, result);
     }

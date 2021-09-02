@@ -20,6 +20,7 @@ import com.jdt.fedlearn.common.entity.Task;
 import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
 import com.jdt.fedlearn.common.util.WorkerCommandUtil;
 
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.modules.testng.PowerMockTestCase;
 import org.testng.annotations.Test;
 import org.testng.Assert;
@@ -36,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 
+@PowerMockIgnore("javax.net.ssl.*")
 @PrepareForTest({WorkerCommandUtil.class, WorkerManagerTest.class})
 public class WorkerManagerTest extends PowerMockTestCase {
     WorkerManager workerManager;

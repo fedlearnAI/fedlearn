@@ -13,7 +13,7 @@ public class TestMappingId {
     @Test
     public void construct() {
         String projectId = "10";
-        MappingType mappingType = MappingType.valueOf("VERTICAL_MD5");
+        MappingType mappingType = MappingType.valueOf("MD5");
         MappingId mappingId = new MappingId(projectId,mappingType);
         System.out.println("mappingId : " + mappingId.getMappingId());
         Assert.assertEquals(mappingId.getProjectId(), projectId);
@@ -22,7 +22,7 @@ public class TestMappingId {
 
     @Test
     public void construct2() throws ParseException {
-        String mappingIdStr = "10-VERTICAL_MD5-210426113010";
+        String mappingIdStr = "10-MD5-210426113010";
         MappingId mappingId= new MappingId(mappingIdStr);
         Assert.assertEquals(mappingId.getProjectId(), "10");
         Assert.assertEquals(mappingId.getMappingType(), MappingType.MD5);

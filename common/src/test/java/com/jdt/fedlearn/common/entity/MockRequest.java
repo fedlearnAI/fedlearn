@@ -12,6 +12,7 @@ limitations under the License.
 */
 package com.jdt.fedlearn.common.entity;
 
+
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.BufferedReader;

@@ -46,7 +46,7 @@ public class PrepareServiceTest {
     @Test
     public void match() {
         Serializer serializer = new JavaSerializer();
-        MappingType mappingType = MappingType.valueOf("VERTICAL_MD5");
+        MappingType mappingType = MappingType.valueOf("MD5");
         Prepare prepare = CommonPrepare.construct(mappingType);
         List<ClientInfo> clientInfos = new ArrayList<>();
         ClientInfo clientInfo = new ClientInfo("127.0.0.1",8094,"http");
@@ -58,7 +58,7 @@ public class PrepareServiceTest {
         PrepareService prepareService = new PrepareService();
         MatchRequest request = new MatchRequest();
         request.setDataset("mo17k.csv");
-        request.setMatchType("VERTICAL_MD5");
+        request.setMatchType("MD5");
         request.setMatchToken("test");
         String body = serializer.serialize(commonRequest.getBody());
         request.setBody(body);
@@ -80,6 +80,6 @@ public class PrepareServiceTest {
         PacketUtil.msgMap.put(key,list);
         PrepareService prepareService = new PrepareService();
         Map<String, Object> splitData = prepareService.getSplitData(map);
-        Assert.assertEquals(splitData.get(ResponseConstant.STATUS),"success");
+        Assert.assertEquals(splitData.get(ResponseConstant.STATUS),"fail");
     }
 }

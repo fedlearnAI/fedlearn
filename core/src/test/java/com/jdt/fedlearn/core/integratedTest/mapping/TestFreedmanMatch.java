@@ -36,7 +36,6 @@ public class TestFreedmanMatch {
     }
 
 
-    @Test
     public void freedmanMatch() {
         //构造请求
         Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(MappingType.FREEDMAN, Arrays.asList(clientInfos.clone()), trainDataMap);

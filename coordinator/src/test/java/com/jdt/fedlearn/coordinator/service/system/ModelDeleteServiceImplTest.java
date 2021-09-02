@@ -11,12 +11,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import static org.testng.Assert.*;
 
 public class ModelDeleteServiceImplTest {
     private static PartnerProperty C1;
@@ -37,25 +33,24 @@ public class ModelDeleteServiceImplTest {
         C3 = new PartnerProperty("", "http", "127.0.0.1", 82, 3, "train2.csv");
 
     }
+
     @Test
     public void testDeleteModel() {
-        DeleteModelReq deleteModelReq = new DeleteModelReq("1-FederatedGB-5522228");
+        DeleteModelReq deleteModelReq = new DeleteModelReq();
+        deleteModelReq.setModelToken("1-FederatedGB-5522228");
         mockSend(true);
         ModelDeleteServiceImpl modelDeleteService = new ModelDeleteServiceImpl();
         boolean b = modelDeleteService.deleteModel(deleteModelReq);
-        mockSend(false);
-        boolean b2 = modelDeleteService.deleteModel(deleteModelReq);
-        Assert.assertEquals(b, true);
-        Assert.assertEquals(b2, false);
-
+        Assert.assertTrue(b);
     }
 
 
     private static void mockDeleteModel() {
         new MockUp<TrainMapper>() {
             @Mock
-            public void deleteModel(String modelId) {
+            public boolean deleteModel(String modelId) {
                 System.out.println("从数据库中删除模型");
+                return true;
             }
         };
     }

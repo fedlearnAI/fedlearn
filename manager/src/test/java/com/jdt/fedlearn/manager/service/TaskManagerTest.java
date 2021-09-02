@@ -19,12 +19,22 @@ import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
 import com.jdt.fedlearn.common.enums.RunStatusEnum;
 import com.jdt.fedlearn.common.enums.TaskTypeEnum;
+import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
+import com.jdt.fedlearn.common.network.impl.HttpClientImpl;
+import com.jdt.fedlearn.common.tool.internel.ResponseInternal;
+import com.jdt.fedlearn.common.util.GZIPCompressUtil;
+import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.core.entity.boost.BoostN1Res;
+import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
 import com.jdt.fedlearn.manager.util.ConfigUtil;
 import com.jdt.fedlearn.manager.spring.SpringBean;
 import com.jdt.fedlearn.common.util.WorkerCommandUtil;
 
+import mockit.Mock;
+import mockit.MockUp;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 
 import org.springframework.context.ApplicationContext;
@@ -34,13 +44,16 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
+@PowerMockIgnore("javax.net.ssl.*")
 @PrepareForTest({SpringBean.class, WorkerCommandUtil.class})
 public class TaskManagerTest {
     private TaskManager taskManager;
     private static List<Task> taskList;
     private static final int total = 5;
     private static List<String> taskIdList;
+    JavaSerializer serializer = new JavaSerializer();
 
     @BeforeClass
     public void setUp() {
@@ -131,13 +144,7 @@ public class TaskManagerTest {
 
     @Test
     public void scheduler() throws InterruptedException {
-        CommonResultStatus commonResultStatus = new CommonResultStatus();
-        commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
-        Map<String, Object> map = new HashMap<>();
-        map.put(ResponseConstant.DATA, "true");
-        commonResultStatus.setData(map);
-        PowerMockito.mockStatic(WorkerCommandUtil.class);
-        PowerMockito.when(WorkerCommandUtil.request(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(commonResultStatus);
+        MockPostData();
         taskManager.scheduler();
         Thread.sleep(3000L);
     }
@@ -147,4 +154,29 @@ public class TaskManagerTest {
         System.out.println(Runtime.getRuntime().availableProcessors());
     }
 
+    private void MockPostData() {
+        new MockUp<HttpClientImpl>() {
+            @Mock
+            public String sendAndRecv(String uri, Object content) {
+                if(uri.contains(WorkerCommandEnum.IS_READY.getCode())){
+                    CommonResultStatus commonResultStatus = new CommonResultStatus();
+                    Map<String,Object> data = new HashMap<>();
+                    data.put(ResponseConstant.DATA,"true");
+                    commonResultStatus.setData(data);
+                    commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                    String s = JsonUtil.object2json(commonResultStatus);
+                    return GZIPCompressUtil.compress(s);
+                }else if(uri.contains(WorkerCommandEnum.RUN_TASK.getCode())){
+                    CommonResultStatus commonResultStatus = new CommonResultStatus();
+                    Map<String,Object> data = new HashMap<>();
+                    data.put(ResponseConstant.DATA,"true");
+                    commonResultStatus.setData(data);
+                    commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                    String s = JsonUtil.object2json(commonResultStatus);
+                    return GZIPCompressUtil.compress(s);
+                }
+                return null;
+            }
+        };
+    }
 }

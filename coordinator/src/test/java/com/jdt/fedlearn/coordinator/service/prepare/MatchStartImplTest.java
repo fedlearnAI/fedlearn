@@ -4,9 +4,11 @@ import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.coordinator.dao.UniversalMapper;
 import com.jdt.fedlearn.coordinator.dao.db.MatchMapper;
 import com.jdt.fedlearn.coordinator.entity.prepare.MatchStartReq;
+import com.jdt.fedlearn.coordinator.entity.table.MatchEntity;
 import com.jdt.fedlearn.coordinator.entity.table.PartnerProperty;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
+import com.jdt.fedlearn.coordinator.util.DbUtil;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.psi.MatchInitRes;
@@ -14,6 +16,8 @@ import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
 import com.jdt.fedlearn.core.entity.serialize.Serializer;
 import mockit.Mock;
 import mockit.MockUp;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -22,11 +26,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@PrepareForTest({MatchMapper.class, DbUtil.class,MatchEntity.class})
+@PowerMockIgnore("javax.net.ssl.*")
 public class MatchStartImplTest {
 
     private static PartnerProperty C1;
     private static PartnerProperty C2;
     private static PartnerProperty C3;
+    private static String id="1-MD5-399494";
     private static final Serializer serializer = new JavaSerializer();
 
 
@@ -34,7 +41,6 @@ public class MatchStartImplTest {
         C1 = new PartnerProperty("", "http", "127.0.0.1", 80, 1, "train0.csv");
         C2 = new PartnerProperty("", "http", "127.0.0.1", 81, 2, "train1.csv");
         C3 = new PartnerProperty("", "http", "127.0.0.1", 82, 3, "train2.csv");
-
     }
 
     @BeforeClass
@@ -52,14 +58,15 @@ public class MatchStartImplTest {
     public void testMatch() {
         String projectId = "1";
         MatchStartImpl matchStartImpl = new MatchStartImpl();
-        MatchStartReq query = new MatchStartReq(projectId, "VERTICAL_MD5");
+        MatchStartReq query = new MatchStartReq(projectId, "MD5");
         String content = JsonUtil.object2json(query);
         MatchStartReq query2 = new MatchStartReq(content);
         Map<String, Object> res = matchStartImpl.match(query2);
-        String res2 = (String) res.get("matchToken");
+        String res2 = (String) res.get("matchId");
         Assert.assertEquals(res2.split("-").length, 3);
         Assert.assertEquals(res2.split("-")[0], projectId);
     }
+
 
     /**
      * mock客户端信息
@@ -109,6 +116,13 @@ public class MatchStartImplTest {
             @Mock
             public String isContainMatch(String tasKId, String matchType) {
                 return "1-MD5-399494";
+            }
+
+            @Mock
+            public MatchEntity getMatchEntityByToken(String tasKId) {
+                MatchEntity matchEntity = new MatchEntity();
+                matchEntity.setMatchId("1-MD5-399494");
+                return matchEntity;
             }
         };
     }

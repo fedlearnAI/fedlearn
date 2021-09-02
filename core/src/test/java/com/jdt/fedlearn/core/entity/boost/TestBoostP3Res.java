@@ -11,12 +11,12 @@ import org.testng.annotations.Test;
 public class TestBoostP3Res {
     @Test
     public void jsonDeserialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP3Res\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"feature\":\"age\", \"index\":0}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP3Res\",\"DATA\":{\"client\":{ip='127.0.0.1', port=80, protocol='http', uniqueId=1},\"feature\":\"age\", \"index\":0}}";
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
 
         BoostP3Res boostP3Res = (BoostP3Res) message;
-        Assert.assertEquals(boostP3Res.getClient(), new ClientInfo());
+        Assert.assertEquals(boostP3Res.getClient(), new ClientInfo("127.0.0.1", 80, "http", null, "1"));
         Assert.assertEquals(boostP3Res.getFeature(), "age");
         Assert.assertEquals(boostP3Res.getIndex(), 0);
     }

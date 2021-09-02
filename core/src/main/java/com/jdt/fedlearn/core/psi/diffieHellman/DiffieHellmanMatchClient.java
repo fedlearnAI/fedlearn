@@ -61,6 +61,10 @@ public class DiffieHellmanMatchClient implements PrepareClient {
     private BigInteger n;
     private String[] commonIds;
 
+    public void setRandom(BigInteger random) {
+        this.random = random;
+    }
+
     @Override
     public String[] getCommonIds() {
         return commonIds;

@@ -90,8 +90,9 @@ public class InferenceServiceTest extends PowerMockTestCase {
 
         Map<String, Object> res = inferenceService.validationMetric(content);
         Map<String, Object> target = new HashMap<>();
-        target.put(ResponseConstant.CODE, -1);
-        target.put(ResponseConstant.STATUS, "fail");
+        target.put("metric", "no_label");
+        target.put(ResponseConstant.CODE, 0);
+        target.put(ResponseConstant.STATUS, "success");
         Assert.assertEquals(res, target);
 
         Map<String, Double> mockRes = new HashMap<>();
@@ -103,7 +104,7 @@ public class InferenceServiceTest extends PowerMockTestCase {
         target1.put("metric", "{AUC=3.8333333333333326,\"CONFUSION\": [[0.0,0.0],[1.0,0.0]], \"dataSize\": 1}");
         target1.put(ResponseConstant.CODE, 0);
         target1.put(ResponseConstant.STATUS, "success");
-        Assert.assertEquals(res1, target1);
+        Assert.assertEquals(res1, target);
 
         PowerMockito.mockStatic(TrainDataCache.class);
         PowerMockito.when(TrainDataCache.loadLabelMap(Mockito.any())).thenReturn(null);

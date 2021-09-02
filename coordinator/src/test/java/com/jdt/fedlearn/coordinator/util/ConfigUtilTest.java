@@ -12,7 +12,7 @@ public class ConfigUtilTest {
 
     @Test
     public void testgetSplitTag(){
-        String filePath = "./src/test/resources/master.properties";
+        String filePath = "./src/test/resources/coordinator.properties";
         try {
             ConfigUtil.init(filePath) ;
             boolean splitTag = ConfigUtil.getSplitTag();
@@ -25,7 +25,7 @@ public class ConfigUtilTest {
 
     @Test
     public void testGetZipProperties(){
-        String filePath = "./src/test/resources/master.properties";
+        String filePath = "./src/test/resources/coordinator.properties";
         try {
             ConfigUtil.init(filePath) ;
             boolean zipProperties = ConfigUtil.getZipProperties();
@@ -38,7 +38,7 @@ public class ConfigUtilTest {
 
     @Test
     public void testGetProperties(){
-        String filePath = "./src/test/resources/master.properties";
+        String filePath = "./src/test/resources/coordinator.properties";
         try {
             ConfigUtil.init(filePath) ;
             String prop = ConfigUtil.getProperty("prop");
@@ -52,7 +52,7 @@ public class ConfigUtilTest {
 
     @Test
     public void testGetProperties2(){
-        String filePath = "./src/test/resources/master.properties";
+        String filePath = "./src/test/resources/coordinator.properties";
         try {
             ConfigUtil.init(filePath) ;
             String prop = ConfigUtil.getProperty("db.type");
@@ -65,7 +65,7 @@ public class ConfigUtilTest {
 
     @Test
     public  void testGetDbProperties(){
-        String filePath = "./src/test/resources/master.properties";
+        String filePath = "./src/test/resources/coordinator.properties";
         try {
             ConfigUtil.init(filePath) ;
             DbConfig dbConfig = ConfigUtil.getDbProperties();
@@ -80,7 +80,7 @@ public class ConfigUtilTest {
 
     @Test
     public void testgetPortElseDefault(){
-        String filePath = "./src/test/resources/master.properties";
+        String filePath = "./src/test/resources/coordinator.properties";
         try {
             ConfigUtil.init(filePath) ;
             int portElseDefault = ConfigUtil.getPortElseDefault();
@@ -93,7 +93,7 @@ public class ConfigUtilTest {
 
     @Test
     public void testGetJdChainAvailable() {
-        String filePath = "./src/test/resources/master.properties";
+        String filePath = "./src/test/resources/coordinator.properties";
         try {
             ConfigUtil.init(filePath) ;
             boolean jdChainAvailable = ConfigUtil.getJdChainAvailable();
@@ -106,7 +106,7 @@ public class ConfigUtilTest {
 
     @Test
     public void testGetJdChainConfig() {
-        String filePath = "./src/test/resources/master.properties";
+        String filePath = "./src/test/resources/coordinator.properties";
         try {
             ConfigUtil.init(filePath) ;
             JdChainConfig jdChainConfig = ConfigUtil.getJdChainConfig();

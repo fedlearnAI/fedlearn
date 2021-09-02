@@ -24,8 +24,11 @@ public class SystemDatasetServiceImplTest {
 
     @Test
     public void testQueryDataset() throws JsonProcessingException {
-        FeatureReq featureReq1 = new FeatureReq( "clientUrl");
-        FeatureReq featureReq2 = new FeatureReq("clientUrl");
+        FeatureReq featureReq1 = new FeatureReq( );
+        featureReq1.setUrl("clientUrl");
+
+        FeatureReq featureReq2 = new FeatureReq();
+        featureReq2.setUrl("clientUrl");
 
         SystemDatasetServiceImpl systemDatasetService = new SystemDatasetServiceImpl();
         try {
@@ -39,7 +42,8 @@ public class SystemDatasetServiceImplTest {
 
     @Test
     public void testQueryDatasetWithCorrectPassword() throws JsonProcessingException {
-        FeatureReq featureReq2 = new FeatureReq("clientUrl");
+        FeatureReq featureReq2 = new FeatureReq();
+        featureReq2.setUrl("clientUrl");
         SystemDatasetServiceImpl systemDatasetService = new SystemDatasetServiceImpl();
         FeatureMapDTO featureMapDto2 = systemDatasetService.queryDataset(featureReq2);
         Assert.assertEquals(featureMapDto2.getList(), null);
@@ -49,9 +53,8 @@ public class SystemDatasetServiceImplTest {
     public void mockSendPost() {
         new MockUp<SendAndRecv>() {
             @Mock
-            public ResponseInternal sendPost(String url, Map map) {
-                ResponseInternal featureResp = new ResponseInternal(0, "success", new FeatureMapDTO());
-                return featureResp;
+            public ResponseInternal sendPost(String url) {
+                return new ResponseInternal(0, "success", new FeatureMapDTO());
             }
         };
     }

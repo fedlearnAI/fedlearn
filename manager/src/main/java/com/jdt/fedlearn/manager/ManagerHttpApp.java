@@ -29,6 +29,7 @@ import com.jdt.fedlearn.manager.spring.SpringBean;
 import com.jdt.fedlearn.manager.spring.SpringUtil;
 import com.jdt.fedlearn.manager.util.ConfigUtil;
 import org.apache.commons.cli.*;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
@@ -44,6 +45,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -181,7 +183,7 @@ public class ManagerHttpApp extends AbstractHandler {
             throw new IllegalArgumentException("request 参数异常");
         }
         // 主逻辑处理
-        String content = FileUtil.getBodyData(request);
+        String content = IOUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
         logger.info("处理requset requestCommand: {}", requestCommand);
         logger.info("处理requset content size: {}", content!=null?content.length():0);
         ManagerCommandEnum managerCommandEnum =

@@ -35,6 +35,7 @@ import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
 import com.jdt.fedlearn.common.util.*;
 import com.jdt.fedlearn.worker.service.*;
 import org.apache.commons.cli.*;
+import org.apache.commons.io.IOUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
@@ -49,6 +50,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,14 +157,13 @@ public class WorkerHttpApp extends AbstractHandler {
         }
 
         String res = JsonUtil.object2json(commonResultStatus);
-        logger.info("返回结果长度,压缩前:{}，占用内存：{}",res.length(), RamUsageEstimator.shallowSizeOf(res));
         writer.println(GZIPCompressUtil.compress(res));
         writer.flush();
         baseRequest.setHandled(true);
     }
 
 
-    private CommonResultStatus dispatch(String url, HttpServletRequest request, CommonResultStatus commonResultStatus) throws JsonProcessingException {
+    private CommonResultStatus dispatch(String url, HttpServletRequest request, CommonResultStatus commonResultStatus) throws IOException {
 
         //初始化错误处理
         if (!request.getContentType().toLowerCase().contains("application/json")) {
@@ -170,7 +171,7 @@ public class WorkerHttpApp extends AbstractHandler {
         }
 
         //     主逻辑处理
-        String content = FileUtil.getBodyData(request);
+        String content = IOUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
 
         WorkerCommandEnum workerCommandEnum = WorkerCommandEnum.findEnum(url.replace("//", "/").replaceFirst("/", ""));
         if (workerCommandEnum == null) {

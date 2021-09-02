@@ -222,6 +222,23 @@ public class ForwardController {
     }
 
     /**
+     * 开始任务&进度查询
+     *
+     * @param request 请求
+     * @return ResponseEntity<Map>
+     */
+    private static final String TRAIN_CHANGE = "train/change";
+
+    @RequestMapping(value = TRAIN_CHANGE, method = RequestMethod.POST, produces = "application/json; charset=utf-8")
+    @ResponseBody
+    public ResponseEntity<ModelMap> changeTask(@Validated @RequestBody Map<String, Object> request) {
+        request.remove(USER_NAME);
+        String modelMap = HttpClientUtil.doHttpPost(baseUrl + TRAIN_CHANGE, request);
+        ModelMap res = JsonUtil.json2Object(modelMap, ModelMap.class);
+        return ResponseEntity.status(HttpStatus.OK).body(res);
+    }
+
+    /**
      * 训练相关
      *
      * @param request 请求
@@ -234,6 +251,7 @@ public class ForwardController {
         ModelMap res = JsonUtil.json2Object(modelMap, ModelMap.class);
         return ResponseEntity.status(HttpStatus.OK).body(res);
     }
+
 
     /**
      * 运行中任务查询

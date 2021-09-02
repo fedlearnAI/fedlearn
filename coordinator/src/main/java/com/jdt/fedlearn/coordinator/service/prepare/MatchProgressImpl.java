@@ -83,7 +83,6 @@ public class MatchProgressImpl implements TrainService {
                 data.put(PERCENT, VALUE_0);
                 data.put(DESCRIBE, MatchStartImpl.matchEntityMap.get(matchIdStr).getMatchReport());
                 logger.info("data PERCENT: " + VALUE_0 + " , data DESCRIBES: : " + MatchStartImpl.matchEntityMap.get(matchIdStr).getMatchReport());
-                throw new NotAcceptableException(String.format("任务失败 :%s ", LogUtil.logLine(MatchStartImpl.matchEntityMap.get(matchIdStr).getMatchReport())));
             } else {
                 data.put(PERCENT, VALUE_50);
                 data.put(DESCRIBE, DOING);
@@ -101,7 +100,6 @@ public class MatchProgressImpl implements TrainService {
                 } else {
                     data.put(PERCENT, VALUE_0);
                     data.put(DESCRIBE, NOT_EXISTS);
-                    throw new NotMatchException("任务不存在");
                 }
             }
         }

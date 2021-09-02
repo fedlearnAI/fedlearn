@@ -29,7 +29,7 @@ import java.util.Map;
  */
 public class ManagerCommandUtil {
     private static final Logger logger = LoggerFactory.getLogger(ManagerCommandUtil.class);
-    private static INetWorkService netWorkService =  INetWorkService.getNetWorkService();
+    private static final INetWorkService netWorkService =  INetWorkService.getNetWorkService();
     /**
      * http请求manager
      * @param baseUrl            baseurl

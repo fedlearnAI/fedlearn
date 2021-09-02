@@ -12,12 +12,12 @@ import org.testng.annotations.Test;
 public class TestFeatureLeftGH {
     @Test
     public void jsonDeserialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.FeatureLeftGH\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"feature\":\"gender\",\"ghLeft\":[]}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.FeatureLeftGH\",\"DATA\":{\"client\":{ip='127.0.0.1', port=8000, protocol='http', uniqueId=1},\"feature\":\"gender\",\"ghLeft\":[]}}";
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
 
         FeatureLeftGH gh = (FeatureLeftGH) message;
-        Assert.assertEquals(gh.getClient(), new ClientInfo());
+        Assert.assertEquals(gh.getClient(),  new ClientInfo("127.0.0.1", 8000, "http", null, "1"));
         Assert.assertEquals(gh.getFeature(), "gender");
         Assert.assertEquals(gh.getGhLeft().length, 0);
     }
@@ -25,13 +25,13 @@ public class TestFeatureLeftGH {
     @Test
     public void jsonSerialize(){
         Serializer serializer = new JsonSerializer();
-//        FeatureLeftGH boostP5Res = new FeatureLeftGH(new ClientInfo());
-        FeatureLeftGH boostP5Res = new FeatureLeftGH(new ClientInfo(), "age", new StringTuple2[0]);
+        ClientInfo clientInfo = new ClientInfo("127.0.0.1", 8000, "http", null, "1");
+        FeatureLeftGH boostP5Res = new FeatureLeftGH(clientInfo, "age", new StringTuple2[0]);
         String str = serializer.serialize(boostP5Res);
         System.out.println(str);
 
 //        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.FeatureLeftGH\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"feature\":\"age\",\"ghLeft\":[]}}";
-        String content="{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.FeatureLeftGH\",\"DATA\":{\"client\":{\"port\":0},\"feature\":\"age\",\"ghLeft\":[]}}";
+        String content="{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.FeatureLeftGH\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"feature\":\"age\",\"ghLeft\":[]}}";
         Assert.assertEquals(str, content);
     }
 

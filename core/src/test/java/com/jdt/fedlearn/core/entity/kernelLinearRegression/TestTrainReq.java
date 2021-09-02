@@ -14,22 +14,22 @@ import java.util.List;
 public class TestTrainReq {
     @Test
     public void jsonDeserialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainReq\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"isUpdate\":false,\"valuelist\":[],\"sampleIndex\":[]}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainReq\",\"DATA\":{\"client\":{ip='127.0.0.1', port=8000, protocol='http', uniqueId=1},\"isUpdate\":false,\"valuelist\":[],\"sampleIndex\":[]}}";
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
         TrainReq trainReq = (TrainReq) message;
-        ClientInfo clientInfo = new ClientInfo(null,0,null,"0","0");
+        ClientInfo clientInfo = new ClientInfo("127.0.0.1", 8000, "http", null, "1");
         Assert.assertEquals(trainReq.getClient(),clientInfo);
-        Assert.assertEquals(trainReq.isUpdate(),false);
+        Assert.assertFalse(trainReq.isUpdate());
         Assert.assertEquals(trainReq.getValueList().length,0);
         Assert.assertEquals(trainReq.getSampleIndex().size(),0);
     }
 
     @Test
     public void jsonSerialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainReq\",\"DATA\":{\"client\":{\"port\":0},\"isUpdate\":false,\"valuelist\":[],\"sampleIndex\":[],\"numClassRound\":0,\"bestRound\":0,\"clientInd\":0}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainReq\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"isUpdate\":false,\"valuelist\":[],\"sampleIndex\":[],\"numClassRound\":0,\"bestRound\":0,\"clientInd\":0}}";
         Serializer serializer = new JsonSerializer();
-        ClientInfo clientInfo = new ClientInfo();
+        ClientInfo clientInfo = new ClientInfo("127.0.0.1", 8000, "http", null, "1");
         boolean isUpdate = false;
         double[] valuelist = new double[]{};
         List<Integer> sampleIndex = new ArrayList<>();

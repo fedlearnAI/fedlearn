@@ -85,12 +85,12 @@ public class InitRunnerImpl implements Runner {
     private static final Integer LIST_MAX_SIZE = 2;
     private static final String MANAGER_ADDRESS = "manager.address";
     private void notifyManager(List<Task> taskList) {
-        logger.info("当前taskList长度:{},占用内存：{} byte",taskList.size(),RamUsageEstimator.shallowSizeOf(taskList));
+//        logger.info("当前taskList长度:{},占用内存：{} byte",taskList.size(),RamUsageEstimator.shallowSizeOf(taskList));
         String managerAddress = ConfigUtil.getProperty(MANAGER_ADDRESS);
         if(taskList.size() > LIST_MAX_SIZE){
             List<List<Task>> partition = ListUtils.partition(taskList, LIST_MAX_SIZE);
             partition.stream().forEach(l -> {
-                logger.info("分片发送，当前发送list占用内存：{} byte",RamUsageEstimator.shallowSizeOf(l));
+//                logger.info("分片发送，当前发送list占用内存：{} byte",RamUsageEstimator.shallowSizeOf(l));
                 ManagerCommandUtil.addTask(managerAddress, l);
             });
         }else {

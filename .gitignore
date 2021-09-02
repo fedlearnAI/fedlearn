@@ -14,7 +14,8 @@
 #idea IDE files
 .idea/
 target/
-project/
+# only ignore project dir in base
+/project/
 *.iml
 .DS_Store
 .DS_Store?

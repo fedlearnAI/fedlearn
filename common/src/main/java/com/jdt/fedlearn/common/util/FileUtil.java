@@ -37,20 +37,6 @@ public class FileUtil {
         add(".gitignore");
     }};
 
-    /**
-     * 获取request的数据
-     *
-     * @param request 请求
-     * @return 获取body内容
-     */
-    public static String getBodyData(HttpServletRequest request) {
-        try {
-            return IOUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            logger.error("io异常", e);
-        }
-        return "";
-    }
 
     // 从请求中获取数据
     public static List<String> getBodyData(InputStream inputStream) {

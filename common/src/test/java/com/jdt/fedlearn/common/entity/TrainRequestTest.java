@@ -33,14 +33,14 @@ public class TrainRequestTest {
 
     @Test
     public void parseJson() {
-        String jsonStr = "{\"modelToken\":\"modelToken\",\"algorithm\":\"DistributedRandomForest\",\"phase\":1,\"data\":null,\"dataNum\":10,\"dataIndex\":0,\"isGzip\":false,\"status\":null,\"requestId\":\"1\",\"reduceType\":\"2\",\"isSync\":false}";
+        String jsonStr = "{\"modelToken\":\"modelToken\",\"algorithm\":\"DistributedRandomForest\",\"phase\":1,\"data\":null,\"dataNum\":10,\"dataIndex\":0,\"isGzip\":false,\"status\":null,\"requestId\":\"1\",\"reduceType\":\"needMerge\",\"isSync\":false}";
         TrainRequest t = new TrainRequest(jsonStr);
         Assert.assertEquals(t.getModelToken(),"modelToken");
     }
 
     @Test
     public void testToString() {
-        String jsonStr = "{\"modelToken\":\"modelToken\",\"algorithm\":\"DistributedRandomForest\",\"phase\":1,\"data\":null,\"dataNum\":10,\"dataIndex\":0,\"isGzip\":false,\"status\":null,\"requestId\":\"1\",\"reduceType\":\"2\",\"isSync\":false}";
+        String jsonStr = "{\"modelToken\":\"modelToken\",\"algorithm\":\"DistributedRandomForest\",\"phase\":1,\"data\":null,\"dataNum\":10,\"dataIndex\":0,\"isGzip\":false,\"status\":null,\"requestId\":\"1\",\"reduceType\":\"needMerge\",\"isSync\":false}";
         TrainRequest t = new TrainRequest(jsonStr);
         String s = t.toString();
         Assert.assertTrue(s.startsWith("SubRequest{"));

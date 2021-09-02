@@ -10,7 +10,6 @@ public class FeatureReqTest {
         FeatureReq featureReq = new FeatureReq();
         featureReq.setUrl("url");
         String s = JsonUtil.object2json(featureReq);
-        FeatureReq featureReq2 = new FeatureReq("");
         FeatureReq featureReq1 = new FeatureReq(s);
         Assert.assertEquals(featureReq.getUrl(), featureReq1.getUrl());
 

@@ -57,7 +57,10 @@ public class TestLinearRegressionInferInitOthers {
         Assert.assertEquals(linearRegressionInferInitOthers.fullN, fullN);
         Assert.assertEquals(linearRegressionInferInitOthers.featureNames.length, featureNames.length);
         Assert.assertEquals(linearRegressionInferInitOthers.yTrue, yTrue);
-        Assert.assertEquals(linearRegressionInferInitOthers.selfClientInfo, selfClientInfo);
+        Assert.assertEquals(
+                linearRegressionInferInitOthers.selfClientInfo.getIp()+linearRegressionInferInitOthers.selfClientInfo.getPort(),
+                selfClientInfo.getIp()+selfClientInfo.getPort()
+        );
         Assert.assertEquals(linearRegressionInferInitOthers.encMode, encMode);
         Assert.assertEquals(linearRegressionInferInitOthers.h, h);
         Assert.assertEquals(linearRegressionInferInitOthers.pkStr, pkStr);

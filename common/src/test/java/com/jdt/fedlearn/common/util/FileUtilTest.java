@@ -29,18 +29,9 @@ public class FileUtilTest {
     String outFilePath = "src/test/resources/file/out.txt";
 
     @Test
-    public void getBodyData() {
-        String body = "this is test";
-        MockRequest mockRequest = new MockRequest("",body);
-        String bodyData = FileUtil.getBodyData(mockRequest);
-        System.out.println(bodyData);
-    }
-
-    @Test
     public void scanDir() {
         List<String> list = FileUtil.scanDir(filePath);
         Assert.assertEquals(list.get(0),fileName);
-
     }
 
     @Test

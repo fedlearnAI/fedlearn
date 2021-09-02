@@ -13,27 +13,47 @@ limitations under the License.
 package com.jdt.fedlearn.worker.runner.impl.fedLearning;
 
 import com.jdt.fedlearn.client.util.ConfigUtil;
+import com.jdt.fedlearn.common.util.ManagerCommandUtil;
 import com.jdt.fedlearn.worker.spring.SpringBean;
 import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.*;
 import com.jdt.fedlearn.core.type.AlgorithmType;
-
+import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.testng.PowerMockTestCase;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class MapRunnerImplTest {
+@PrepareForTest({ManagerCommandUtil.class})
+@PowerMockIgnore("javax.net.ssl.*")
+public class MapRunnerImplTest extends PowerMockTestCase {
     private MapRunnerImpl mapRunnerImpl;
+    private static final String cacheValue = "test";
+    private static final String ip = "127.0.0.1";
+    private static final int port = 1080;
 
     @BeforeClass
     public void setUp() throws Exception {
         ConfigUtil.init("src/test/resources/conf/worker.properties");
+        mockRequest();
         ApplicationContext applicationContext = new AnnotationConfigApplicationContext(SpringBean.class);
         mapRunnerImpl = (MapRunnerImpl) applicationContext.getBean("mapRunnerImpl");
 
     }
+
+
+    private void mockRequest(){
+        PowerMockito.mockStatic(ManagerCommandUtil.class);
+        JobResult jobResult = new JobResult();
+        jobResult.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+        PowerMockito.when(ManagerCommandUtil.request(Mockito.any(),Mockito.any(),Mockito.any())).thenReturn(jobResult);
+    }
+
     @Test
     public void run() {
         JobReq jobReq = new JobReq();
@@ -49,10 +69,12 @@ public class MapRunnerImplTest {
         trainRequest.setAlgorithm(AlgorithmType.DistributedRandomForest);
         trainRequest.setDataIndex(1);
         trainRequest.setSync(false);
+        trainRequest.setStatus(RunningType.COMPLETE);
         jobReq.setSubRequest(trainRequest);
         Job job = new Job(jobReq, new JobResult());
         Task task = new Task(job, RunStatusEnum.RUNNING, TaskTypeEnum.INIT);
         task.setTaskId("1");
+        task.setSubRequest(trainRequest);
         CommonResultStatus run = mapRunnerImpl.run(task);
         Assert.assertEquals(run.getResultTypeEnum(), ResultTypeEnum.SUCCESS);
     }

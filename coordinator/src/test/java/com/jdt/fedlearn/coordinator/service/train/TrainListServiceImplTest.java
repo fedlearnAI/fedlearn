@@ -33,14 +33,14 @@ public class TrainListServiceImplTest {
         StartValues startValues = new StartValues();
         String trainStartTime = "";
         List<SingleParameter> parameterFieldList = new ArrayList<>();
-        TrainContext trainContext = new TrainContext(startValues, RunningType.RUNNING, trainStartTime,
-                parameterFieldList);
+        TrainContext trainContext = new TrainContext(startValues, RunningType.RUNNING, trainStartTime, parameterFieldList);
         trainContext.setPercent(10);
         trainContextMap.put("1-FederatedGB", trainContext);
         TrainCommonServiceImpl.trainContextMap = trainContextMap;
-        CommonQuery query = new CommonQuery( Arrays.asList("1"),"COMPLETE");
+        CommonQuery query = new CommonQuery( Arrays.asList("1"),"RUNNING");
         TrainListServiceImpl trainListServiceImpl = new TrainListServiceImpl();
         List<TrainListRes> trainListRes = trainListServiceImpl.queryTrainList(query);
+
         Assert.assertEquals(trainListRes.size(), 1);
         Assert.assertEquals(trainListRes.get(0).getModelToken(),"1-FederatedGB");
 
@@ -52,7 +52,7 @@ public class TrainListServiceImplTest {
     private static void mockGetModelsByTaskId() {
         new MockUp<TrainMapper>() {
             @Mock
-            public List<String> getModelsByTaskId(Integer taskId) {
+            public List<String> getModelsByTaskId(String taskId) {
                 return new ArrayList<>();
             }
         };

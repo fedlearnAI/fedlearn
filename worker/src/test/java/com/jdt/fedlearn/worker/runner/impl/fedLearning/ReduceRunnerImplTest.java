@@ -21,6 +21,7 @@ import com.jdt.fedlearn.core.type.AlgorithmType;
 
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockTestCase;
 import org.springframework.context.ApplicationContext;
@@ -32,7 +33,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
+@PowerMockIgnore("javax.net.ssl.*")
 @PrepareForTest({WorkerCommandUtil.class})
 public class ReduceRunnerImplTest extends PowerMockTestCase {
     ReduceRunnerImpl reduceRunnerImpl;
@@ -63,6 +64,7 @@ public class ReduceRunnerImplTest extends PowerMockTestCase {
         trainRequest.setAlgorithm(AlgorithmType.DistributedRandomForest);
         trainRequest.setDataIndex(1);
         trainRequest.setSync(false);
+        trainRequest.setStatus(RunningType.COMPLETE);
         jobReq.setSubRequest(trainRequest);
         Job job = new Job(jobReq, new JobResult());
 
@@ -75,6 +77,7 @@ public class ReduceRunnerImplTest extends PowerMockTestCase {
         List<Task> list = new ArrayList<>();
         list.add(task);
         task.setPreTaskList(list);
+        task.setSubRequest(trainRequest);
         CommonResultStatus run = reduceRunnerImpl.run(task);
         Assert.assertEquals(run.getResultTypeEnum(), ResultTypeEnum.SUCCESS);
     }

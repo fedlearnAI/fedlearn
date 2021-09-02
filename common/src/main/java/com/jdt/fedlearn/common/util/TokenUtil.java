@@ -62,7 +62,8 @@ public class TokenUtil {
         sb.append(SPILT);
         sb.append(supportedAlgorithm.getAlgorithm());
         sb.append(SPILT);
-        sb.append(TimeUtil.getNanoTime(FORMAT));
+        sb.append(TimeUtil.getNowTime(FORMAT));
+        sb.append(random.nextInt(RANDOM_NUMBER_BOUND));
         return sb.toString();
     }
 
@@ -104,7 +105,7 @@ public class TokenUtil {
         sb.append(SPILT);
         sb.append(matchAlgorithm);
         sb.append(SPILT);
-        sb.append(TimeUtil.getNanoTime(FORMAT));
+        sb.append(TimeUtil.getNowTime(FORMAT));
         return sb.toString();
     }
 

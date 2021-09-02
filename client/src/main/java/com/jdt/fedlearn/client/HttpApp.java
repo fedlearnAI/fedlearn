@@ -40,6 +40,7 @@ import com.jdt.fedlearn.common.tool.internel.ResponseConstruct;
 import com.jdt.fedlearn.common.util.*;
 import com.jdt.fedlearn.core.entity.Message;
 import org.apache.commons.cli.*;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
@@ -53,6 +54,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 
@@ -92,7 +94,7 @@ public class HttpApp extends AbstractHandler {
         }
 
         long start = System.currentTimeMillis();
-        String content = FileUtil.getBodyData(request);
+        String content = IOUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
         logger.info("content len  : " + content.length());
         logger.info(" FileUtil.getBodyData cost : " + (System.currentTimeMillis() - start) + " ms");
         //区分本地API请求 与 协调端请求

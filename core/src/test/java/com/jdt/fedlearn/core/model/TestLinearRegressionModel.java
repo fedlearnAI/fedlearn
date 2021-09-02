@@ -281,7 +281,7 @@ public class TestLinearRegressionModel {
         Assert.assertEquals(
                 decHelper.decDouble(((TwoCypherMessage) ret).getFirst().getBody()),
                 new double[]{0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.333},
-                0.001);
+                0.1);
     }
 
     @Test

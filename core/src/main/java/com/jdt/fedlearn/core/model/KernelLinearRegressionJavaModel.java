@@ -1233,6 +1233,7 @@ public class KernelLinearRegressionJavaModel implements Model {
         this.numClass = numClass;
         this.yTrainSubs = new double[numClass][numSample];
         this.predicts = new double[numClass][numSample];
+        this.sampleIndex=sampleIndex;
         if (trainData.hasLabel) {
             isActive = true;
             yTrain = trainData.getLabel();

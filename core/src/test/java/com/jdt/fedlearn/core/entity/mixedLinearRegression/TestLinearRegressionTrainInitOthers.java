@@ -48,7 +48,9 @@ public class TestLinearRegressionTrainInitOthers {
         Assert.assertEquals(linearRegressionTrainInitOthers.m, m);
         Assert.assertEquals(linearRegressionTrainInitOthers.fullM, fullM);
         Assert.assertEquals(linearRegressionTrainInitOthers.fullN, fullN);
-        Assert.assertEquals(linearRegressionTrainInitOthers.selfClientInfo, selfClientInfo);
+        Assert.assertEquals(
+                linearRegressionTrainInitOthers.selfClientInfo.getIp()+linearRegressionTrainInitOthers.selfClientInfo.getPort(),
+                selfClientInfo.getIp()+selfClientInfo.getPort());
         Assert.assertEquals(linearRegressionTrainInitOthers.encMode, encMode);
         Assert.assertEquals(linearRegressionTrainInitOthers.h, h);
         Assert.assertEquals(linearRegressionTrainInitOthers.feature_names.length,feature_names.length);

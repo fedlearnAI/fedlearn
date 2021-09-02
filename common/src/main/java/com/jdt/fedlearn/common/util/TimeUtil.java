@@ -69,12 +69,6 @@ public class TimeUtil {
         return dateFormat.format(new Date());
     }
 
-    public static String getNanoTime(String format) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat(format);
-        return dateFormat.format(System.nanoTime());
-    }
-
-
     /**
      * 获取当前入参日期的字符串格式
      *

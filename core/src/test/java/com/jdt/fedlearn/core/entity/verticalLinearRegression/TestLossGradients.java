@@ -11,7 +11,7 @@ import org.testng.annotations.Test;
 public class TestLossGradients {
     @Test
     public void jsonDeserialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.verticalLinearRegression.LossGradients\",\"DATA\":{\"loss\":[\"0\",\"5\"],\"gradient\":[\"0\",\"1\",\"2\"],\"client\":{\"port\":0,\"uniqueId\":0}}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.verticalLinearRegression.LossGradients\",\"DATA\":{\"loss\":[\"0\",\"5\"],\"gradient\":[\"0\",\"1\",\"2\"],\"client\":{ip='127.0.0.1', port=80, protocol='http', uniqueId=0}}}";
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
         LossGradients  lossGradients = (LossGradients) message;
@@ -19,7 +19,7 @@ public class TestLossGradients {
         Assert.assertEquals(lossGradients.getGradient(), gradients);
         String[] loss = new String[] {"0","5"};
         Assert.assertEquals(lossGradients.getLoss(),loss);
-        ClientInfo clientInfo = new ClientInfo("0",0,"http","","0");
+        ClientInfo clientInfo = new ClientInfo("127.0.0.1",80,"http",null,"0");
         Assert.assertEquals(lossGradients.getClient(), clientInfo);
     }
 

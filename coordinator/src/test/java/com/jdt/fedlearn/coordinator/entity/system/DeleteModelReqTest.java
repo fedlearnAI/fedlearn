@@ -12,7 +12,8 @@ public class DeleteModelReqTest {
         deleteModelReq.setModelToken("1-FederatedGB-100");
         String s = deleteModelReq.toJson();
         DeleteModelReq deleteModelReq1 = new DeleteModelReq(s);
-        DeleteModelReq deleteModelReq2 = new DeleteModelReq("1-FederatedGB-100");
+        DeleteModelReq deleteModelReq2 = new DeleteModelReq();
+        deleteModelReq2.setModelToken("1-FederatedGB-100");
         Assert.assertEquals(deleteModelReq1.getModelToken(), deleteModelReq2.getModelToken());
     }
 

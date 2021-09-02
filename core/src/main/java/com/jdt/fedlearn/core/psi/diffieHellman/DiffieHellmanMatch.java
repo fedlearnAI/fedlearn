@@ -59,6 +59,29 @@ public class DiffieHellmanMatch implements Prepare {
     private int p;
     private int matchRes;
 
+    public ClientInfo getActiveClient() {
+        return activeClient;
+    }
+
+    public void setActiveClient(ClientInfo activeClient) {
+        this.activeClient = activeClient;
+    }
+
+    public int getP() {
+        return p;
+    }
+
+    public void setP(int p) {
+        this.p = p;
+    }
+
+    public void setClientInfos(List<ClientInfo> clientInfos) {
+        this.clientInfos = clientInfos;
+    }
+
+    public int getMatchRes() {
+        return matchRes;
+    }
 
     @Override
     public List<CommonRequest> masterInit(List<ClientInfo> clientInfos) {

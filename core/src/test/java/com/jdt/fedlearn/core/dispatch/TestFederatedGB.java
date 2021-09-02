@@ -3,6 +3,7 @@ package com.jdt.fedlearn.core.dispatch;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
+import com.jdt.fedlearn.core.entity.base.Int2dArray;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
 import com.jdt.fedlearn.core.entity.base.StringArray;
 import com.jdt.fedlearn.core.entity.boost.*;
@@ -433,37 +434,27 @@ public class TestFederatedGB {
         /**
          * QueryTree already initiated
          */
-//        double[][] scores = new double[][]{};
-//        boolean isStopInference = false;
-//        int inferencePhase = -1;
-//        int numClass = 1;
-//        double firstRoundPred = 0.0;
-//        int[] idIndexArray = {0, 1, 2, 3};
-//        List<Double> multiClassUniqueLabelList = new ArrayList<>();
-//        multiClassUniqueLabelList.add(0.0);
-//        multiClassUniqueLabelList.add(1.0);
-//        List<ClientInfo> clientInfos = StructureGenerate.threeClients();
-//
-//
-//        List<CommonResponse> responses = new ArrayList<>();
-//        // tree from train
-//        List<Tree> trainTree = new ArrayList<>();
-//        // root1
-//        TreeNode root1 = new TreeNode(1, 1, clientInfos.get(0), 1, 0.0);
-//        // root2
-//        TreeNode root2 = new TreeNode(1, 2, clientInfos.get(0), 1, 0.0);
-//        trainTree.add(new Tree(root1));
-//        trainTree.add(new Tree(root2));
-//        List<Tree> queryTree = trainTree;
-//
-//        BoostN1Res bn1r = new BoostN1Res(trainTree, firstRoundPred, multiClassUniqueLabelList);
-//        FederatedGB federatedGB = new FederatedGB(new FgbParameter(), queryTree, scores, isStopInference, inferencePhase, numClass,
-//                firstRoundPred, multiClassUniqueLabelList, idIndexArray, clientInfos);
-//
-//
-//        responses.add(new CommonResponse(clientInfos.get(0), bn1r));
-//        List<CommonRequest> cr = federatedGB.inferenceControl(responses);
-
+        double[][] scores = new double[][]{};
+        boolean isStopInference = false;
+        int inferencePhase = -1;
+        int numClass = 1;
+        double firstRoundPred = 0.0;
+        int[] idIndexArray = {0, 1, 2, 3};
+        List<Double> multiClassUniqueLabelList = new ArrayList<>();
+        multiClassUniqueLabelList.add(0.0);
+        multiClassUniqueLabelList.add(1.0);
+        List<ClientInfo> clientInfos = StructureGenerate.threeClients();
+        List<CommonResponse> responses = new ArrayList<>();
+        // tree from train
+        List<Tree> trainTree = new ArrayList<>();
+        // root1
+        TreeNode root1 = new TreeNode(1, 1, clientInfos.get(0), 1, 0.0);
+        // root2
+        TreeNode root2 = new TreeNode(1, 2, clientInfos.get(0), 1, 0.0);
+        trainTree.add(new Tree(root1));
+        trainTree.add(new Tree(root2));
+        List<Tree> queryTree = trainTree;
+        // todo assert
     }
 
     @Test
