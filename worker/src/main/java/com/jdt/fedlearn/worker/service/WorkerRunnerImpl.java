@@ -46,7 +46,7 @@ public class WorkerRunnerImpl implements WorkerRunner {
     private Table<BusinessTypeEnum, TaskTypeEnum, Runner> runnerTable = HashBasedTable.create();
     // worker是否ready 和manager的lock进行配合，确认salve是否可以运行task
 //    在多线程下面， 用的是同一个workerRunner， 为了避免这种情况 改为map。
-    private Map<Integer, Boolean> isReadyMap = new HashMap<>();
+//    private Map<Integer, Boolean> isReadyMap = new HashMap<>();
 
 
     public WorkerRunnerImpl() {
@@ -63,14 +63,14 @@ public class WorkerRunnerImpl implements WorkerRunner {
 
     @Override
     public Boolean isReady(int localPort) {
-        synchronized (isReadyMap) {
-            if (!isReadyMap.containsKey(localPort)) {
-                isReadyMap.put(localPort, true);
-            }
-            return isReadyMap.get(localPort);
-
-        }
-
+//        synchronized (isReadyMap) {
+//            if (!isReadyMap.containsKey(localPort)) {
+//                isReadyMap.put(localPort, true);
+//            }
+//            return isReadyMap.get(localPort);
+//
+//        }
+        return true;
     }
 
     /**
@@ -91,13 +91,12 @@ public class WorkerRunnerImpl implements WorkerRunner {
         logger.info("start to run task {} in {}", task.getTaskId(), task.getWorkerUnit());
         CommonResultStatus commonResultStatus = new CommonResultStatus();
         commonResultStatus.setStartTime(TimeUtil.getNowTime());
-        int localPort = task.getWorkerUnit().getPort();
         CommonResultStatus result = null;
         try {
-            if ( isReadyMap.get(localPort) == false) {
-                throw new BusinessException("worker " + task.getWorkerUnit() + "is not ready， which can not run task ", ExceptionEnum.ARCH_ERROR);
-            }
-            isReadyMap.put(localPort, false);
+//            if ( isReadyMap.get(localPort) == false) {
+//                throw new BusinessException("worker " + task.getWorkerUnit() + "is not ready， which can not run task ", ExceptionEnum.ARCH_ERROR);
+//            }
+//            isReadyMap.put(localPort, false);
             BusinessTypeEnum businessTypeEnum = task.getJob().getJobReq().getBusinessTypeEnum();
 
             if (businessTypeEnum == null) {
@@ -118,7 +117,7 @@ public class WorkerRunnerImpl implements WorkerRunner {
             commonResultStatus.setEndTime(TimeUtil.getNowTime());
             return commonResultStatus;
         } finally {
-            isReadyMap.put(localPort, true);
+//            isReadyMap.put(localPort, true);
             logger.info("end to run task {} in {}", task.getTaskId(), task.getWorkerUnit());
         }
         return result;

@@ -14,6 +14,8 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.type;
 
 import com.jdt.fedlearn.coordinator.service.IDispatchService;
+import com.jdt.fedlearn.coordinator.service.match.MatchDeleteImpl;
+import com.jdt.fedlearn.coordinator.service.match.MatchDetailImpl;
 import com.jdt.fedlearn.coordinator.service.system.ModelDeleteServiceImpl;
 import com.jdt.fedlearn.coordinator.service.system.SystemDatasetServiceImpl;
 import com.jdt.fedlearn.coordinator.service.train.inner.TrainProgressInnerServiceImpl;
@@ -25,7 +27,7 @@ import com.jdt.fedlearn.coordinator.service.validate.ValidateBatchServiceImpl;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * 服务端（master端）的接口枚举类，包含服务端可使用的全部接口，主要包含任务相关接口、预处理相
+ * 协调端（coordinator）的接口枚举类，包含服务端可使用的全部接口，主要包含任务相关接口、预处理相
  * 关接口、训练相关接口、模型相关接口、系统相关接口，以及区块链相关接口。
  * <p>使用范例：</p>
  * <blockquote><pre>
@@ -37,27 +39,44 @@ import org.apache.commons.lang3.StringUtils;
  */
 public enum APIEnum {
 
+    /**
+     * 系統相关接口
+     */
+    //TODO @Deprecated 使用/api/system/parameter 代替
+    API_COMMON_PARAMETER2("/api/prepare/parameter/common", "查询训练算法支持的通用参数", new CommonParameterImpl()),
+    API_COMMON_PARAMETER("/api/system/parameter", "查询训练算法支持的通用参数", new CommonParameterImpl()),
+    API_INFERENCE_DELETE("/api/system/model/delete", "模型删除", new ModelDeleteServiceImpl()),
+    API_SYSTEM_DATASET("/api/system/dataset", "查询数据源", new SystemDatasetServiceImpl()),
 
     /**
      * 预处理相关接口
      */
-    //以下注意区分，第1个查询训练通用参数，包括支持的算法类型等，第2个查询该算法的特有参数，
-    API_COMMON_PARAMETER("/api/prepare/parameter/common", "查询训练算法支持的通用参数", new CommonParameterImpl()),
+    //TODO @Deprecated
     API_ALGORITHM_PARAMETER("/api/prepare/parameter/algorithm", "查询算法相关的参数", new AlgorithmParameterImpl()),
-    //id对齐发起和进度查询接口
-    API_MATCH_START("/api/prepare/match/start", "ID对齐", new MatchStartImpl()),
-    API_MATCH_PROGRESS("/api/prepare/match/progress", "ID对齐进度查询", new MatchProgressImpl()),
-    API_MATCH_LIST("/api/prepare/match/list", "id对齐列表查询", new MatchListImpl()),
-    API_DIST_KEY_GENE("/api/prepare/key/generate", "多方密钥生成", new SecureKeyGeneImpl()),
+    //TODO @Deprecated id对齐发起和进度查询接口,后续全部使用去除prepare的版本，目前保持兼容性
+    API_PREPARE_MATCH_START("/api/prepare/match/start", "ID对齐", new MatchStartImpl()),
+    API_PREPARE_MATCH_PROGRESS("/api/prepare/match/progress", "ID对齐进度查询", new MatchProgressImpl()),
+    API_PREPARE_MATCH_LIST("/api/prepare/match/list", "id对齐列表查询", new MatchListImpl()),
+    API_PREPARE_DIST_KEY_GENE("/api/prepare/key/generate", "多方密钥生成", new SecureKeyGeneImpl()),
 
+    //id 对齐模块，共四个接口
+    API_MATCH_START("/api/match/start", "ID对齐", new MatchStartImpl()),
+    API_MATCH_PROGRESS("/api/match/progress", "ID对齐进度查询", new MatchProgressImpl()),
+    API_MATCH_LIST("/api/match/list", "id对齐列表查询", new MatchListImpl()),
+    API_MATCH_DELETE("/api/match/delete", "删除id对齐", new MatchDeleteImpl()),
+    API_MATCH_DETAIL("/api/match/detail", "对齐详情", new MatchDetailImpl()),
     /**
      * 训练相关接口
      */
+    API_TRAIN_OPTION("/api/train/option", "查询算法相关的参数", new AlgorithmParameterImpl()),
     API_TRAIN_START("/api/train/start", "训练开始", new TrainStartServiceImpl()),
+    API_TRAIN_AUTO("/api/train/auto", "使用自动调参训练", new TrainAutoServiceImpl()),
     API_TRAIN_PARAMETER("/api/train/parameter", "单个训练参数信息", new TrainParameterServiceImpl()),
     API_TRAIN_STATUS("/api/train/status", "单个训练进度和指标（包括训练完成和训练失败的任务也可以查询）", new TrainStatusServiceImpl()),
+
     API_TRAIN_LIST("/api/train/list", "训练列表包括正在训练和训练完成的，失败的和主动停止的", new TrainListServiceImpl()),
     API_TRAIN_STATE_CHANGE("/api/train/change", "训练状态变更，包括停止，暂停和恢复", new StateChangeServiceImpl()),
+    API_TRAIN_DELETE("/api/train/delete", "模型删除", new ModelDeleteServiceImpl()),
     // 只给前端使用，不对外提供
     API_TRAIN_PROGRESS_NEW("/api/train/progress/new", "单个任务训练进度（包括训练完成和训练失败的任务也可以查询）", new TrainProgressInnerServiceImpl()),
 
@@ -72,11 +91,6 @@ public enum APIEnum {
     API_INFERENCE_REMOTE("/api/inference/remote", "模型远端推理--/api/inference/remote", new InferenceRemoteServiceImpl()),
     API_INFERENCE_PROGRESS("/api/inference/progress", "推理进度进度--/api/inference/progress", new InferenceProgressServiceImpl()),
 
-    /**
-     * 系統相关接口
-     */
-    API_INFERENCE_DELETE("/api/system/model/delete", "模型删除", new ModelDeleteServiceImpl()),
-    API_SYSTEM_DATASET("/api/system/query/dataset", "查询数据源", new SystemDatasetServiceImpl()),
 
     //区块链版本新增接口，当启动区块链版本服务时会对上面同名接口替代
     /**

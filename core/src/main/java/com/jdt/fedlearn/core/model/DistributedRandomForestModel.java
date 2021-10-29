@@ -39,13 +39,13 @@ import com.jdt.fedlearn.core.entity.randomForest.*;
 import com.jdt.fedlearn.core.exception.NotMatchException;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
-import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.loader.randomForest.RFInferenceData;
+import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.metrics.Metric;
 import com.jdt.fedlearn.core.model.serialize.SerializerUtils;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
 import com.jdt.fedlearn.core.type.*;
 import com.jdt.fedlearn.core.type.data.Pair;
@@ -134,14 +134,14 @@ public class DistributedRandomForestModel implements Model, Serializable {
      * @param others    其他参数
      * @return 解析完成的训练数据
      */
-    public RFTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter parameter, Features features, Map<String, Object> others) {
+    public RFTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, HyperParameter parameter, Features features, Map<String, Object> others) {
         logger.info("Init train start{}", splitLine);
         if ((others.containsKey("isDistributed")) && (others.get("isDistributed").equals("true"))) {
             this.isDistributed = true;
             this.treeID = (int) (others.get("treeID"));
         }
         Tuple2<String[], String[]> trainTestUid = Tool.splitUid(uids, testIndex);
-        RFTrainData trainData = new RFTrainData(rawData, trainTestUid._1(), features);
+        RFTrainData trainData = new RFTrainData(rawData, trainTestUid._1(), features, false);
         trainData.fillna(0);
         String labelName = features.getLabel();
         this.parameter = (RandomForestParameter) parameter;
@@ -198,11 +198,11 @@ public class DistributedRandomForestModel implements Model, Serializable {
      * 主动方训练初始化
      * 包括加载label，初始化树模型，初始化公私密钥
      *
-     * @param others 其他参数
+     * @param others    其他参数
      * @param trainData 训练数据
-     * @param rand  随机种子
+     * @param rand      随机种子
      * @param numTrees  树的个树
-     * @param X 转化后的数据
+     * @param X         转化后的数据
      */
     private SimpleMatrix trainInitActive(Map<String, Object> others, RFTrainData trainData, Random rand, int numTrees, SimpleMatrix X, EncryptionTool encryptionTool) {
         Map<?, ?> sampleIds;
@@ -216,8 +216,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
                 numTrees,
                 this.parameter.getMaxDepth(),
                 this.parameter.getNumPercentiles(),
-                sampleIds,
-                rand);
+                sampleIds);
         isActive = true;
 
         // TODO:增加loss类型
@@ -296,9 +295,9 @@ public class DistributedRandomForestModel implements Model, Serializable {
     /**
      * 进行模型训练，客户端的整体控制流程
      *
-     * @param phase   当前步骤
-     * @param request 训练迭代参数
-     * @param trainData   训练数据
+     * @param phase     当前步骤
+     * @param request   训练迭代参数
+     * @param trainData 训练数据
      * @return 客户端的响应结果
      */
     @Override
@@ -574,17 +573,22 @@ public class DistributedRandomForestModel implements Model, Serializable {
             return res;
         }
 
+        List<Integer> treeIDs = new ArrayList<>();
         Map<Integer, List<Integer>> treeSampleIDs = new HashMap<>();
         for (Map.Entry<Integer, TreeNodeRF> keyi : currentNodeMap.entrySet()) {
             int tid = keyi.getValue().treeId;
             if (isDistributed) {
                 if (tid == treeID) {
+                    treeIDs.add(keyi.getValue().treeId);
                     treeSampleIDs.put(tid, keyi.getValue().sampleIds);
                 }
             } else {
+                treeIDs.add(keyi.getValue().treeId);
                 treeSampleIDs.put(tid, keyi.getValue().sampleIds);
             }
         }
+        Integer[] treeIds = treeIDs.toArray(new Integer[0]);
+        Arrays.sort(treeIds);
 
         if (req.isSkip()) {
             RandomForestTrainRes res = new RandomForestTrainRes(req.getClient());
@@ -593,22 +597,20 @@ public class DistributedRandomForestModel implements Model, Serializable {
             setMetrics(res);
             return res;
         }
+        String[] treeIdsStr = new String[treeIds.length];
         int numTrees = treeSampleIDs.size();
         Matrix[][] matrices = new Matrix[numTrees][1];
         Vector[][] vectors = new Vector[numTrees][1];
-        String[] treeIds = new String[numTrees];
         List<Integer>[] sampleIds = new ArrayList[numTrees];
         List<Integer>[] sampleIdsNew = new ArrayList[numTrees];
         int idx = 0;
-        for (Map.Entry<Integer, List<Integer>> entry : treeSampleIDs.entrySet()) {
-            int treeIdi = entry.getKey();
-            String treeIdiStr = entry.getKey().toString();
-            treeIds[idx] = treeIdiStr;
-            sampleIds[idx] = entry.getValue();
-            sampleIdsNew[idx] = IntStream.of(new int[entry.getValue().size()]).boxed().collect(Collectors.toList());
+        for (int treeIdi : treeIds) {
+            treeIdsStr[idx] = String.valueOf(treeIdi);
+            sampleIds[idx] = treeSampleIDs.get(treeIdi);
+            sampleIdsNew[idx] = IntStream.of(new int[treeSampleIDs.get(treeIdi).size()]).boxed().collect(Collectors.toList());
             if (isDistributed) {
                 for (int j = 0; j < sampleIds[idx].size(); j++) {
-                    Integer sampleTemp = sampleMap.get(Integer.valueOf(treeIdi)).get(sampleIds[idx].get(j));
+                    Integer sampleTemp = sampleMap.get(treeIdi).get(sampleIds[idx].get(j));
                     sampleIdsNew[idx].set(j, sampleTemp);
                 }
             } else {
@@ -628,7 +630,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         double[][][] resMatrices = new double[treeIds.length][][];
 
         IntStream.range(0, treeIds.length).parallel().forEach(i -> {
-            int treeIdi = Integer.parseInt(treeIds[i]);
+            int treeIdi = treeIds[i];
             double[][] matrix = new double[sampleIdsNew[i].size()][XsTrain[treeIdi].numCols() + 1];
             for (int j = 0; j < sampleIdsNew[i].size(); j++) {
                 int k;
@@ -671,7 +673,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         }
         activePhase2body = bodyArr;
         RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), "active", isActive, bodyArr.length);
-        res.setTreeIds(treeIds);
+        res.setTreeIds(treeIdsStr);
         res.setMessageType(RFDispatchPhaseType.COMBINATION_MESSAGE);
         setMetrics(res);
         return res;
@@ -703,22 +705,29 @@ public class DistributedRandomForestModel implements Model, Serializable {
         EncryptionTool encryptionTool = getEncryptionTool();
         Map<Integer, List<Integer>> tidToSampleId = req.getTidToSampleID();
         int numTrees = tidToSampleId.size();
-        String[] treeIds = new String[numTrees];
+        String[] treeIdsStr = new String[numTrees];
         List<Integer>[] sampleIds = new ArrayList[numTrees];
         List<Integer>[] sampleIdsNew = new ArrayList[numTrees];
+
+
+        List<Integer> treeIDs = new ArrayList<>();
+        for (HashMap.Entry<Integer, List<Integer>> entry : req.getTidToSampleID().entrySet()) {
+            treeIDs.add(entry.getKey());
+        }
+        Integer[] treeIds = treeIDs.toArray(new Integer[0]);
+        Arrays.sort(treeIds);
         int idx = 0;
-        for (HashMap.Entry<Integer, List<Integer>> entry : tidToSampleId.entrySet()) {
-            String treeIdi = entry.getKey().toString();
-            treeIds[idx] = treeIdi;
-            sampleIds[idx] = entry.getValue();
-            sampleIdsNew[idx] = IntStream.of(new int[entry.getValue().size()]).boxed().collect(Collectors.toList());
+        for (int treeIdi : treeIds) {
+            treeIdsStr[idx] = String.valueOf(treeIdi);
+            sampleIds[idx] = req.getTidToSampleID().get(treeIdi);
+            sampleIdsNew[idx] = IntStream.of(new int[req.getTidToSampleID().get(treeIdi).size()]).boxed().collect(Collectors.toList());
             for (int j = 0; j < sampleIds[idx].size(); j++) {
                 Integer sampleTemp = sampleMap.get(Integer.valueOf(treeIdi)).get(sampleIds[idx].get(j));
                 sampleIdsNew[idx].set(j, sampleTemp);
             }
-
-            idx = idx + 1;
+            idx++;
         }
+
         Ciphertext[] encryptData;
         Ciphertext[][] encryptDataTree = new Ciphertext[sampleIdsNew.length][];
         PublicKey publicKey;
@@ -746,7 +755,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
                 if (isDistributed) {
                     encryptDataTree[i] = Arrays.stream(encryptDataString[i]).map(encryptionTool::restoreCiphertext).toArray(Ciphertext[]::new);
                 } else {
-                    encryptDataTree[i] = Arrays.stream(encryptDataString[Integer.parseInt(treeIds[i])]).map(encryptionTool::restoreCiphertext).toArray(Ciphertext[]::new);
+                    encryptDataTree[i] = Arrays.stream(encryptDataString[treeIds[i]]).map(encryptionTool::restoreCiphertext).toArray(Ciphertext[]::new);
                 }
             }
         }
@@ -768,7 +777,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         List<Integer>[] finalSampleIdsNew = sampleIdsNew;
 
         IntStream.range(0, treeIds.length).parallel().forEach(i -> {
-            int treeIdi = Integer.parseInt(treeIds[i]);
+            int treeIdi = treeIds[i];
             Integer[] sampleIdi = finalSampleIdsNew[i].toArray(new Integer[0]);
 
             SimpleMatrix X = DataUtils.selecRows(XsTrain[treeIdi], sampleIdi);
@@ -818,7 +827,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         }
         String body = String.join(":::", bodyArr);
         RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), body, isActive, bodyArr.length);
-        res.setTreeIds(treeIds);
+        res.setTreeIds(treeIdsStr);
         res.setMessageType(RFDispatchPhaseType.COMBINATION_MESSAGE);
         return res;
     }
@@ -859,17 +868,22 @@ public class DistributedRandomForestModel implements Model, Serializable {
             nodei.Y1ClientMapping = clientInfos;
         }
 
+        List<Integer> treeIDs = new ArrayList<>();
         Map<Integer, List<Integer>> treeSampleIDs = new HashMap<>();
         for (Map.Entry<Integer, TreeNodeRF> keyi : currentNodeMap.entrySet()) {
             int tid = keyi.getValue().treeId;
             if (isDistributed) {
                 if (tid == treeID) {
                     treeSampleIDs.put(tid, keyi.getValue().sampleIds);
+                    treeIDs.add(keyi.getValue().treeId);
                 }
             } else {
                 treeSampleIDs.put(tid, keyi.getValue().sampleIds);
+                treeIDs.add(keyi.getValue().treeId);
             }
         }
+        Integer[] treeIds = treeIDs.toArray(new Integer[0]);
+        Arrays.sort(treeIds);
         EncryptionTool encryptionTool = getEncryptionTool();
         PrivateKey privateKey = encryptionTool.restorePrivateKey(privateKeyString);
         ClientInfo client = null;
@@ -886,7 +900,6 @@ public class DistributedRandomForestModel implements Model, Serializable {
             if ("active".equals(phase2ResString[0])) {
                 sampleId = new int[Y1s.length][];
                 sampleIdNew = new int[Y1s.length][];
-                int[] tid_arr = treeSampleIDs.keySet().stream().mapToInt(Integer::intValue).toArray();
                 for (int j = 0; j < Y1s.length; j++) {
                     List<Double[]> listTemp = new ArrayList<>();
                     for (int k = 0; k < activePhase2body[j].split("::").length; k++) {
@@ -900,11 +913,11 @@ public class DistributedRandomForestModel implements Model, Serializable {
                         }
                     }
                     Y1s[j][i] = listTemp;
-                    sampleId[j] = treeSampleIDs.get(tid_arr[j]).stream().mapToInt(Integer::intValue).toArray();
+                    sampleId[j] = treeSampleIDs.get(treeIds[j]).stream().mapToInt(Integer::intValue).toArray();
                     sampleIdNew[j] = new int[sampleId[j].length];
                     if (isDistributed) {
                         for (int k = 0; k < sampleId[j].length; k++) {
-                            sampleIdNew[j][k] = sampleMap.get(tid_arr[j]).get(sampleId[j][k]);
+                            sampleIdNew[j][k] = sampleMap.get(treeIds[j]).get(sampleId[j][k]);
                         }
                     } else {
                         for (int k = 0; k < sampleId[j].length; k++) {
@@ -1010,7 +1023,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
 
         for (int i = 0; i < Y1s.length; i++) {
             int ownerId = values[i][0].intValue();
-            int treeId = (int) (treeSampleIDs.keySet().toArray()[i]);
+            int treeId = treeIds[i];
             TreeNodeRF nodei = currentNodeMap.get(treeId);
             nodei.featureId = values[i][1].intValue();
             double optPercentile = values[i][2];
@@ -1112,6 +1125,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
                 try {
                     Map<String, Double> tmp = mapper.readValue(si, Map.class);
                     int idx = (int) Math.round(tmp.get("treeId"));
+                    treeIds[i] = String.valueOf(idx);
                     matrices[i][0] = DataUtils.toMatrix(DataUtils.selecRows(XsTrain[idx],
                             treeSampleMap.get(idx)));
                     double[][] matrix = new double[treeSampleMap.get(idx).size()][XsTrain[idx].numCols()];
@@ -1194,6 +1208,9 @@ public class DistributedRandomForestModel implements Model, Serializable {
         List<ClientInfo> clientInfos = req.getClientInfos();
         if (isActive) {
             for (int j = 0; j < allTreeIds.size(); j++) {
+                if (allTreeIds.get(j) == null) {
+                    continue;
+                }
 //                Map<Integer, TreeNodeRF> currentNodeMap = forest.getTrainNodeAllTreesNew();
                 for (int i = 0; i < allTreeIds.get(j).length; i++) {
                     ClientInfo targetClient = clientInfos.get(j);
@@ -1266,7 +1283,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
     /**
      * 更新并序列化模型
      *
-     * @param request 服务端发送的请求
+     * @param request 协调端发送的请求
      * @return 客户端的响应结果
      */
     public Message updateModel(Message request) {
@@ -1439,13 +1456,13 @@ public class DistributedRandomForestModel implements Model, Serializable {
             if (modelString.contains("localModel")) {
                 // do local prediction
                 double[] localPredict = localModel.batchPredict(XTest);
-                return new RandomforestInferMessage(inferenceUid, localPredict, "active", new HashMap<>());
+                return new RandomForestInferMessage(inferenceUid, localPredict, "active", new HashMap<>());
             } else {
-                return new RandomforestInferMessage(inferenceUid, null, "", res);
+                return new RandomForestInferMessage(inferenceUid, null, "", res);
             }
         } else if (phase == -2) {
             if (modelString.contains("localModel")) {
-                RandomforestInferMessage req = (RandomforestInferMessage) jsonData;
+                RandomForestInferMessage req = (RandomForestInferMessage) jsonData;
                 String[] inferenceDataUid = req.getInferenceUid();
                 Map<Integer, Map<Integer, List<String>>> treeInfo = this.treeInfo;
                 Map<Integer, Map<Integer, List<String>>> treeInfoi = req.getTreeInfo();
@@ -1489,9 +1506,9 @@ public class DistributedRandomForestModel implements Model, Serializable {
                 for (int i = 0; i < inferenceRes.length; i++) {
                     inferenceRes[i] = inferenceRes[i] / numTrees;
                 }
-                return new RandomforestInferMessage(inferenceRes, "active");
+                return new RandomForestInferMessage(inferenceRes, "active");
             } else {
-                return new RandomforestInferMessage(null, "");
+                return new RandomForestInferMessage(null, "");
             }
         } else {
             return new EmptyMessage();
@@ -1599,7 +1616,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
      *
      * @return 模型序列化为树的序列化结构
      */
-    public Map<String, String> getModel() {
+    private Map<String, String> getModel() {
         Map<String, String> strTrees = serializedModel;
         int numTrees = Integer.parseInt(strTrees.get("numTrees"));
         strTrees.put("numTrees", Integer.toString(numTrees));
@@ -1638,7 +1655,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         return validY;
     }
 
-    public Map<String, String> getModelAll(String client) {
+    private Map<String, String> getModelAll(String client) {
         Map<String, String> strTrees = new HashMap<>();
         List<TreeNodeRF> roots = forest.getRoots();
         int numTrees = 0;
@@ -1657,7 +1674,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         return strTrees;
     }
 
-    public Map<String, String> serializeAll() {
+    private Map<String, String> serializeAll() {
         Map<String, String> map = new HashMap<>();
         ObjectMapper objectMapper = new ObjectMapper();
         try {
@@ -1710,7 +1727,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
     }
 
     private static Message reducePhase1(List<Message> result) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-        RandomForestTrainRes res0 = (RandomForestTrainRes)(result.get(0));
+        RandomForestTrainRes res0 = (RandomForestTrainRes) (result.get(0));
         RandomForestTrainRes reqTree = (RandomForestTrainRes) BeanUtils.cloneBean(res0);
         if (res0.getDisEncryptionLabel() != null) {
             String[][] encryptionLabel = new String[res0.getDisEncryptionLabel().length][];
@@ -1889,11 +1906,11 @@ public class DistributedRandomForestModel implements Model, Serializable {
         Model localModel;
         localModel = new DistributedRandomForestModel();
         Features features = trainInit.getFeatureList();
-        SuperParameter superParameter = trainInit.getParameter();
-        TrainData trainData = localModel.trainInit(rawData, matchResult, testIndex, superParameter, features, others);
+        HyperParameter hyperParameter = trainInit.getParameter();
+        TrainData trainData = localModel.trainInit(rawData, matchResult, testIndex, hyperParameter, features, others);
 
         List<String> modelIDs = new ArrayList<>();
-        RandomForestParameter parameter = (RandomForestParameter) superParameter;
+        RandomForestParameter parameter = (RandomForestParameter) hyperParameter;
         for (int i = 0; i < parameter.getNumTrees(); i++) {
             modelIDs.add(String.valueOf(i));
         }
@@ -1941,7 +1958,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         RandomForestParameter parameter = (RandomForestParameter) request.getParameter();
         for (int i = 0; i < parameter.getNumTrees(); i++) {
             String res = SerializerUtils.serialize(request);
-            TrainInit reqTree = (TrainInit)SerializerUtils.deserialize(res);
+            TrainInit reqTree = (TrainInit) SerializerUtils.deserialize(res);
             messageBodys.add(reqTree);
             modelIDs.add(String.valueOf(i));
         }
@@ -2109,7 +2126,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         String privateKey = null;
         String keyPublic = null;
         for (int i = 0; i < models.size(); i++) {
-            DistributedRandomForestModel model = (DistributedRandomForestModel)models.get(i);
+            DistributedRandomForestModel model = (DistributedRandomForestModel) models.get(i);
             if (privateKey == null) {
                 privateKey = model.getPrivateKeyString();
                 keyPublic = model.getPublicKeyString();
@@ -2152,9 +2169,9 @@ public class DistributedRandomForestModel implements Model, Serializable {
             }
         }
         for (int i = 0; i < models.size(); i++) {
-            DistributedRandomForestModel model = (DistributedRandomForestModel)models.get(i);
+            DistributedRandomForestModel model = (DistributedRandomForestModel) models.get(i);
             TypeRandomForest forest = model.getForest();
-            if (forest!=null){
+            if (forest != null) {
                 forest.setRoots(roots);
                 forest.setTreeNodeMap(treeNodeMap);
                 forest.setAliveNodes(aliveNodes);

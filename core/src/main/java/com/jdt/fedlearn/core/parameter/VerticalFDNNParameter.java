@@ -8,7 +8,7 @@ import com.jdt.fedlearn.core.type.ParameterType;
 import java.util.ArrayList;
 import java.util.List;
 
-public class VerticalFDNNParameter implements SuperParameter {
+public class VerticalFDNNParameter implements HyperParameter {
     private int batchSize; // bach size
     private int numEpochs; // num epochs
     private boolean isTest; // for integrate test

@@ -1,5 +1,6 @@
 package com.jdt.fedlearn.core.model;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
@@ -485,11 +486,17 @@ public class TestFederatedGBModel {
         BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
 
         ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
+        ClientInfo client2 = new ClientInfo("10.0.0.3", 1092, "TCP");
         EncryptionTool encryptionTool = new FakeTool();
         PrivateKey privateKey = encryptionTool.keyGenerate(1024, 64);
         // Phase3 Request
         FeatureLeftGH[] flgh = new FeatureLeftGH[]{new FeatureLeftGH(client, "1",
-                new StringTuple2[]{new StringTuple2("10", "6"), new StringTuple2("10", "5")})};
+                new StringTuple2[]{new StringTuple2("10", "6"), new StringTuple2("10", "5"), new StringTuple2("10", "5"), new StringTuple2("20", "3")}),
+                new FeatureLeftGH(client, "2",
+                        new StringTuple2[]{new StringTuple2("30", "6"), new StringTuple2("10", "5"), new StringTuple2("10", "5"), new StringTuple2("20", "3")}),
+                new FeatureLeftGH(client2, "2",
+                        new StringTuple2[]{new StringTuple2("20", "6"), new StringTuple2("10", "5"), new StringTuple2("10", "5"), new StringTuple2("20", "3")}),
+        };
         List<BoostP2Res> bp2rList = new ArrayList<BoostP2Res>();
         bp2rList.add(new BoostP2Res(flgh));
         BoostP3Req jsonData = new BoostP3Req(client, bp2rList);
@@ -504,8 +511,9 @@ public class TestFederatedGBModel {
         Tuple2<BoostP3Res, Double> res = model.trainPhase3(jsonData, trainData, currentNode, encryptionTool, privateKey,
                 fp, grad, hess, numClassRound);
         BoostP3Res bp3r = res._1();
-        Assert.assertEquals(res._2(), 0.204472, 1e-6);
-        Assert.assertEquals(bp3r.getFeature(), "1");
+        System.out.println(bp3r.getFeature());
+        Assert.assertEquals(res._2(), 38.885790826089334, 1e-6);
+        Assert.assertEquals(bp3r.getFeature(), "2");
         Assert.assertEquals(bp3r.getIndex(), 0);
         Assert.assertEquals(bp3r.getClient(), client);
 
@@ -721,6 +729,11 @@ public class TestFederatedGBModel {
         FederatedGBModel model = new FederatedGBModel();
         model.hasLabel = true;
         FgbParameter fp = new FgbParameter.Builder(3, new MetricType[]{MetricType.RMSE}, ObjectiveType.regSquare).build();
+        Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainClassInputStd();
+        String[][] raw = compoundInput._1().get();
+        String[] result = compoundInput._2().get();
+        Features features = compoundInput._3().get();
+        BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
         ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
         // jsonData: (int recordId, int[] leftIns)
         LeftTreeInfo jsonData = new LeftTreeInfo(1, new int[]{0, 1, 2}); // 左子树有3个datapoint
@@ -953,6 +966,27 @@ public class TestFederatedGBModel {
         Assert.assertEquals(gop.getFeature(), "feat");
         Assert.assertEquals(gop.getGain(), 2.8122415219, 1e-6);
 
+    }
+
+    @Test
+    public void testFetchAllGain(){
+        ClientInfo client = new ClientInfo("10.0.0.4", 1092, "TCP");
+        StringTuple2[] ghLeft = new StringTuple2[]{new StringTuple2("10", "5"), new StringTuple2("10", "2"), new StringTuple2("10", "6")};
+        FeatureLeftGH input = new FeatureLeftGH(client, "feat", ghLeft);
+        double g = 100.0;
+        double h = 30.0;
+        FgbParameter parameter = new FgbParameter.Builder(3, new MetricType[]{MetricType.ACC}, ObjectiveType.regLogistic).build();
+        // encrytionTool
+        EncryptionTool encryptionTool = new FakeTool();
+        PrivateKey privateKey = encryptionTool.keyGenerate(1024, 64);
+        // publicKey
+        PublicKey publicKey = privateKey.generatePublicKey();
+        FederatedGBModel model = new FederatedGBModel();
+        List<GainOutput> allGain = model.fetchAllGain(input, g, h, encryptionTool, privateKey, parameter);
+        Assert.assertEquals(allGain.size(), 2);
+        Assert.assertEquals(allGain.get(0).getGain(), 2.8122415219, 1e-6);
+        Assert.assertEquals(allGain.get(0).getFeature(), "feat");
+        Assert.assertEquals(allGain.get(0).getSplitIndex(), 0);
     }
 
 

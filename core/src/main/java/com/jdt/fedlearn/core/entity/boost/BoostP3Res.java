@@ -23,7 +23,9 @@ public class BoostP3Res implements Message {
     private ClientInfo client;
     private String feature;
     private int index;
+    private double gain ;
     private MetricValue trainMetric;
+    private int workerNum;
 
     public BoostP3Res() {
     }
@@ -32,6 +34,13 @@ public class BoostP3Res implements Message {
         this.client = client;
         this.feature = feature;
         this.index = index;
+    }
+
+    public BoostP3Res(ClientInfo client, String feature, int index, double gain) {
+        this.client = client;
+        this.feature = feature;
+        this.index = index;
+        this.gain = gain;
     }
 
     public ClientInfo getClient() {
@@ -52,5 +61,17 @@ public class BoostP3Res implements Message {
 
     public MetricValue getTrainMetric() {
         return trainMetric;
+    }
+
+    public double getGain() {
+        return gain;
+    }
+
+    public int getWorkerNum() {
+        return workerNum;
+    }
+
+    public void setWorkerNum(int workerNum) {
+        this.workerNum = workerNum;
     }
 }

@@ -17,6 +17,7 @@ import com.jdt.fedlearn.core.parameter.common.CategoryParameter;
 import com.jdt.fedlearn.core.parameter.common.MultiParameter;
 import com.jdt.fedlearn.core.parameter.common.NumberParameter;
 import com.jdt.fedlearn.core.parameter.common.ParameterField;
+import com.jdt.fedlearn.core.type.DifferentialPrivacyType;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.OptimizerType;
 import com.jdt.fedlearn.core.type.ParameterType;
@@ -25,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class VerticalLRParameter implements SuperParameter {
+public class VerticalLRParameter implements HyperParameter {
     //终止损失 //0.1--100
     private double minLoss;
     //learning rate  //0.01--0.1
@@ -39,10 +40,20 @@ public class VerticalLRParameter implements SuperParameter {
     private int maxEpoch;
 
     private String regularization;
+    // 正则化系数
+    private double regCoe = 0.001D;
+    // 差分隐私系数lambda
+    private double lamba = 1.0;
+    // 差分隐私epsilon
+    private double dpEpsilon;
+    // 差分隐私delta
+    private double dpDelta = 1e-8;
+    // 差分隐私类型
+    private DifferentialPrivacyType dpType;
+    // 是否使用差分隐私
+    private String useDP;
 
-    private double lamba = 0.001;
-
-    private double differentialPrivacyParameter;
+    private int seed = 666;
 
     public VerticalLRParameter() {
         this.minLoss = 0.02;
@@ -52,11 +63,14 @@ public class VerticalLRParameter implements SuperParameter {
         this.maxEpoch = 300;
         this.optimizer = OptimizerType.BatchGD;
         this.regularization = "L2";
-        this.differentialPrivacyParameter = 0;
+        this.dpEpsilon = 0.4;
+        this.dpType = DifferentialPrivacyType.OUTPUT_PERTURB;
+        this.dpDelta = 1e-8;
+        this.useDP = "true";
     }
 
     public VerticalLRParameter(double minLoss, double eta, MetricType[] loss, OptimizerType optimizer,
-                               int batchSize, int maxEpoch, String regularization, double differentialPrivacyParameter) {
+                               int batchSize, int maxEpoch, String regularization, double dpEpsilon, double dpDelta) {
         this.minLoss = minLoss;
         this.eta = eta;
         this.metricType = loss;
@@ -64,7 +78,24 @@ public class VerticalLRParameter implements SuperParameter {
         this.maxEpoch = maxEpoch;
         this.optimizer = optimizer;
         this.regularization = regularization;
-        this.differentialPrivacyParameter = differentialPrivacyParameter;
+        this.dpEpsilon = dpEpsilon;
+        this.dpDelta = dpDelta;
+    }
+
+    public VerticalLRParameter(double minLoss, double eta, MetricType[] loss, OptimizerType optimizer,
+                               int batchSize, int maxEpoch, String regularization, String useDP, DifferentialPrivacyType dpType, double dpEpsilon, double dpDelta, double dpLambda) {
+        this.minLoss = minLoss;
+        this.eta = eta;
+        this.metricType = loss;
+        this.batchSize = batchSize;
+        this.maxEpoch = maxEpoch;
+        this.optimizer = optimizer;
+        this.regularization = regularization;
+        this.useDP = useDP;
+        this.dpType = dpType;
+        this.dpEpsilon = dpEpsilon;
+        this.dpDelta = dpDelta;
+        this.lamba = dpLambda;
     }
 
     public double getMinLoss() {
@@ -103,12 +134,28 @@ public class VerticalLRParameter implements SuperParameter {
         return regularization;
     }
 
-    public double getDifferentialPrivacyParameter() {
-        return differentialPrivacyParameter;
+    public double getDpEpsilon() {
+        return dpEpsilon;
     }
 
-    public void setDifferentialPrivacyParameter(double differentialPrivacyParameter) {
-        this.differentialPrivacyParameter = differentialPrivacyParameter;
+    public void setDpEpsilon(double dpEpsilon) {
+        this.dpEpsilon = dpEpsilon;
+    }
+
+    public DifferentialPrivacyType getDpType(){
+        return this.dpType;
+    }
+
+    public double getDpDelta(){
+        return this.dpDelta;
+    }
+
+    public boolean isUseDP(){
+        return "true".equals(this.useDP);
+    }
+
+    public void setDpDelta(double dpDelta){
+        this.dpDelta = dpDelta;
     }
 
     public void setLamba(double lamba) {
@@ -119,8 +166,20 @@ public class VerticalLRParameter implements SuperParameter {
         return lamba;
     }
 
+    public void setRegCoe(double regCoe){
+        this.regCoe = regCoe;
+    }
+
+    public double getRegCoe(){
+        return this.regCoe;
+    }
+
     public MetricType[] fetchMetric() {
         return metricType;
+    }
+
+    public int getSeed(){
+        return this.seed;
     }
 
     @Override
@@ -132,7 +191,9 @@ public class VerticalLRParameter implements SuperParameter {
                 ", batchSize=" + batchSize +
                 ", maxEpoch=" + maxEpoch +
                 ", regularization=" + regularization +
-                ", differentialPrivacyParameter=" + differentialPrivacyParameter +
+                ", differentialPrivacyParameter=" + dpEpsilon +
+                ", useDP=" + useDP +
+                ", dpType=" + dpType +
                 '}';
     }
 
@@ -147,6 +208,9 @@ public class VerticalLRParameter implements SuperParameter {
         res.add(new NumberParameter("eta", "eta", 0.02, new String[]{"0", "1"}, ParameterType.NUMS));
         res.add(new MultiParameter("metricType", "metricType", "CROSS_ENTRO", new String[]{"G_L2NORM", "CROSS_ENTRO"}, ParameterType.MULTI));
         res.add(new CategoryParameter("optimizer", "optimizer", "BatchGD", new String[]{"BatchGD", "NEWTON"}, ParameterType.STRING));
+        res.add(new NumberParameter("dpEpsilon", "dpEpsilon", 1.6, new String[]{"0.05", "1.6"}, ParameterType.NUMS));
+        res.add(new CategoryParameter("useDP", "useDP", "false", new String[]{"true", "false"}, ParameterType.STRING));
+        res.add(new CategoryParameter("dpType", "dpType", "OUTPUT_PERTURB", new String[]{"OUTPUT_PERTURB", "OBJECTIVE_PERTURB"}, ParameterType.STRING));
         return res;
     }
 }

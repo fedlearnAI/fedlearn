@@ -26,7 +26,7 @@ public class TestBoostP3Req {
 
     @Test
     public void jsonSerialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP3Req\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"dataList\":[]}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP3Req\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"dataList\":[],\"workerNum\":0}}";
         Serializer serializer = new JsonSerializer();
         BoostP3Req boostP3Req = new BoostP3Req(new ClientInfo("127.0.0.1", 8000, "http", null, "1"), new ArrayList<>());
         String str = serializer.serialize(boostP3Req);

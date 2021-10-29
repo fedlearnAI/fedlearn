@@ -50,9 +50,7 @@ public class TypeRandomForest implements Serializable {
     public TypeRandomForest(){}
 
     public TypeRandomForest(int numTrees,
-                            int maxDepth,
                             int maxTreeSamples,
-                            int numPercentiles,
                             int numSamples,
                             Random rand) {
         this.numTrees = numTrees;
@@ -79,8 +77,7 @@ public class TypeRandomForest implements Serializable {
     public TypeRandomForest(int numTrees,
                             int maxDepth,
                             int numPercentiles,
-                            Map<?,?> sampleIds,
-                            Random rand) {
+                            Map<?,?> sampleIds) {
         this.numTrees = numTrees;
         this.maxDepth = maxDepth;
         this.numPercentiles = numPercentiles;

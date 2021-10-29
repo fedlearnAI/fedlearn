@@ -36,7 +36,7 @@ public class TestBoostP4Req {
         System.out.println(str);
 
 //        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{\"port\":0,\"uniqueId\":0},\"kOpt\":1,\"vOpt\":3,\"accept\":true}}";
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"kOpt\":1,\"vOpt\":3,\"accept\":true}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP4Req\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"kOpt\":1,\"vOpt\":3,\"accept\":true,\"workerNum\":0}}";
         Assert.assertEquals(str, content);
     }
 

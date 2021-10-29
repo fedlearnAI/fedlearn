@@ -16,6 +16,7 @@ package com.jdt.fedlearn.core.loader.randomForest;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.loader.common.AbstractTrainData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
+import com.jdt.fedlearn.core.preprocess.Scaling;
 import org.ejml.simple.SimpleMatrix;
 
 import java.io.Serializable;
@@ -47,6 +48,8 @@ public class RFTrainData extends AbstractTrainData implements TrainData, Seriali
     private String[][] rawTable;
     // categorical features
     private List<String> cat_features_names;
+    // 用于yLabel在回归问题且使用差分隐私的时候进行归一化，
+    private Scaling scaling = new Scaling();
 
     private SimpleMatrix[] XsTrain;
     private SimpleMatrix yTrain;
@@ -69,7 +72,7 @@ public class RFTrainData extends AbstractTrainData implements TrainData, Seriali
         this.rawTable = rawTable;
     }
 
-    public RFTrainData(String[][] rawTable, String[] idMap, Features features) {
+    public RFTrainData(String[][] rawTable, String[] idMap, Features features, boolean useDp) {
         // 构造函数，只读取 rawTable
         // constructor for inference
         String[][] selectedData = super.scan(rawTable, idMap, features);
@@ -78,6 +81,9 @@ public class RFTrainData extends AbstractTrainData implements TrainData, Seriali
         this.rawTable = selectedData;
         init(features);
         fillna(0);
+        if(useDp && hasLabel){
+            scaling.minMaxScalingLabel(0, 1, getLabel());
+        }
     }
 
 
@@ -158,7 +164,6 @@ public class RFTrainData extends AbstractTrainData implements TrainData, Seriali
         return content;
     }
 
-
     public SimpleMatrix[] getXsTrain() {
         return XsTrain;
     }
@@ -189,5 +194,8 @@ public class RFTrainData extends AbstractTrainData implements TrainData, Seriali
 
     public void setRawTable(String[][] rawTable) {
         this.rawTable = rawTable;
+    }
+    public Scaling getScaling(){
+        return this.scaling;
     }
 }

@@ -2,8 +2,6 @@ package com.jdt.fedlearn.coordinator.service.prepare;
 
 import com.jdt.fedlearn.coordinator.entity.table.PartnerProperty;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
-import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.entity.feature.SingleFeature;
 import com.jdt.fedlearn.core.parameter.common.CategoryParameter;
 import com.jdt.fedlearn.core.parameter.common.ParameterField;
 import com.jdt.fedlearn.core.type.AlgorithmType;
@@ -13,11 +11,9 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static org.testng.Assert.*;
 
 public class AlgorithmParameterImplTest {
 
@@ -39,7 +35,7 @@ public class AlgorithmParameterImplTest {
     public void testQueryAlgoParams() {
         AlgorithmParameterImpl algorithmParameterImpl = new AlgorithmParameterImpl();
         List<ParameterField> parameterFields = algorithmParameterImpl.queryAlgoParams(AlgorithmType.FederatedGB);
-        Assert.assertEquals(parameterFields.size(), 22);
+        Assert.assertEquals(parameterFields.size(), 21);
     }
 
 

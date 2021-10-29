@@ -11,7 +11,7 @@ import com.jdt.fedlearn.core.entity.verticalFDNN.VerticalFDNNUtils;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.parameter.VerticalFDNNParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
@@ -65,9 +65,9 @@ public class VerticalFDNNModel implements Model {
     }
 
     @Override
-    public TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter parameter, Features features, Map<String, Object> others) {
+    public TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, HyperParameter parameter, Features features, Map<String, Object> others) {
         modelToken = "_MLP";
-        RFTrainData trainData = new RFTrainData(rawData, uids, features);
+        RFTrainData trainData = new RFTrainData(rawData, uids, features, false);
         logger.info("Init train start");
         this.parameter = (VerticalFDNNParameter) parameter;
         // 初始化 train data

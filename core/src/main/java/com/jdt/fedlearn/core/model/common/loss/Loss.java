@@ -52,6 +52,13 @@ public class Loss implements Serializable {
         return 0;
     }
 
+    public double getGainDelta(int n, double lambda){
+        throw new NotImplementedException();
+    }
+
+    public double getLeafScoreDelta(int n, double lambda){
+        throw new NotImplementedException();
+    }
 
     public static double mseLoss(double[] predict, double[] label) {
         double loss = 0;

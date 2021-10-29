@@ -6,6 +6,8 @@ import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillier;
 import com.jdt.fedlearn.core.encryption.nativeLibLoader;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
+import com.jdt.fedlearn.core.entity.common.InferenceInit;
+import com.jdt.fedlearn.core.entity.common.TrainInit;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.feature.SingleFeature;
 import com.jdt.fedlearn.core.example.CommonRun;
@@ -38,7 +40,7 @@ public class TestMixedLinearRegression {
     private String[] inferIdList;
 
     private String[] allAddr;
-    private final int bitLen = 1024;
+    private final int bitLen = 128;
     private final DistributedPaillier.DistPaillierPubkey  pubkey   = new DistributedPaillier.DistPaillierPubkey();
     private final DistributedPaillier.DistPaillierPrivkey privkey1 = new DistributedPaillier.DistPaillierPrivkey();
     private final DistributedPaillier.DistPaillierPrivkey privkey2 = new DistributedPaillier.DistPaillierPrivkey();
@@ -50,7 +52,7 @@ public class TestMixedLinearRegression {
         try {
             nativeLibLoader.load();
         } catch (UnsatisfiedLinkError e) {
-            System.exit(1);
+            e.printStackTrace();
         }
 
         final String dataBase = "./src/test/resources/";
@@ -68,6 +70,7 @@ public class TestMixedLinearRegression {
 
         String baseData;
         String label_name;
+
         String fNameSuffix;
         String[] fNameListTrain;
         String[] fNameListTest;
@@ -146,21 +149,30 @@ public class TestMixedLinearRegression {
 
         LinearRegression master = new LinearRegression(parameter);
         MatchResult matchResult = mappingOutput._1();
-        Map<String, Object> others = new HashMap<>();
 
+        Map<String, Object>  others = new HashMap<>();
         others.put("pubKeyStr" , pubkey.toJson());
-        others.put("privKeyStr1", allSk[0].toJson());
-        others.put("privKeyStr2", allSk[1].toJson());
-        others.put("privKeyStr3", allSk[2].toJson());
 
-        List<CommonRequest> initRequests = master.initControl(clientList, matchResult, trainFeatureList, others);
+        List<CommonRequest> oldInitRequests = master.initControl(clientList, matchResult, trainFeatureList, others);
+        List<CommonRequest> newInitRequests = new ArrayList<>();
+        int cnt = 0;
+        for(CommonRequest request: oldInitRequests) {
+            TrainInit oldTrainInit = ((TrainInit) request.getBody());
+            Map<String, Object>  clientOthers = ((TrainInit) request.getBody()).getOthers();
+            clientOthers.put("privKeyStr", allSk[cnt].toJson());
+            clientOthers.put("pubKeyStr" , pubkey.toJson());
+            TrainInit newInit = new TrainInit(oldTrainInit.getParameter(), oldTrainInit.getFeatureList(), oldTrainInit.getMatchId(), clientOthers);
+            CommonRequest newRequest = CommonRequest.buildTrainInitial(request.getClient(), newInit);
+            newInitRequests.add(newRequest);
+            cnt += 1;
+        }
 
         Map<ClientInfo, Model> clientMap = new HashMap<>();
         for (ClientInfo client : clientList) {
             clientMap.put(client, new LinearRegressionModel());
         }
 
-        CommonRun.train(master, initRequests, clientMap, rawDataMapTrain, commonIds);
+        CommonRun.train(master, newInitRequests, clientMap, rawDataMapTrain, commonIds);
 
         //model save
         for (Map.Entry<ClientInfo, Model> x : clientMap.entrySet()) {
@@ -193,10 +205,22 @@ public class TestMixedLinearRegression {
         LinearRegression master = new LinearRegression(parameter);
         Map<String, Object> others = new HashMap<>();
         others.put("pubKeyStr", pubkey.toJson());
-        List<CommonRequest> initRequests = master.initInference(clientList, inferIdList, others);
+        List<CommonRequest> oldInitRequests = master.initInference(clientList, inferIdList, others);
+        List<CommonRequest> newInitRequests = new ArrayList<>();
+        int cnt = 0;
+        for(CommonRequest request: oldInitRequests) {
+            InferenceInit oldTrainInit = ((InferenceInit) request.getBody());
+            Map<String, Object>  clientOthers = ((InferenceInit) request.getBody()).getOthers();
+            clientOthers.put("privKeyStr", allSk[cnt].toJson());
+            clientOthers.put("pubKeyStr" , pubkey.toJson());
+            InferenceInit newInit = new InferenceInit(oldTrainInit.getUid(), clientOthers);
+            CommonRequest newRequest = CommonRequest.buildTrainInitial(request.getClient(), newInit);
+            newInitRequests.add(newRequest);
+            cnt += 1;
+        }
 
         double[][] finalYHat;
-        finalYHat = CommonRun.inference(master, initRequests, modelMap, rawDataMapInfer).getPredicts();
+        finalYHat = CommonRun.inference(master, newInitRequests, modelMap, rawDataMapInfer).getPredicts();
         System.out.println(Arrays.toString(Arrays.stream(finalYHat).mapToDouble(x -> x[0]).toArray()));
     }
 

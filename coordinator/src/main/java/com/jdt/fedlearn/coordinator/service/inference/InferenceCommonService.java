@@ -37,7 +37,7 @@ import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.common.PredictRes;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.parameter.common.CommonParameter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import org.slf4j.Logger;
@@ -158,7 +158,7 @@ public class InferenceCommonService {
      */
     private static Control algorithmSelection(List<SingleParameter> parameterFieldList, AlgorithmType supportedAlgorithm) {
         Map<String, Object> finishParameters = parameterFieldList.stream().collect(Collectors.toMap(SingleParameter::getField, SingleParameter::getValue));
-        SuperParameter parameter = CommonParameter.parseParameter(finishParameters, supportedAlgorithm);
+        HyperParameter parameter = CommonParameter.parseParameter(finishParameters, supportedAlgorithm);
         logger.info("parameter : " + parameter);
         return DispatcherFactory.getDispatcher(supportedAlgorithm, parameter);
     }

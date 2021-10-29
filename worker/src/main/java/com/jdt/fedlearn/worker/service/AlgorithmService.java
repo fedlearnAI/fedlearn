@@ -98,6 +98,7 @@ public class AlgorithmService implements IAlgorithm {
             List<Message> messageBodyList = mapResult.getMessageBodys();
             List<Task> tasks;
             if (modelIDList != null) {
+                logger.info("modelIDList' size : " + modelIDList.size());
                 List<TrainRequest> trainRequests = new ArrayList<>();
                 for (int i = 0; i < modelIDList.size(); i++) {
                     TrainRequest trainRequestSlip = new TrainRequest();
@@ -229,6 +230,7 @@ public class AlgorithmService implements IAlgorithm {
         String treeList = ManagerCache.getCache(AppConstant.MODEL_COUNT_CACHE, treeKey);
         List<Integer> list = JsonUtil.parseArray(treeList, Integer.class);
         if (list != null && list.size() > 0) {
+            logger.info("buildMapTaskFromTreeNodes list : " + list.size());
             for (Integer treeId : list) {
                 TrainRequest trainRequestSlip = new TrainRequest();
                 BeanUtils.copyProperties(trainRequest, trainRequestSlip);

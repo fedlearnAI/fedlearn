@@ -28,7 +28,7 @@ public class TestBoostP3Res {
         String str = serializer.serialize(boostP3Res);
         System.out.println(str);
 
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP3Res\",\"DATA\":{\"client\":{\"port\":0},\"feature\":\"gender\",\"index\":0}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP3Res\",\"DATA\":{\"client\":{\"port\":0},\"feature\":\"gender\",\"index\":0,\"gain\":0.0,\"workerNum\":0}}";
         Assert.assertEquals(str, content);
     }
 

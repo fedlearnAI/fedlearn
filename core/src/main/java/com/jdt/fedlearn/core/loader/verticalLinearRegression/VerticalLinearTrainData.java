@@ -24,7 +24,7 @@ public class VerticalLinearTrainData extends AbstractTrainData implements TrainD
     private double[][] feature;
     private Scaling scaling = new Scaling();
 
-    public VerticalLinearTrainData(String[][] rawTable, String[] idMap, Features features) {
+    public VerticalLinearTrainData(String[][] rawTable, String[] idMap, Features features, boolean useDp) {
         super.scan(rawTable, idMap, features);
         this.feature = super.sample;
 
@@ -34,6 +34,7 @@ public class VerticalLinearTrainData extends AbstractTrainData implements TrainD
         if(feature.length > 0) {
             scaling.minMaxScaling(0, 1, feature);
             filling.avgFilling();
+            // scaling.normalizeL2(feature);
         }
     }
 

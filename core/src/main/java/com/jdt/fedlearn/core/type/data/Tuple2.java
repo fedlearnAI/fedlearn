@@ -13,7 +13,9 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.type.data;
 
-public class Tuple2<A, B>  {
+import java.io.Serializable;
+
+public class Tuple2<A, B> implements Serializable {
 
     private A a;
     private B b;

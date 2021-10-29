@@ -33,7 +33,7 @@ public class TestVerticalLROnlyLabel {
     private static final String modelToken = trainId + "_123456_only_label";
     private static final MetricType[] metrics = new MetricType[]{MetricType.CROSS_ENTRO, MetricType.G_L2NORM};
     private static final VerticalLRParameter parameter = new VerticalLRParameter(0.1, 1, metrics,
-            OptimizerType.BatchGD, 0, 2, "L1", 0.0);
+            OptimizerType.BatchGD, 0, 2, "L1", 0.2, 1e-8);
     private static final VerticalLogisticRegression regression = new VerticalLogisticRegression(parameter);
     private ClientInfo[] clientInfos;
     private static final Map<ClientInfo, String[][]> rawDataMap = new HashMap<>();

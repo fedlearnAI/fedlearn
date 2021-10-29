@@ -15,7 +15,7 @@ package com.jdt.fedlearn.core.entity.kernelLinearRegression;
 
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.type.KernelDispatchJavaPhaseType;
+import com.jdt.fedlearn.core.type.KernelDispatchPhaseType;
 import com.jdt.fedlearn.core.type.MetricType;
 
 import java.util.HashMap;
@@ -32,7 +32,7 @@ public class InferenceReqAndRes implements Message {
     private boolean isActive;
     private int numClass;
     private List<Integer> testUid;
-    private KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType;
+    private KernelDispatchPhaseType kernelDispatchPhaseType;
 
     private Map<MetricType, List<Double>> metric;
     private Map<MetricType, List<Double[][]>> metricArr;
@@ -63,7 +63,7 @@ public class InferenceReqAndRes implements Message {
         this.testUid =testUid;
     }
 
-    public InferenceReqAndRes(ClientInfo client, double[] predictA, double[][] predicts, int numClassRound, boolean isActive,int numClass,List<Integer> testUid,KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
+    public InferenceReqAndRes(ClientInfo client, double[] predictA, double[][] predicts, int numClassRound, boolean isActive, int numClass, List<Integer> testUid, KernelDispatchPhaseType kernelDispatchPhaseType) {
         this.client = client;
         this.predictA = predictA;
         this.predicts = predicts;
@@ -71,14 +71,14 @@ public class InferenceReqAndRes implements Message {
         this.isActive = isActive;
         this.numClass=numClass;
         this.testUid =testUid;
-        this.kernelDispatchJavaPhaseType=kernelDispatchJavaPhaseType;
+        this.kernelDispatchPhaseType = kernelDispatchPhaseType;
     }
 
-    public InferenceReqAndRes(List<Double> multiClassUniqueLabelList, boolean isActive, int numClass,KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
+    public InferenceReqAndRes(List<Double> multiClassUniqueLabelList, boolean isActive, int numClass, KernelDispatchPhaseType kernelDispatchPhaseType) {
         this.multiClassUniqueLabelList = multiClassUniqueLabelList;
         this.isActive = isActive;
         this.numClass = numClass;
-        this.kernelDispatchJavaPhaseType=kernelDispatchJavaPhaseType;
+        this.kernelDispatchPhaseType = kernelDispatchPhaseType;
     }
 
     public Map<String, Double> getPredict() {
@@ -117,8 +117,8 @@ public class InferenceReqAndRes implements Message {
         return testUid;
     }
 
-    public KernelDispatchJavaPhaseType getKernelDispatchJavaPhaseType() {
-        return kernelDispatchJavaPhaseType;
+    public KernelDispatchPhaseType getKernelDispatchJavaPhaseType() {
+        return kernelDispatchPhaseType;
     }
 
     public Map<MetricType, List<Double>> getMetric() {

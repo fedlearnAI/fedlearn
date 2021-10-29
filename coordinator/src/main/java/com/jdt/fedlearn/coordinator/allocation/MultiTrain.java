@@ -34,7 +34,7 @@ import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +98,7 @@ public class MultiTrain implements Runnable {
         AlgorithmType algorithmType = startValues.getSupportedAlgorithm();
 
         Map<String, Object> algorithmParamMap = startValues.getParameter().stream().collect(Collectors.toMap(SingleParameter::getField, SingleParameter::getValue));
-        SuperParameter superParameter = CommonParameter.parseParameter(algorithmParamMap, algorithmType);
+        HyperParameter hyperParameter = CommonParameter.parseParameter(algorithmParamMap, algorithmType);
 
         List<ClientInfo> clientInfos = startValues.getClientInfos();
         MatchResult idMap = startValues.getIdMap();
@@ -107,7 +107,7 @@ public class MultiTrain implements Runnable {
                 features.put(clientInfos.get(i), startValues.getFeature().get(i))
         );
 
-        Control dispatcher = DispatcherFactory.getDispatcher(algorithmType, superParameter);
+        Control dispatcher = DispatcherFactory.getDispatcher(algorithmType, hyperParameter);
         Map<String, Object> others = new HashMap<>();
         List<AlgorithmType> needDistributedKeys = Arrays.asList(AlgorithmType.MixGBoost, AlgorithmType.LinearRegression);
         if (needDistributedKeys.contains(algorithmType)) {

@@ -15,7 +15,7 @@ package com.jdt.fedlearn.core.entity.kernelLinearRegression;
 
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.type.KernelDispatchJavaPhaseType;
+import com.jdt.fedlearn.core.type.KernelDispatchPhaseType;
 import com.jdt.fedlearn.core.type.MetricType;
 
 import java.util.List;
@@ -38,7 +38,7 @@ public class TrainRes implements Message {
     private int round;
     private int clientInd;
     private List<ClientInfo> clientInfoList;
-    private KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType;
+    private KernelDispatchPhaseType kernelDispatchPhaseType;
 
 
     public TrainRes(ClientInfo clientInfo, String body, boolean isActive) {
@@ -58,7 +58,7 @@ public class TrainRes implements Message {
     }
 
 
-    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive, Map<MetricType, List<Double>> metric, Map<MetricType, List<Double[][]>> metricArr, Map<MetricType, List<Double>> metricVali, Map<MetricType, List<Double[][]>> metricArrVali,KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
+    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive, Map<MetricType, List<Double>> metric, Map<MetricType, List<Double[][]>> metricArr, Map<MetricType, List<Double>> metricVali, Map<MetricType, List<Double[][]>> metricArrVali, KernelDispatchPhaseType kernelDispatchPhaseType) {
         this.client = clientInfo;
         this.numClassRound = numClassRound;
         this.isActive = isActive;
@@ -66,7 +66,7 @@ public class TrainRes implements Message {
         this.metricArr = metricArr;
         this.metricVali = metricVali;
         this.metricArrVali = metricArrVali;
-        this.kernelDispatchJavaPhaseType=kernelDispatchJavaPhaseType;
+        this.kernelDispatchPhaseType = kernelDispatchPhaseType;
     }
 
 
@@ -76,21 +76,21 @@ public class TrainRes implements Message {
         this.isActive = isActive;
     }
 
-    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive,KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
+    public TrainRes(ClientInfo clientInfo, int numClassRound, boolean isActive, KernelDispatchPhaseType kernelDispatchPhaseType) {
         this.client = clientInfo;
         this.numClassRound = numClassRound;
         this.isActive = isActive;
-        this.kernelDispatchJavaPhaseType=kernelDispatchJavaPhaseType;
+        this.kernelDispatchPhaseType = kernelDispatchPhaseType;
     }
 
-    public TrainRes(ClientInfo clientInfo, int round,KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
+    public TrainRes(ClientInfo clientInfo, int round, KernelDispatchPhaseType kernelDispatchPhaseType) {
         this.client = clientInfo;
         this.round = round;
-        this.kernelDispatchJavaPhaseType=kernelDispatchJavaPhaseType;
+        this.kernelDispatchPhaseType = kernelDispatchPhaseType;
     }
 
 
-    public TrainRes(ClientInfo clientInfo, double[][] vectors, double paraNorm, boolean isActive, int clientInd,int numClassRound, List<ClientInfo> clientInfoList,KernelDispatchJavaPhaseType kernelDispatchJavaPhaseType) {
+    public TrainRes(ClientInfo clientInfo, double[][] vectors, double paraNorm, boolean isActive, int clientInd, int numClassRound, List<ClientInfo> clientInfoList, KernelDispatchPhaseType kernelDispatchPhaseType) {
         this.client = clientInfo;
         this.vectors = vectors;
         this.paraNorm = paraNorm;
@@ -98,7 +98,7 @@ public class TrainRes implements Message {
         this.clientInd = clientInd;
         this.numClassRound = numClassRound;
         this.clientInfoList = clientInfoList;
-        this.kernelDispatchJavaPhaseType = kernelDispatchJavaPhaseType;
+        this.kernelDispatchPhaseType = kernelDispatchPhaseType;
     }
 
     public TrainRes(ClientInfo clientInfo, double[] vector, Map<MetricType, List<Double>> metric, double paraNorm, boolean isActive) {
@@ -173,8 +173,8 @@ public class TrainRes implements Message {
         return clientInfoList;
     }
 
-    public KernelDispatchJavaPhaseType getKernelDispatchJavaPhaseType() {
-        return kernelDispatchJavaPhaseType;
+    public KernelDispatchPhaseType getKernelDispatchJavaPhaseType() {
+        return kernelDispatchPhaseType;
     }
 
     public void setMetricArr(Map<MetricType, List<Double[][]>> metricArr) {

@@ -16,12 +16,13 @@ package com.jdt.fedlearn.common.entity.project;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.feature.SingleFeature;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 
-public class FeatureDTO {
+public class FeatureDTO implements Serializable {
     private List<SingleFeatureDTO> featureList;
     private String index;
 

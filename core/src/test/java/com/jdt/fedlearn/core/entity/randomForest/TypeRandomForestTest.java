@@ -14,8 +14,8 @@ public class TypeRandomForestTest {
     public void testTypeRandomForest() {
         TypeRandomForest typeRandomForest;
 
-        new TypeRandomForest(2, 3, 5, new HashMap<>(), new Random(666));
-        typeRandomForest = new TypeRandomForest(2, 3, 5, 5, 5, new Random(666));
+        new TypeRandomForest(2, 3, 5, new HashMap<>());
+        typeRandomForest = new TypeRandomForest(2, 5, 5, new Random(666));
         assertEquals(typeRandomForest.getActiveNode(new TreeNodeRF(), 0).getNumSamples(), 5);
         assertEquals(typeRandomForest.getTrainNodeAllTrees().size(), 1);
         assertEquals(typeRandomForest.tree2json(new TreeNodeRF(), ""), "{}");

@@ -24,7 +24,7 @@ public class BoostP3Req implements Message {
     private final ClientInfo client;
     // 收集到的每个客户端以及对应的 Gradient 和 hessian 数据
     private final List<List<FeatureLeftGH>> dataList;
-
+    private int workerNum;
 
     public BoostP3Req(ClientInfo client, List<BoostP2Res> res) {
         this.client = client;
@@ -46,5 +46,14 @@ public class BoostP3Req implements Message {
     public List<List<FeatureLeftGH>> getDataList() {
         return dataList;
     }
+
+    public int getWorkerNum() {
+        return workerNum;
+    }
+
+    public void setWorkerNum(int workerNum) {
+        this.workerNum = workerNum;
+    }
+
 
 }

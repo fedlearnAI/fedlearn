@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class LinearParameter implements SuperParameter {
+public class LinearParameter implements HyperParameter {
     //终止损失 //0.1--100
     private double minLoss;
     //learning rate  //0.01--0.1

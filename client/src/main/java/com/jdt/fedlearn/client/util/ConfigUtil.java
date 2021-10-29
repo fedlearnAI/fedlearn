@@ -16,6 +16,7 @@ package com.jdt.fedlearn.client.util;
 import ch.qos.logback.core.joran.spi.JoranException;
 import com.jdt.fedlearn.client.cache.TrainDataCache;
 import com.jdt.fedlearn.client.entity.source.*;
+import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.jdchain.JdChainConfig;
 import com.jdt.fedlearn.common.exception.ConfigParseException;
 import com.jdt.fedlearn.client.type.SourceType;
@@ -48,6 +49,9 @@ public class ConfigUtil {
     private static final String MATCH_DIR = "match.dir";
     private static final String INFERENCE_ALLOW_TRAIN_UID = "inference.allowTrainUid";
     private static final String MASTER_BELONG = "master.belong";
+    private static final String NETTY_IP = "netty.server.ip";
+    private static final String NETTY_PORT = "netty.server.port";
+    private static final String NETWORK_TYPE = "network.type";
 
 
     /**
@@ -91,7 +95,17 @@ public class ConfigUtil {
         List<DataSourceConfig> trainSources = trainConfigList();
         List<DataSourceConfig> testSources = new ArrayList<>();
         List<DataSourceConfig> inferenceSources = inferenceConfigList();
-        ClientConfig clientConfig = new ClientConfig(appName, appPort, logSettings, masterAddress, token, trainSources, testSources, inferenceSources);
+        String networkType = properties.getProperty(NETWORK_TYPE);
+        ClientConfig clientConfig;
+        if(AppConstant.NETWORK_TYPE_NETTY.equals(networkType)){
+            String nettyIp = properties.getProperty(NETTY_IP);
+            int nettyPort = Integer.parseInt(properties.getProperty(NETTY_PORT));
+            clientConfig = new ClientConfig(appName, appPort, logSettings, masterAddress, token,
+                    trainSources, testSources, inferenceSources,nettyIp,nettyPort,networkType);
+        }else {
+            clientConfig = new ClientConfig(appName, appPort, logSettings, masterAddress, token,
+                    trainSources, testSources, inferenceSources);
+        }
         clientConfig.setModelDir(properties.getProperty(MODEL_DIR));
         clientConfig.setMatchDir(properties.getProperty(MATCH_DIR));
         clientConfig.setAllowTrainUid(Boolean.parseBoolean(properties.getProperty(INFERENCE_ALLOW_TRAIN_UID)));

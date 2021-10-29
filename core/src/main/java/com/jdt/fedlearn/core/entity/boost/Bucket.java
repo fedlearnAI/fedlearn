@@ -16,12 +16,13 @@ package com.jdt.fedlearn.core.entity.boost;
 
 import com.jdt.fedlearn.core.math.MathExt;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
  * bucket 为内部对象，不用于对外传输
  */
-public class Bucket {
+public class Bucket implements Serializable {
     //id 和value 一一对应
     private final double[] ids;
     private final double[] values;
@@ -55,6 +56,7 @@ public class Bucket {
     public double getSplitValue() {
         return splitValue;
     }
+
 
     @Override
     public String toString() {

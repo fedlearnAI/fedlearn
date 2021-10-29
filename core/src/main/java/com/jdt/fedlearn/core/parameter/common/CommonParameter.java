@@ -26,12 +26,13 @@ public class CommonParameter {
     public static List<ParameterField> constructList(AlgorithmType algorithm) {
         List<ParameterField> parameterFields = null;
         switch (algorithm) {
-            case FederatedGB: {
+            case FederatedGB:
+            case DistributedFederatedGB:{
                 parameterFields = new FgbParameter().obtainPara();
                 break;
             }
             case DistributedRandomForest:
-            case RandomForestJava: {
+            case RandomForest: {
                 parameterFields = new RandomForestParameter().obtainPara();
                 break;
             }
@@ -47,8 +48,8 @@ public class CommonParameter {
                 parameterFields = new MixGBParameter().obtainPara();
                 break;
             }
-            case KernelBinaryClassificationJava: {
-                parameterFields = new KernelLinearRegressionParameter().obtainPara();
+            case FederatedKernel: {
+                parameterFields = new FederatedKernelParameter().obtainPara();
                 break;
             }
             case LinearRegression: {
@@ -90,7 +91,7 @@ public class CommonParameter {
      * @param algorithmParams ParameterFields
      * @return SuperParameter
      */
-    private static <T extends SuperParameter> T convertListToSuperParameter(Map<String, Object> algorithmParams, Class<T> t) {
+    private static <T extends HyperParameter> T convertListToSuperParameter(Map<String, Object> algorithmParams, Class<T> t) {
         algorithmParams.put("@clazz", t);
         ObjectMapper objectMapper = new ObjectMapper();
         // 设置序列化多了其他属性不报错
@@ -98,22 +99,24 @@ public class CommonParameter {
         return objectMapper.convertValue(algorithmParams, t);
     }
 
-    public static SuperParameter parseParameter(Map<String, Object> parameterFields, AlgorithmType algorithmType) {
-        SuperParameter parameter;
+    public static HyperParameter parseParameter(Map<String, Object> parameterFields, AlgorithmType algorithmType) {
+        HyperParameter parameter;
         if (AlgorithmType.VerticalLinearRegression == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, VerticalLinearParameter.class);
-        } else if (AlgorithmType.RandomForestJava == algorithmType) {
+        } else if (AlgorithmType.RandomForest == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, RandomForestParameter.class);
         } else if (AlgorithmType.DistributedRandomForest == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, RandomForestParameter.class);
         } else if (AlgorithmType.FederatedGB == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, FgbParameter.class);
+        } else if (AlgorithmType.DistributedFederatedGB == algorithmType) {
+            parameter = convertListToSuperParameter(parameterFields, FgbParameter.class);
         } else if (AlgorithmType.MixGBoost == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, MixGBParameter.class);
         } else if (AlgorithmType.LinearRegression == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, LinearParameter.class);
-        } else if (AlgorithmType.KernelBinaryClassificationJava == algorithmType) {
-            parameter = convertListToSuperParameter(parameterFields, KernelLinearRegressionParameter.class);
+        } else if (AlgorithmType.FederatedKernel == algorithmType) {
+            parameter = convertListToSuperParameter(parameterFields, FederatedKernelParameter.class);
         } else if (AlgorithmType.HorizontalFedAvg == algorithmType) {
             parameter = convertListToSuperParameter(parameterFields, HorizontalFedAvgPara.class);
         } else if (AlgorithmType.VerticalLR == algorithmType) {
@@ -130,7 +133,7 @@ public class CommonParameter {
         return parameter;
     }
 
-    public static SuperParameter parseParameter(Map<String, Object> parameterFields, String algorithmStr) {
+    public static HyperParameter parseParameter(Map<String, Object> parameterFields, String algorithmStr) {
         AlgorithmType algorithm = AlgorithmType.valueOf(algorithmStr);
         return parseParameter(parameterFields, algorithm);
     }

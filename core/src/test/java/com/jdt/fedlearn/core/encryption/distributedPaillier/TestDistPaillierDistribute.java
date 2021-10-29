@@ -6,6 +6,8 @@ import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.example.CommonRunKeyGene;
 import com.jdt.fedlearn.core.exception.WrongValueException;
 import com.jdt.fedlearn.core.math.MathExt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -23,6 +25,7 @@ import static com.jdt.fedlearn.core.math.MathExt.*;
 import static com.jdt.fedlearn.core.util.TypeConvUtils.toJsons;
 
 public class TestDistPaillierDistribute {
+    private static final Logger logger = LoggerFactory.getLogger(TestDistPaillierDistribute.class);
     private final Random prg = new Random();
     int n = 3;
     int l = 128;
@@ -42,7 +45,8 @@ public class TestDistPaillierDistribute {
         try {
             nativeLibLoader.load();
         } catch (UnsatisfiedLinkError e) {
-            System.exit(1);
+            logger.error("library: " + System.getProperty("java.library.path"));
+            logger.error("Native code library failed to load.  ", e);
         }
 
         ClientInfo party1 = new ClientInfo("127.0.0.1", 80, "http", "", "0");

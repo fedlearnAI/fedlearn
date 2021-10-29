@@ -60,7 +60,7 @@ public class CsvReader implements DataReader {
         int cnt = 0;
         //从文件中加载数据，第一行是feature 名称，第一列是用户uid，(如果有label的话)最后一列是label
         List<String[]> res = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path),StandardCharsets.UTF_8))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8))) {
             String header = br.readLine();
             assert header != null;
             String[] columns = parseString2(header);
@@ -85,7 +85,7 @@ public class CsvReader implements DataReader {
     }
 
     public static String[] parseString2(String input) {
-        String inputReplaceNull = input.replace(",,",", ");
+        String inputReplaceNull = input.replace(",,", ", ");
         StringTokenizer st = new StringTokenizer(inputReplaceNull, ",");
 
         List<String> res = new ArrayList<>();
@@ -108,14 +108,14 @@ public class CsvReader implements DataReader {
 
 
     public String[][] loadInference(DataSourceConfig config, String[] uid) {
-        CsvSourceConfig sourceConfig = (CsvSourceConfig)config;
+        CsvSourceConfig sourceConfig = (CsvSourceConfig) config;
         String basePath = sourceConfig.getTrainBase();
         String dataFileName = sourceConfig.getDataName();
         String path = basePath + dataFileName;
-        return loadData(path,uid);
+        return loadData(path, uid);
     }
 
-    public String[][] loadData(String path,String[] uid) {
+    public String[][] loadData(String path, String[] uid) {
         //根据uid列表，从文件中加载数据，
         Set<String> uidSet = Stream.of(uid).collect(Collectors.toSet());
         List<String[]> r = new ArrayList<>();
@@ -140,7 +140,7 @@ public class CsvReader implements DataReader {
 
     @Override
     public String[][] loadValidate(DataSourceConfig config, String[] uid) {
-        CsvSourceConfig sourceConfig = (CsvSourceConfig)config;
+        CsvSourceConfig sourceConfig = (CsvSourceConfig) config;
         String basePath = sourceConfig.getTrainBase();
         String dataFileName = sourceConfig.getDataName();
         String path = basePath + dataFileName;
@@ -168,20 +168,21 @@ public class CsvReader implements DataReader {
         }
         return res;
     }
+
     @Override
-    public String[][] readDataIndex(String dataset,Map<Long, String> idMap) throws IOException {
+    public String[][] readDataIndex(String dataset, Map<Long, String> idMap) throws IOException {
         CsvSourceConfig csvSourceConfig = (CsvSourceConfig) this.dataSourceConfig;
         String basePath = csvSourceConfig.getTrainBase();
         String path = basePath + dataset;
         // 首先 转换 idMap, 获取到所有的结果
         Set<String> valueSet = new HashSet<>();
-        for(String value : idMap.values()){
+        for (String value : idMap.values()) {
             valueSet.add(value);
         }
         String[][] res = new String[idMap.size()][2];
         int index = 0;
         InputStream inputStream = new FileInputStream(path);
-        try (Reader in = new InputStreamReader(inputStream,StandardCharsets.UTF_8); LineNumberReader reader = new LineNumberReader(in)) {
+        try (Reader in = new InputStreamReader(inputStream, StandardCharsets.UTF_8); LineNumberReader reader = new LineNumberReader(in)) {
             String lineStr;
             while ((lineStr = reader.readLine()) != null) {
                 int i = reader.getLineNumber();
@@ -191,7 +192,7 @@ public class CsvReader implements DataReader {
                     // 保存行索引
 //indexList.add(i-2);
                     res[index][0] = selectArray[0];
-                    res[index][1] = (i-2) + "";
+                    res[index][1] = (i - 2) + "";
                     index++;
                 }
             }
@@ -206,7 +207,7 @@ public class CsvReader implements DataReader {
         String path = basePath + dataset;
         List<String[]> r = new ArrayList<>();
         InputStream inputStream = new FileInputStream(path);
-        try (Reader in = new InputStreamReader(inputStream,StandardCharsets.UTF_8); LineNumberReader reader = new LineNumberReader(in)) {
+        try (Reader in = new InputStreamReader(inputStream, StandardCharsets.UTF_8); LineNumberReader reader = new LineNumberReader(in)) {
             // 获取文件总行数
             Long lineConut = getLineConut(path);
             int i = 0;
@@ -232,6 +233,68 @@ public class CsvReader implements DataReader {
         return r.toArray(new String[r.size()][]);
     }
 
+    @Override
+    public String[][] readDataCol(String dataset, List<Integer> rows, List<Integer> cols) throws IOException {
+        CsvSourceConfig csvSourceConfig = (CsvSourceConfig) this.dataSourceConfig;
+        String basePath = csvSourceConfig.getTrainBase();
+        String path = basePath + dataset;
+        List<String[]> r = new ArrayList<>();
+        InputStream inputStream = new FileInputStream(path);
+        long allS = System.currentTimeMillis();
+        try (Reader in = new InputStreamReader(inputStream, StandardCharsets.UTF_8); LineNumberReader reader = new LineNumberReader(in)) {
+            // 获取文件总行数
+            Long lineConut = getLineConut(path);
+            int i = 0;
+            for (int lineNumber : rows) {
+                if (lineNumber < 0 || lineNumber > lineConut) {
+                    logger.error("不在文件的行数范围之内。");
+                } else {
+                    String lineStr;
+                    while ((lineStr = reader.readLine()) != null) {
+                        int nowLine = i;
+                        i++;
+                        if (lineNumber == nowLine) {
+                            String[] selectArray = lineStr.split(DELIMITER);
+                            r.add(selectArray);
+                            break;
+                        }
+                    }
+
+                }
+            }
+        }
+        String[][] res = r.toArray(new String[r.size()][]);
+        long t = System.currentTimeMillis();
+        logger.info("load cost : " + (t-allS));
+        String[][] resTrans = transpose(res);
+        long t2 = System.currentTimeMillis();
+        logger.info("trans1 " + (t2-t));
+        String[][] resF = new String[cols.size()][rows.size()];
+        for (int i = 0; i < cols.size(); i++) {
+            resF[i] = resTrans[cols.get(i)];
+        }
+        long t3 = System.currentTimeMillis();
+        logger.info("cols cost " + (t3-t2));
+        String[][] resF1 =transpose(resF);
+        logger.info("trans2 " + (System.currentTimeMillis()-t3));
+        logger.info("allcost " + (System.currentTimeMillis() - allS));
+        return resF1;
+    }
+
+    /***
+     * 数据转换
+     * @param mat 原始数据
+     * @return 转换后的数据
+     */
+    public static String[][] transpose(String[][] mat) {
+        String[][] res = new String[mat[0].length][mat.length];
+        for (int i = 0; i < mat.length; i++) {
+            for (int j = 0; j < mat[0].length; j++) {
+                res[j][i] = mat[i][j];
+            }
+        }
+        return res;
+    }
     /**
      * 计算文件总行数
      *

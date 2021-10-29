@@ -28,7 +28,7 @@ public class DispatcherFactory {
      * @param parameter     超参数
      * @return 构造的算法
      */
-    public static Control getDispatcher(AlgorithmType algorithmType, SuperParameter parameter) {
+    public static Control getDispatcher(AlgorithmType algorithmType, HyperParameter parameter) {
         Control algorithm;
 
         switch (algorithmType) {
@@ -42,6 +42,11 @@ public class DispatcherFactory {
                 algorithm = new FederatedGB(fgbParameter);
                 break;
             }
+            case DistributedFederatedGB: {
+                FgbParameter fgbParameter = (FgbParameter) parameter;
+                algorithm = new FederatedGB(fgbParameter,AlgorithmType.DistributedFederatedGB);
+                break;
+            }
             case MixGBoost: {
                 MixGBParameter mixGBParameter = (MixGBParameter) parameter;
                 algorithm = new MixGBoost(mixGBParameter);
@@ -52,9 +57,9 @@ public class DispatcherFactory {
                 algorithm = new LinearRegression(linearParameter);
                 break;
             }
-            case KernelBinaryClassificationJava: {
-                KernelLinearRegressionParameter kernelLinearRegressionParameter = (KernelLinearRegressionParameter) parameter;
-                algorithm = new KernelLinearRegressionJava(kernelLinearRegressionParameter);
+            case FederatedKernel: {
+                FederatedKernelParameter federatedKernelParameter = (FederatedKernelParameter) parameter;
+                algorithm = new FederatedKernel(federatedKernelParameter);
                 break;
             }
             case HorizontalFedAvg: {
@@ -62,14 +67,14 @@ public class DispatcherFactory {
                 algorithm = new HorizontalFedAvg(HFLParameter);
                 break;
             }
-            case RandomForestJava: {
+            case DistributedRandomForest:{
                 RandomForestParameter rfParameter = (RandomForestParameter) parameter;
-                algorithm = new RandomForestJava(rfParameter);
+                algorithm = new RandomForest(rfParameter, AlgorithmType.DistributedRandomForest);
                 break;
             }
-            case DistributedRandomForest: {
+            case RandomForest: {
                 RandomForestParameter rfParameter = (RandomForestParameter) parameter;
-                algorithm = new DistributedRandomForest(rfParameter);
+                algorithm = new RandomForest(rfParameter);
                 break;
             }
             case VerticalLR: {
@@ -102,7 +107,7 @@ public class DispatcherFactory {
      * @param parameter             超参数
      * @return 构造的算法
      */
-    public static Control getDispatcher(String supportedAlgorithmStr, SuperParameter parameter) {
+    public static Control getDispatcher(String supportedAlgorithmStr, HyperParameter parameter) {
         AlgorithmType algorithmType = AlgorithmType.valueOf(supportedAlgorithmStr);
         return getDispatcher(algorithmType, parameter);
     }

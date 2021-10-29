@@ -134,4 +134,10 @@ public class ConfigUtil {
         }
         return Constant.PUB_PATH;
     }
+
+    public static String getNetworkType(){
+        String type = getProperty("network.type");
+        return type;
+    }
+
 }

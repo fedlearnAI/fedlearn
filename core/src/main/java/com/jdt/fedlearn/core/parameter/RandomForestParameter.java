@@ -29,7 +29,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RandomForestParameter implements SuperParameter {
+public class RandomForestParameter implements HyperParameter {
 
     private static final Logger logger = LoggerFactory.getLogger(RandomForestParameter.class);
     private int numTrees;               // 树的数量
@@ -51,6 +51,11 @@ public class RandomForestParameter implements SuperParameter {
     private int encryptionCertainty = 1024;        // paillier certainty
     private int randomSeed = 666;
 
+    // 差分隐私epsilon
+    private double dpEpsilon;
+    // 是否使用差分隐私
+    private String useDP;
+
     public RandomForestParameter() {
         this.numTrees = 10;
         this.maxDepth = 20;
@@ -66,36 +71,6 @@ public class RandomForestParameter implements SuperParameter {
         this.cat_features = "";
         this.boostRatio = 0.;
         this.encryptionType = EncryptionType.IterativeAffine;
-        this.encryptionKeyPath = "/export/Data/paillier/";
-        this.encryptionCertainty = 1024;
-    }
-
-    public RandomForestParameter(int numTrees,
-                                 int maxDepth,
-                                 int maxTreeSamples,
-                                 int maxSampledFeatures,
-                                 double maxSampledRatio,
-                                 int numPercentiles,
-                                 int minSamplesSplit,
-                                 String localModel,
-                                 int nJobs,
-                                 EncryptionType encryptionType,
-                                 MetricType[] eval_metric,
-                                 String loss) {
-        this.numTrees = numTrees;
-        this.maxDepth = maxDepth;
-        this.maxSampledFeatures = maxSampledFeatures;
-        this.maxSampledRatio = maxSampledRatio;
-        this.numPercentiles = numPercentiles;
-        this.minSamplesSplit = minSamplesSplit;
-        this.localModel = "Null";
-        this.eval_metric = eval_metric;
-        this.loss = "Regression:MSE";
-        this.maxTreeSamples = maxTreeSamples;
-        this.cat_features = "";
-        this.boostRatio = 0.;
-//        this.nJobs = nJobs;
-        this.encryptionType = encryptionType;
         this.encryptionKeyPath = "/export/Data/paillier/";
         this.encryptionCertainty = 1024;
     }
@@ -132,6 +107,43 @@ public class RandomForestParameter implements SuperParameter {
         this.randomSeed = randomSeed;
     }
 
+    public RandomForestParameter(int numTrees,
+                                 int maxDepth,
+                                 int maxTreeSamples,
+                                 int maxSampledFeatures,
+                                 double maxSampledRatio,
+                                 int numPercentiles,
+                                 int minSamplesSplit,
+                                 String localModel,
+                                 int nJobs,
+                                 EncryptionType encryptionType,
+                                 MetricType[] eval_metric,
+                                 String loss,
+                                 int randomSeed,
+                                 String useDP,
+                                 double dpEpsilon) {
+        this.numTrees = numTrees;
+        this.maxDepth = maxDepth;
+        this.maxSampledFeatures = maxSampledFeatures;
+        this.maxSampledRatio = maxSampledRatio;
+        this.numPercentiles = numPercentiles;
+        this.minSamplesSplit = minSamplesSplit;
+        this.localModel = "Null";
+        this.eval_metric = eval_metric;
+        this.loss = "Regression:MSE";
+        this.maxTreeSamples = maxTreeSamples;
+        this.cat_features = "";
+        this.boostRatio = 0.;
+//        this.nJobs = nJobs;
+        this.encryptionType = encryptionType;
+        this.encryptionKeyPath = "/export/Data/paillier/";
+        this.encryptionCertainty = 1024;
+        this.randomSeed = randomSeed;
+        this.useDP = useDP;
+        this.dpEpsilon = dpEpsilon;
+    }
+
+
     public List<ParameterField> obtainPara() {
         List<ParameterField> res = new ArrayList<>();
         res.add(new NumberParameter("numTrees", "树的个数", 2, new String[]{"1", "100"}, ParameterType.NUMS));
@@ -151,6 +163,8 @@ public class RandomForestParameter implements SuperParameter {
 //        res.add(new NumberParameter("boostRatio", "boostRatio(无需改动)", 1, new String[]{"1", "100"}, ParameterType.NUMS));
         res.add(new CategoryParameter("encryptionType", "加密方式", "IterativeAffine", new String[]{"Paillier", "IterativeAffine"}, ParameterType.STRING));
         res.add(new NumberParameter("randomSeed", "随机种子", 666, new String[]{"1", "1000"}, ParameterType.NUMS));
+        res.add(new NumberParameter("dpEpsilon", "dpEpsilon", 3.2, new String[]{"1.0", "3.2"}, ParameterType.NUMS));
+        res.add(new CategoryParameter("useDP", "useDP", "false", new String[]{"true", "false"}, ParameterType.STRING));
         return res;
     }
 
@@ -206,6 +220,22 @@ public class RandomForestParameter implements SuperParameter {
 
     public String getLoss() {
         return loss;
+    }
+
+    public boolean isUseDP(){
+        return "true".equals(this.useDP);
+    }
+
+    public double getDpEpsilon(){
+        return this.dpEpsilon;
+    }
+
+    public void setDpEpsilon(double epsilon){
+        this.dpEpsilon = epsilon;
+    }
+
+    public void averageEpsilon(){
+        this.dpEpsilon = this.dpEpsilon / (this.numTrees * this.maxDepth * (this.maxDepth + 1));
     }
 
     public String getCat_features() {

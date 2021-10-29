@@ -46,7 +46,7 @@ fi
 
 echo "Stopping the ${SERVER_NAME}[PIDS: ${PIDS}] ..."
 for PID in $PIDS ; do
-    sudo kill $PID > /dev/null 2>&1
+    kill $PID > /dev/null 2>&1
 done
 # 如果第一个参数时force，判断第二个参数是否是空，不是空的话，将等待值设为第二个参数，否则默认为5
 #MAX_WAIT=10

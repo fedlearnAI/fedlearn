@@ -23,6 +23,7 @@ public class BoostP4Req implements Message {
     //分裂点索引
     private int vOpt;
     private final boolean accept;
+    private int workerNum;
 
     public BoostP4Req(boolean accept) {
         this.accept = accept;
@@ -49,5 +50,13 @@ public class BoostP4Req implements Message {
 
     public boolean isAccept() {
         return accept;
+    }
+
+    public int getWorkerNum() {
+        return workerNum;
+    }
+
+    public void setWorkerNum(int workerNum) {
+        this.workerNum = workerNum;
     }
 }

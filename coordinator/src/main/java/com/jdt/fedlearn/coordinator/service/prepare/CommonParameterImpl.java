@@ -66,7 +66,7 @@ public class CommonParameterImpl implements TrainService {
         //用于系统超参数，比如支持哪些模型，加密算法选项等
         String[] alg = AlgorithmType.getAlgorithms();
         if (ConfigUtil.getJdChainAvailable()) {
-            alg = new String[]{AlgorithmType.FederatedGB.getAlgorithm(), AlgorithmType.KernelBinaryClassificationJava.getAlgorithm(),AlgorithmType.RandomForestJava.getAlgorithm()};
+            alg = new String[]{AlgorithmType.FederatedGB.getAlgorithm(), AlgorithmType.FederatedKernel.getAlgorithm(),AlgorithmType.RandomForest.getAlgorithm()};
         }
 //        Map<String, Object> data = Maps.newHashMap();
 //        data.put(MODEL, alg);

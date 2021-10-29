@@ -26,6 +26,10 @@ public class EncryptedGradHess implements Message {
     private String pubKey;
     private boolean newTree;
     private MetricValue trainMetric;
+    private int workerNum;
+
+    public EncryptedGradHess() {
+    }
 
     public EncryptedGradHess(ClientInfo client, int[] instanceSpace, StringTuple2[] gh, String pubKey, boolean newTree) {
         this.client = client;
@@ -35,9 +39,15 @@ public class EncryptedGradHess implements Message {
         this.newTree = newTree;
     }
 
-    public EncryptedGradHess(ClientInfo client,int[] instanceSpace) {
+    public EncryptedGradHess(ClientInfo client, int[] instanceSpace) {
         this.client = client;
         this.instanceSpace = instanceSpace;
+    }
+
+    public EncryptedGradHess(ClientInfo client, int[] instanceSpace, int workerNum) {
+        this.client = client;
+        this.instanceSpace = instanceSpace;
+        this.workerNum = workerNum;
     }
 
     public ClientInfo getClient() {
@@ -66,5 +76,13 @@ public class EncryptedGradHess implements Message {
 
     public MetricValue getTrainMetric() {
         return trainMetric;
+    }
+
+    public int getWorkerNum() {
+        return workerNum;
+    }
+
+    public void setWorkerNum(int workerNum) {
+        this.workerNum = workerNum;
     }
 }

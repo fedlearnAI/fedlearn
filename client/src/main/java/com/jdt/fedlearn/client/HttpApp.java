@@ -29,10 +29,12 @@ import com.jdt.fedlearn.client.entity.train.QueryProgress;
 import com.jdt.fedlearn.client.entity.train.TrainRequest;
 import com.jdt.fedlearn.client.exception.ForbiddenException;
 import com.jdt.fedlearn.client.exception.NotAcceptableException;
+import com.jdt.fedlearn.client.netty.SocketClient;
 import com.jdt.fedlearn.client.util.JdChainUtils;
 import com.jdt.fedlearn.client.service.*;
 import com.jdt.fedlearn.client.util.*;
 import com.jdt.fedlearn.client.util.PacketUtil;
+import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.enums.LocalUrlType;
 import com.jdt.fedlearn.common.tool.ResponseHandler;
@@ -184,7 +186,7 @@ public class HttpApp extends AbstractHandler {
         }
     }
 
-    private Map<String, Object> dispatch(String url, String content, String remoteIP) throws IOException {
+    public static Map<String, Object> dispatch(String url, String content, String remoteIP) throws IOException {
 //        UrlType urlType = UrlType.valueOf(url);
         switch (url) {
             //训练相关
@@ -388,7 +390,9 @@ public class HttpApp extends AbstractHandler {
             logger.error("system config initial error", e);
             System.exit(-1);
         }
-
+        if(AppConstant.NETWORK_TYPE_NETTY.equals(ConfigUtil.getClientConfig().getNetworkType())){
+            initNetty();
+        }
         //参数处理
         int port = ConfigUtil.getClientConfig().getAppPort();
         QueuedThreadPool threadPool = new QueuedThreadPool(2000, 200);
@@ -409,6 +413,24 @@ public class HttpApp extends AbstractHandler {
             logger.error("start error", e);
             System.exit(-2);
         }
+    }
+
+    /***
+    * @description: 连接netty server
+    * @return: void
+    * @author: geyan29
+    * @date: 2021/8/24 2:52 下午
+    */
+    private static void initNetty() {
+        Thread t = new Thread(() -> {
+            SocketClient socketClient = new SocketClient();
+            try {
+                socketClient.connect();
+            } catch (Exception e) {
+                logger.error("netty 连接服务器失败，等待重新连接....");
+            }
+        });
+        t.start();
     }
 
 }

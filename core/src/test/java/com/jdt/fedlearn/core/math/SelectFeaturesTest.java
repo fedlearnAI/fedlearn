@@ -35,7 +35,7 @@ public class SelectFeaturesTest {
         String[] x1 = new String[]{"1", "0", "1", "1.0"};
         String[] x2 = new String[]{"100", "1", "0", "0.0"};
         String[][] input = new String[][]{x0, x1, x2};
-        RFTrainData trainData = new RFTrainData(input,idMap,features);
+        RFTrainData trainData = new RFTrainData(input,idMap,features, false);
 
         List<Map.Entry<Integer, Double>> selectedFeature = featuresRelation(trainData);
         Assert.assertEquals(selectedFeature.get(0).getKey(),new Integer(1));

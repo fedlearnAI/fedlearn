@@ -17,7 +17,7 @@ public class TestVerticalLinearTrainData {
         String[] idMap = compoundInput._2().get();
         Features features = compoundInput._3().get();
 
-        VerticalLinearTrainData verticalLinearTrainData = new VerticalLinearTrainData(input, idMap, features);
+        VerticalLinearTrainData verticalLinearTrainData = new VerticalLinearTrainData(input, idMap, features, false);
         System.out.println(verticalLinearTrainData.getDatasetSize() + "," + verticalLinearTrainData.getFeatureDim());
 
         Assert.assertEquals(verticalLinearTrainData.getFeatureDim(), 3);
@@ -45,7 +45,7 @@ public class TestVerticalLinearTrainData {
         String[] idMap = compoundInput._2().get();
         Features features = compoundInput._3().get();
 
-        VerticalLinearTrainData verticalLinearTrainData = new VerticalLinearTrainData(input, idMap, features);
+        VerticalLinearTrainData verticalLinearTrainData = new VerticalLinearTrainData(input, idMap, features, false);
         System.out.println(verticalLinearTrainData.getDatasetSize() + "," + verticalLinearTrainData.getFeatureDim());
 
         double[][] res = verticalLinearTrainData.getFeature();

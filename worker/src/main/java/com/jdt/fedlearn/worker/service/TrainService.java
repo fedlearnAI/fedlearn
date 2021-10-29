@@ -23,6 +23,7 @@ import com.jdt.fedlearn.common.constant.CacheConstant;
 import com.jdt.fedlearn.common.network.INetWorkService;
 import com.jdt.fedlearn.core.entity.distributed.InitResult;
 import com.jdt.fedlearn.core.loader.common.TrainData;
+import com.jdt.fedlearn.core.model.DistributedRandomForestModel;
 import com.jdt.fedlearn.worker.cache.ManagerCache;
 import com.jdt.fedlearn.worker.constant.Constant;
 import com.jdt.fedlearn.worker.entity.train.QueryProgress;
@@ -263,6 +264,17 @@ public class TrainService {
         }
     }
 
+    /***
+     * 获取需要读取的二维数组
+     * @param localModel model
+     * @param requestId 请求id
+     * @param dataset 数据文件名
+     * @param trainInit 初始化请求
+     * @param mapResOri id对齐结果
+     * @return 二维数组
+     * @throws IOException
+     */
+    private static String FEATURE_INDEXS = "featureindexs";
     private String[][] getRawData(Model localModel, String requestId, String dataset, TrainInit trainInit, String[] mapResOri) throws IOException {
         Map<Long, String> idMap = new HashMap<>();
         for (int i = 0; i < mapResOri.length; i++) {
@@ -274,8 +286,15 @@ public class TrainService {
         List<Integer> sortedIndexList = Arrays.stream(sortedIndexId).parallel().map(x -> Integer.valueOf(x[1])).collect(Collectors.toList());
         //下面改到core
         ArrayList<Integer> sampleData = localModel.dataIdList(requestId, trainInit, sortedIndexList);
-        //读取采样的数据集
-        return reader.readDataLine(dataset, sampleData);
+        // todo 两个算法需要做兼容
+        if (localModel instanceof DistributedRandomForestModel) {
+            return reader.readDataLine(dataset, sampleData);
+        } else {
+            List<Integer> sampleCols = (ArrayList<Integer>) trainInit.getOthers().get(FEATURE_INDEXS);
+            logger.info("featureindexs: " + sampleCols);
+            //读取采样的数据集
+            return reader.readDataCol(dataset, sampleData, sampleCols);
+        }
     }
 
 

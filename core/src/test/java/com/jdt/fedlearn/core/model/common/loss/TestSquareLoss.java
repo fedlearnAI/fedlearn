@@ -80,4 +80,17 @@ public class TestSquareLoss {
             assertEquals(target[i], res[i]);
         }
     }
+
+    @Test
+    public void testGainScoreDelta(){
+        SquareLoss squareLoss = new SquareLoss();
+        double gainDelta = squareLoss.getGainDelta(10, 1.0);
+        double scoreDelta = squareLoss.getLeafScoreDelta(10, 1.0);
+        assertEquals(gainDelta, 1.0);
+        assertEquals(scoreDelta, 1 / (10 + 1.0));
+        gainDelta = squareLoss.getGainDelta(0, 0);
+        assertEquals(gainDelta, 1.0);
+        scoreDelta = squareLoss.getLeafScoreDelta(0, 0);
+
+    }
 }

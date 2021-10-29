@@ -19,12 +19,32 @@ public class ClientConfig {
     private List<DataSourceConfig> testSources;
     private boolean allowTrainUid;
     private List<DataSourceConfig> inferenceSources;
+    private String nettyIp;
+    private int nettyPort;
+    private String networkType;
 
 
     public ClientConfig() {
     }
 
-    public ClientConfig(String appName, int appPort, String logSettings, String masterAddress, String authToken, List<DataSourceConfig> trainSources, List<DataSourceConfig> testSources, List<DataSourceConfig> inferenceSources) {
+    public ClientConfig(String appName, int appPort, String logSettings, String masterAddress, String authToken,
+                        List<DataSourceConfig> trainSources, List<DataSourceConfig> testSources, List<DataSourceConfig> inferenceSources,
+                        String nettyIp,int nettyPort,String networkType) {
+        this.appName = appName;
+        this.appPort = appPort;
+        this.logSettings = logSettings;
+        this.masterAddress = masterAddress;
+        this.authToken = authToken;
+        this.trainSources = trainSources;
+        this.testSources = testSources;
+        this.inferenceSources = inferenceSources;
+        this.nettyIp = nettyIp;
+        this.nettyPort = nettyPort;
+        this.networkType = networkType;
+    }
+
+    public ClientConfig(String appName, int appPort, String logSettings, String masterAddress, String authToken,
+                        List<DataSourceConfig> trainSources, List<DataSourceConfig> testSources, List<DataSourceConfig> inferenceSources) {
         this.appName = appName;
         this.appPort = appPort;
         this.logSettings = logSettings;
@@ -130,5 +150,29 @@ public class ClientConfig {
 
     public void setMasterBelong(String masterBelong) {
         this.masterBelong = masterBelong;
+    }
+
+    public String getNettyIp() {
+        return nettyIp;
+    }
+
+    public void setNettyIp(String nettyIp) {
+        this.nettyIp = nettyIp;
+    }
+
+    public int getNettyPort() {
+        return nettyPort;
+    }
+
+    public void setNettyPort(int nettyPort) {
+        this.nettyPort = nettyPort;
+    }
+
+    public String getNetworkType() {
+        return networkType;
+    }
+
+    public void setNetworkType(String networkType) {
+        this.networkType = networkType;
     }
 }

@@ -26,7 +26,7 @@ public class TrainStatus {
     private RunningType runningType;
     private int percent;
     private String message;
-    private Map<String, List<Metric>> metrics;
+    private Map<String, List<Metric>> metrics; //TODO remove
     private String token; //TODO remove
     private List<Metric> trainMetrics;
     private List<Metric> validationMetrics;

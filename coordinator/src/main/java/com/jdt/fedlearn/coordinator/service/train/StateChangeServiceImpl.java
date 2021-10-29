@@ -103,7 +103,7 @@ public class StateChangeServiceImpl implements TrainService {
             // 从数据库加载训练状态
             logger.info("从数据库中加载训练状态 ");
             TrainInfo trainInfo = UniversalMapper.getModelToken(modelId);
-            TrainContext trainContext = new TrainContext(trainInfo.getRunningType(), String.valueOf(trainInfo.getTrainStartTime()), trainInfo.getPercent(), trainInfo.getMetricInfo(), trainInfo.getHyperParameter());
+            TrainContext trainContext = new TrainContext(trainInfo.getRunningType(), String.valueOf(trainInfo.getStartTime()), trainInfo.getPercent(), trainInfo.getMetricInfo(), trainInfo.getHyperParameter());
             TrainCommonServiceImpl.trainContextMap.put(modelId, trainContext);
         } else {
             // 缓存和数据库都不存在

@@ -34,7 +34,7 @@ import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.loader.horizontalZoo.HorizontalDataFrame;
 
 import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.ejml.simple.SimpleMatrix;
@@ -87,7 +87,7 @@ public class HorizontalFedAvgModel implements Model {
 
     @Override
     public TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex,
-                               SuperParameter superParameter,
+                               HyperParameter hyperParameter,
                                Features features, Map<String, Object> others) {
         HorizontalDataFrame trainData = new HorizontalDataFrame(rawData);
         if ("".equals(stubAddress)) {
@@ -113,9 +113,7 @@ public class HorizontalFedAvgModel implements Model {
         y_train = HorizontalZooDataUtils.toVector(trainData.y);
 
         this.datasetSize = X_train.getRowsCount();
-
-        RFTrainData trainData2 = new RFTrainData(rawData, uids, features);
-
+        RFTrainData trainData2 = new RFTrainData(rawData, uids, features, false);
         return trainData2;
     }
 

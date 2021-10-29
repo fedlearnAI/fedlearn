@@ -32,8 +32,11 @@ public class PacketUtil {
     private static final int GZIP_THRESHOLD = 20000;
     private static final boolean SPLIT = ConfigUtil.getSplitTag();
     private static final boolean GZIP = ConfigUtil.getZipProperties();
-    private static INetWorkService netWorkService = INetWorkService.getNetWorkService();
-
+    private static INetWorkService netWorkService;
+    static {
+        String networkType = ConfigUtil.getNetworkType();
+        netWorkService = INetWorkService.getNetWorkService(networkType);
+    }
     /**
      * @param data 传输的文本
      * @return 客户端返回值

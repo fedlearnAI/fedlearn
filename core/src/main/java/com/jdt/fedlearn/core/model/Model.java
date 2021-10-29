@@ -20,7 +20,7 @@ import com.jdt.fedlearn.core.entity.distributed.SplitResult;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 
 import java.util.ArrayList;
@@ -44,7 +44,7 @@ public interface Model {
      * @param others     其他参数
      * @return 解析完成的训练数据
      */
-    TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter parameter, Features features, Map<String, Object> others);
+    TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, HyperParameter parameter, Features features, Map<String, Object> others);
 
     /**
      * 客户端训练函数,训练的中间过程作为类型T返回，最终结果是一个Model，支持序列化保存

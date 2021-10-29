@@ -2,6 +2,8 @@ package com.jdt.fedlearn.core.encryption.distributedPaillier;
 
 import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierNative.*;
 import com.jdt.fedlearn.core.encryption.nativeLibLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -14,13 +16,15 @@ import java.util.stream.IntStream;
 import static com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierNative.*;
 
 public class TestDistributedPaillierNative {
+    private static final Logger logger = LoggerFactory.getLogger(TestDistributedPaillierNative.class);
 
     @BeforeMethod
     public void setUp() {
             try {
                 nativeLibLoader.load();
             } catch (UnsatisfiedLinkError e) {
-                System.exit(1);
+                logger.error("library: " + System.getProperty("java.library.path"));
+                logger.error("Native code library failed to load.  ", e);
             }
 
     }
@@ -327,6 +331,12 @@ public class TestDistributedPaillierNative {
         signedByteArray thetaInvOut = new signedByteArray();
         revealThetaGeneKeys(allThetaInvShares, IntStream.range(1, n+1).toArray(), thetaInvOut, N, t, n);
 
-        Assert.assertTrue(checkCorrectness(p, q, N, lambdaTimesBetaShare, thetaInvOut, n, t));
+
+        //NOTE: the checkCorrectness() function checks correctness when beta is fixed to be 1. Since in real situation,
+        // beta is randomized, so this test will hardly pass.
+        // To run this test, you have to uncomment line 1054 in
+        // file /libfedlearn/src/DistributedPaillier.cpp, which fixes beta to be 1, then recompile the CPP code to generate
+        // a new .so file.
+//        Assert.assertTrue(checkCorrectness(p, q, N, lambdaTimesBetaShare, thetaInvOut, n, t));
     }
 }

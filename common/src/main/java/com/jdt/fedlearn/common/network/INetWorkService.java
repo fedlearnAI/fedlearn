@@ -12,7 +12,9 @@ limitations under the License.
 */
 package com.jdt.fedlearn.common.network;
 
+import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.network.impl.HttpClientImpl;
+import com.jdt.fedlearn.common.network.impl.NettySocketImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,15 +30,15 @@ public interface INetWorkService {
 
     String sendAndRecv(String uri, Object content);
 
-    String send(String uri);
-
-
     static INetWorkService getNetWorkService(){
         return new HttpClientImpl();
     }
 
     static INetWorkService getNetWorkService(String type){
-        //TODO 通过type 判断返回那种实现
-        return new HttpClientImpl();
+        if(AppConstant.NETWORK_TYPE_NETTY.equals(type)){
+            return new NettySocketImpl();
+        }else {
+            return new HttpClientImpl();
+        }
     }
 }

@@ -38,7 +38,7 @@ import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.model.*;
 import com.jdt.fedlearn.core.model.common.CommonModel;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.common.enums.RunningType;
 import org.slf4j.Logger;
@@ -90,7 +90,7 @@ public class TrainService {
                     logger.error("init error, 协调端需要与有y值的客户端部署在同一方");
                     return "init_failed, 协调端需要与有y值的客户端部署在同一方";
                 }
-                SuperParameter superParameter = trainInit.getParameter();
+                HyperParameter hyperParameter = trainInit.getParameter();
                 String matchToken = trainInit.getMatchId();
                 // 此时是在client端，解密的状态
                 String[] mappingResult = IdMatchProcessor.loadResult(matchToken);
@@ -115,7 +115,7 @@ public class TrainService {
                 }
                 // TODO 此时mappingResult应该是在client端，解密的状态
                 int[] testIndex = trainInit.getTestIndex();
-                TrainData trainData = localModel.trainInit(trainPara, mappingResult, testIndex, superParameter, features, others);
+                TrainData trainData = localModel.trainInit(trainPara, mappingResult, testIndex, hyperParameter, features, others);
                 dataMap.put(modelToken, trainData);
                 String data = AppConstant.INIT_SUCCESS;
                 if (flag) {
@@ -131,7 +131,6 @@ public class TrainService {
         //训练中的模型直接加载
         Model model = modelCache.get(modelToken);
         TrainData trainData = dataMap.get(modelToken);
-
         String result = "";
         logger.info("status:" + status);
         //收到暂停或终止的信号模型保存本地
@@ -150,7 +149,7 @@ public class TrainService {
             logger.info("client train is complete!!!");
         } else {
             // TODO add parameter check
-            //superParameter 是人为指定的超参数，parameters 是训练过程中的迭代参数
+            //HyperParameter 是人为指定的超参数，parameters 是训练过程中的迭代参数
             logger.info("trainData: " + trainData);
             // 提交到子线程执行
             if (trainRequest.isSync()) {

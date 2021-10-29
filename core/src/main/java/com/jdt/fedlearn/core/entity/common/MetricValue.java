@@ -21,12 +21,13 @@ import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.data.Pair;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class MetricValue implements Message {
+public class MetricValue implements Message, Serializable {
     private static final long serialVersionUID = 3551840761275726582L;
     private Map<MetricType, List<Pair<Integer, Double>>> metrics;
     private Map<MetricType, List<Pair<Integer, String>>> metricsArr;

@@ -52,7 +52,7 @@ import java.util.stream.IntStream;
  */
 public class FederatedGB implements Control {
     private static final Logger logger = LoggerFactory.getLogger(FederatedGB.class);
-    private static final AlgorithmType algorithmType = AlgorithmType.FederatedGB;
+    private AlgorithmType algorithmType = AlgorithmType.FederatedGB;
     private final FgbParameter parameter;
     private int numRound = 0;
 
@@ -78,6 +78,11 @@ public class FederatedGB implements Control {
 
     public FederatedGB(FgbParameter parameter) {
         this.parameter = parameter;
+    }
+
+    public FederatedGB(FgbParameter parameter, AlgorithmType algorithmType) {
+        this.parameter = parameter;
+        this.algorithmType = algorithmType;
     }
 
 
@@ -255,9 +260,11 @@ public class FederatedGB implements Control {
         for (CommonResponse response : responses) {
             ClientInfo client = response.getClient();
             CommonRequest request = new CommonRequest(client, EmptyMessage.message());
+            EncryptedGradHess encryptedGradHess = (EncryptedGradHess) response.getBody();
             // info is not transferred to client with label, only to passive clients
             if (!client.equals(res.getClient())) {
                 EncryptedGradHess req = new EncryptedGradHess(client, res.getInstanceSpace(), res.getGh(), res.getPubKey(), res.getNewTree());
+                req.setWorkerNum(encryptedGradHess.getWorkerNum());
                 request.setBody(req);
             }
             request.setPhase(2);
@@ -278,8 +285,14 @@ public class FederatedGB implements Control {
         updateMetricMap(metric);
         for (CommonResponse response : responses) {
             ClientInfo client = response.getClient();
-            BoostP3Req req = new BoostP3Req(client, realP2Res); // G H info from all other clients
-            CommonRequest request = new CommonRequest(client, req, 3);
+            CommonRequest request = new CommonRequest(client, EmptyMessage.message());
+            BoostP2Res boostP2Res = (BoostP2Res) response.getBody();
+            if (boostP2Res.getFeatureGL() == null) {
+                BoostP3Req req = new BoostP3Req(client, realP2Res); // G H info from all other clients
+                req.setWorkerNum(boostP2Res.getWorkerNum());
+                request.setBody(req);
+            }
+            request.setPhase(3);
             reqList.add(request);
         }
         return reqList;
@@ -293,13 +306,15 @@ public class FederatedGB implements Control {
         updateMetricMap(metric);
         for (CommonResponse response : responses) {
             ClientInfo client = response.getClient();
+            BoostP3Res boostP3Res = (BoostP3Res) response.getBody();
             BoostP4Req boostP4Req;
             if (client.equals(realP3Res.getClient())) {
                 boostP4Req = new BoostP4Req(realP3Res.getClient(), Integer.parseInt(realP3Res.getFeature()), realP3Res.getIndex(), true);
             } else {
                 boostP4Req = new BoostP4Req(false);
             }
-            CommonRequest commonRequest = new CommonRequest(client, boostP4Req, 4, true);
+            boostP4Req.setWorkerNum(boostP3Res.getWorkerNum());
+            CommonRequest commonRequest = new CommonRequest(client, boostP4Req, 4, false);
 
             reqList.add(commonRequest);
         }

@@ -13,6 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.encryption.paillier;
 
+import com.jdt.fedlearn.core.exception.WrongValueException;
 import com.jdt.fedlearn.core.type.data.KeyPair;
 
 import java.math.*;
@@ -73,7 +74,7 @@ public class PaillierCore {
 
         // check whether g is good
         if (g.modPow(lambda, nSquare).subtract(BigInteger.ONE).divide(n).gcd(n).intValue() != 1) {
-            System.exit(1);
+            throw new WrongValueException("error in PaillierCore");
         }
         return new KeyPair(n, lambda);
     }

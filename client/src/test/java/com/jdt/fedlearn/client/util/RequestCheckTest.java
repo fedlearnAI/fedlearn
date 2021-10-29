@@ -28,7 +28,7 @@ public class RequestCheckTest {
         }catch(Exception e){
             e.printStackTrace();
         }
-        AlgorithmType algorithmType = AlgorithmType.KernelBinaryClassificationJava;
+        AlgorithmType algorithmType = AlgorithmType.FederatedKernel;
         boolean belong = RequestCheck.needBelongCoordinator(features,algorithmType,"127.0.0.1");
         Assert.assertFalse(belong);
     }
@@ -46,7 +46,7 @@ public class RequestCheckTest {
         }catch(Exception e){
             e.printStackTrace();
         }
-        AlgorithmType algorithmType = AlgorithmType.KernelBinaryClassificationJava;
+        AlgorithmType algorithmType = AlgorithmType.FederatedKernel;
         boolean belong = RequestCheck.needBelongCoordinator(features,algorithmType,"127.0.0.1");
         Assert.assertFalse(belong);
     }
@@ -63,7 +63,7 @@ public class RequestCheckTest {
         }catch(Exception e){
             e.printStackTrace();
         }
-        AlgorithmType algorithmType = AlgorithmType.KernelBinaryClassificationJava;
+        AlgorithmType algorithmType = AlgorithmType.FederatedKernel;
         boolean belong = RequestCheck.needBelongCoordinator(features,algorithmType,"127.0.0.1");
         Assert.assertFalse(belong);
     }
@@ -97,7 +97,7 @@ public class RequestCheckTest {
         }catch(Exception e){
             e.printStackTrace();
         }
-        AlgorithmType algorithmType = AlgorithmType.KernelBinaryClassificationJava;
+        AlgorithmType algorithmType = AlgorithmType.FederatedKernel;
         boolean belong = RequestCheck.needBelongCoordinator(features,algorithmType,"127.0.0.10");
         // TODO assert
 //        Assert.assertTrue(belong);

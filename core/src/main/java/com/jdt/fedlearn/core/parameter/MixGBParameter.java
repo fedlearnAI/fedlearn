@@ -31,7 +31,7 @@ import java.util.Objects;
  * @author zhangwenxi
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class MixGBParameter implements SuperParameter {
+public class MixGBParameter implements HyperParameter {
 
     private final int maxTreeNum;
     private final double verticalFeatureSampling;

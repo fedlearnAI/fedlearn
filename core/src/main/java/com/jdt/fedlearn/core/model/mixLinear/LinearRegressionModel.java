@@ -35,7 +35,7 @@ import com.jdt.fedlearn.core.model.serialize.LinearModelSerializer;
 import com.jdt.fedlearn.core.optimizer.bfgs.WeightedLinRegLossNonprivClient;
 import com.jdt.fedlearn.core.optimizer.bfgs.WeightedLinRegLossPriv;
 import com.jdt.fedlearn.core.parameter.LinearParameter;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.util.Tool;
@@ -112,7 +112,7 @@ public class LinearRegressionModel implements Model {
     public LinearRegressionModel() { }
 
     @Override
-    public TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter parameter,
+    public TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, HyperParameter parameter,
                                Features features, Map<String, Object> others) {
         this.p = (LinearParameter) parameter;
         numP = p.getNump();
@@ -157,7 +157,7 @@ public class LinearRegressionModel implements Model {
             // mockSend Empty request, wait client to return MatchResourceLinReg
             ret = trainIdMatchingPhase1SendMatchingArgs(trainData);
         } else if (phase == 2) {
-            ret = trainIdMatchingPhase2RecvMatchingRes(masterReturnedMsg);
+            ret = trainIdMatchingPhase2RecvMatchingRes(masterReturnedMsg, trainData);
         }
         // =================== 2. Training =====================
         else if (phase == 3) {
@@ -194,7 +194,12 @@ public class LinearRegressionModel implements Model {
      */
     private Message trainIdMatchingPhase1SendMatchingArgs(LinearTrainData trainData) {
         // client 准备 labels, uid, featName
-        double[] labels = trainData.getLabel();
+        double[] labels = new double[trainData.getUid().length];
+        if(trainData.getLabel()==null) {
+            Arrays.fill(labels, 0);
+        } else {
+            Arrays.fill(labels, 1);
+        }
         String[] uid = trainData.getUid();
         String[] featName = trainData.getFeatureName();
         return new MatchResourceLinReg(featName, uid, labels);
@@ -206,7 +211,7 @@ public class LinearRegressionModel implements Model {
      * @param matchRes2Client an LinearRegressionTrainInitOthers object
      * @return an EmptyMessage object
      */
-    private Message trainIdMatchingPhase2RecvMatchingRes(Message matchRes2Client) {
+    private Message trainIdMatchingPhase2RecvMatchingRes(Message matchRes2Client, LinearTrainData trainData) {
         LinearRegressionTrainInitOthers matchingRes = (LinearRegressionTrainInitOthers) matchRes2Client; // TODO ??
         this.featMap = matchingRes.featMap;
         this.idMap = matchingRes.idMap_LinReg;
@@ -291,7 +296,12 @@ public class LinearRegressionModel implements Model {
                 phiPriv[cntPriv][cntM] = 0.5d; // 添加常数项
 
                 // 填入 hPriv
-                hPriv[cntPriv] = h[i];
+                // TODO: need to double-check if this h value is correct: h=y[i]/kOfy[i]
+                if( trainData.getLabel()==null) {
+                    hPriv[cntPriv] = 0;
+                } else {
+                    hPriv[cntPriv] = trainData.getLabel()[cntPriv];
+                }
 
                 cntPriv += 1;
                 assert (cntM + 1 == mPriv);
@@ -320,7 +330,12 @@ public class LinearRegressionModel implements Model {
                 phiNonpriv[cntGlob][j] = 0.5d / (numP + Double.MIN_VALUE);  // 添加常数项
 
                 // 填入 hPriv
-                hNonPriv[cntGlob] = h[i];
+                if(trainData.getLabel() == null) {
+                    hNonPriv[cntGlob] = 0;
+                } else {
+                    hNonPriv[cntGlob] = h[i] * trainData.getLabel()[cntGlob];
+                }
+
                 cntGlob += 1;
             }
         }

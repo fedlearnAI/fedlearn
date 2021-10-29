@@ -7,23 +7,14 @@ import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierCiphertext;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
-import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.randomForest.DataUtils;
-import com.jdt.fedlearn.core.fake.StructureGenerate;
-import com.jdt.fedlearn.core.loader.kernelLinearRegression.KernelLinearRegressionTrainData;
-import com.jdt.fedlearn.core.model.KernelLinearRegressionJavaModel;
-import com.jdt.fedlearn.core.parameter.KernelLinearRegressionParameter;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
 import com.jdt.fedlearn.core.type.data.Tuple2;
-import com.jdt.fedlearn.core.type.data.Tuple3;
 import com.jdt.fedlearn.core.util.Tool;
 import com.jdt.fedlearn.grpc.federatedlearning.PaillierKeyPublic;
-import com.jdt.fedlearn.grpc.federatedlearning.PaillierVector;
 import com.jdt.fedlearn.grpc.federatedlearning.Vector;
 import com.n1analytics.paillier.EncryptedNumber;
-import com.n1analytics.paillier.PaillierContext;
 import com.n1analytics.paillier.PaillierPrivateKey;
-import com.n1analytics.paillier.PaillierPublicKey;
 import org.ejml.simple.SimpleMatrix;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -31,7 +22,6 @@ import org.testng.annotations.Test;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.jdt.fedlearn.core.math.MathExt.generateNormal;
 import static com.jdt.fedlearn.core.math.MathExt.generateUniform;
@@ -1065,7 +1055,6 @@ public class TestMathExt {
 
     @Test
     public void trans2DtoArray(){
-        KernelLinearRegressionJavaModel model = new KernelLinearRegressionJavaModel();
         double[][] data = new double[][]{{0.2,0.5},{0.6,0.1}};
         double[] res = MathExt.trans2DtoArray(data);
         System.out.println("res : " + Arrays.toString(res));

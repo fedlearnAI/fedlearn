@@ -1,5 +1,7 @@
 package com.jdt.fedlearn.core.model.common.loss;
 import com.jdt.fedlearn.core.util.Tool;
+import org.testng.annotations.Test;
+import static org.testng.Assert.*;
 
 public class TestCrossEntropy {
     public static void testTransform(Loss loss, double[] pred, int dataSize, int numClass) {
@@ -92,6 +94,18 @@ public class TestCrossEntropy {
             System.out.println();
         }
         System.out.println();
+    }
+
+    @Test
+    public void testGainScoreDelta(){
+        crossEntropy loss = new crossEntropy(3);
+        double gainDelta = loss.getGainDelta(10, 1.0);
+        double scoreDelta = loss.getLeafScoreDelta(10, 1.0);
+        assertEquals(gainDelta, 10 / 2.0);
+        assertEquals(scoreDelta, 1.0);
+        gainDelta = loss.getGainDelta(0, 0);
+        assertEquals(gainDelta, 0);
+        scoreDelta = loss.getLeafScoreDelta(0, 0);
     }
 
 }

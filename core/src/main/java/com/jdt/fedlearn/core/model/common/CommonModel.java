@@ -31,14 +31,17 @@ public class CommonModel {
             case VerticalLinearRegression:
                 model = new VerticalLinearModel();
                 break;
-            case RandomForestJava:
-                model = new RandomForestJavaModel();
+            case RandomForest:
+                model = new RandomForestModel();
                 break;
             case DistributedRandomForest:
                 model = new DistributedRandomForestModel();
                 break;
             case FederatedGB:
                 model = new FederatedGBModel();
+                break;
+            case DistributedFederatedGB:
+                model = new DistributedFederatedGBModel();
                 break;
             case MixGBoost:
                 model = new MixGBModel();
@@ -52,8 +55,8 @@ public class CommonModel {
             case VerticalLR:
                 model = new VerticalLRModel();
                 break;
-            case KernelBinaryClassificationJava:
-                model = new KernelLinearRegressionJavaModel();
+            case FederatedKernel:
+                model = new FederatedKernelModel();
                 break;
             case VerticalFDNN:
                 model = new VerticalFDNNModel();
@@ -76,8 +79,8 @@ public class CommonModel {
             case VerticalLinearRegression:
                 model = new VerticalLinearModel();
                 break;
-            case RandomForestJava:
-                model = new RandomForestJavaModel();
+            case RandomForest:
+                model = new RandomForestModel();
                 break;
             case DistributedRandomForest:
                 model = new DistributedRandomForestModel();
@@ -99,8 +102,8 @@ public class CommonModel {
             case VerticalLR:
                 model = new VerticalLRModel();
                 break;
-            case KernelBinaryClassificationJava:
-                model = new KernelLinearRegressionJavaModel();
+            case FederatedKernel:
+                model = new FederatedKernelModel();
                 break;
             case VerticalFDNN:
                 model = new VerticalFDNNModel();

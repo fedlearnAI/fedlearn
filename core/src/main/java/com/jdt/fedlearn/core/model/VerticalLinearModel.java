@@ -16,6 +16,8 @@ package com.jdt.fedlearn.core.model;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
+import com.jdt.fedlearn.core.encryption.differentialPrivacy.DifferentialPrivacyFactory;
+import com.jdt.fedlearn.core.encryption.differentialPrivacy.IDifferentialPrivacy;
 import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
@@ -25,7 +27,7 @@ import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.verticalLinearRegression.VerticalLinearTrainData;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.model.common.Regularization;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.parameter.VerticalLinearParameter;
@@ -35,6 +37,7 @@ import com.jdt.fedlearn.core.preprocess.InferenceFilter;
 import com.jdt.fedlearn.core.preprocess.Scaling;
 import com.jdt.fedlearn.core.model.serialize.LinearModelSerializer;
 import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.core.type.DifferentialPrivacyType;
 import com.jdt.fedlearn.core.type.VerLinModelPhaseType;
 import com.jdt.fedlearn.core.util.Tool;
 import org.slf4j.Logger;
@@ -54,10 +57,9 @@ public class VerticalLinearModel implements Model {
     private PublicKey pubKey;
     private VerticalLinearParameter parameter;
     private double maxGradient = 100;
-    public double[] label;
-    public int datasetSize;
     private Scaling scaling = new Scaling();
     private double[] random;
+    private IDifferentialPrivacy differentialPrivacy;
     private EncryptionTool encryptionTool = new PaillierTool();// new FakeTool();//new PaillierTool();//new JavallierTool();
 
     public VerticalLinearModel() {
@@ -105,7 +107,7 @@ public class VerticalLinearModel implements Model {
      * 初始化参数
      *
      * @param rawData        原始数据
-     * @param superParameter 超参数
+     * @param hyperParameter 超参数
      * @param uids           用户id对照表
      * @param testIndex      验证id的index
      * @param features       特征
@@ -113,18 +115,23 @@ public class VerticalLinearModel implements Model {
      * @return
      */
     @Override
-    public VerticalLinearTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter superParameter, Features features, Map<String, Object> others) {
-        VerticalLinearTrainData trainData = new VerticalLinearTrainData(rawData, uids, features);
-        parameter = (VerticalLinearParameter) superParameter;
+    public VerticalLinearTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, HyperParameter hyperParameter, Features features, Map<String, Object> others) {
+        parameter = (VerticalLinearParameter) hyperParameter;
+        VerticalLinearTrainData trainData = new VerticalLinearTrainData(rawData, uids, features, parameter.isUseDP());
         //初始化预测值和gradient hessian
         logger.info("actual received features:" + features.getFeatureList().toString());
         logger.info("client data dim:" + trainData.getDatasetSize() + "," + trainData.getFeatureDim());
-        this.label = trainData.getLabel();
-        this.datasetSize = trainData.getDatasetSize();
+        int datasetSize = trainData.getDatasetSize();
         logger.info("client parameter init");
         // 对于每一个feature和intercept生成初始化参数=0
         weight = Tool.initWeight1(trainData.getFeatureDim());
         scaling = trainData.getScaling(); // new VerticalLinearTrainData做过minMaxScaling
+        if (this.parameter.isUseDP()) {
+            this.differentialPrivacy = DifferentialPrivacyFactory.createDifferentialPrivacy(this.parameter.getDpType());
+            this.differentialPrivacy.init(this.weight.length, this.parameter.getMaxEpoch(), datasetSize, this.parameter.getDpEpsilon(),
+                    this.parameter.getDpDelta(), this.parameter.getDpLambda(), this.parameter.getEta(), this.parameter.getSeed());
+            this.differentialPrivacy.generateNoises();
+        }
         return trainData;
     }
 
@@ -303,14 +310,11 @@ public class VerticalLinearModel implements Model {
             gradient1 = encryptionTool.multiply(gradient1, 1.0 / trainData.getDatasetSize(), pubKey);
         }
         Ciphertext[] gradients = Tool.arrayAppend(gradient0, gradient1);
-//        logger.info("gradients:" + Arrays.toString(gradients));
         double[] reg = Regularization.regularization(weight, parameter.getRegularization(), parameter.getLambda());
         random = Tool.generateRandom(gradients.length, 0, 1);
         for (int i = 0; i < gradients.length; i++) {
             if (trainData.getDatasetSize() != 0) {
                 //加入随机数与差分隐私
-//                double noise = DifferentialPrivacy.laplaceMechanismNoise(maxGradient / trainData.getDatasetSize(), parameter.getDifferentialPrivacy());
-//                Ciphertext homoNoise = encryptionTool.encrypt(noise, pubKey);
                 Ciphertext l1 = encryptionTool.encrypt(reg[i], pubKey);
                 Ciphertext encarpRandom = encryptionTool.encrypt(random[i], pubKey);
                 // 加上regularization term
@@ -322,8 +326,6 @@ public class VerticalLinearModel implements Model {
         }
         String[] gradientsS = IntStream.range(0, gradients.length).boxed().map(i -> gradients[i].serialize()).toArray(String[]::new);
         LossGradients res = new LossGradients(lossgradients.getClient(), lossgradients.getLoss(), gradientsS);
-//        res.setLoss(lossgradients.getLoss());
-//        res.setGradients(gradientsS);
         return res;
     }
 
@@ -332,6 +334,10 @@ public class VerticalLinearModel implements Model {
 
         GradientsMetric GradientsMetric = (GradientsMetric) data;
         double[] gradients = GradientsMetric.getGradients();
+        // 目标扰动，求解时根据目标函数对梯度进行噪声添加
+        if (this.parameter.isUseDP() && DifferentialPrivacyType.OBJECTIVE_PERTURB.equals(this.parameter.getDpType())) {
+            this.differentialPrivacy.addNoises(gradients, weight);
+        }
         //去除phase3 gradients增加的随机数
         if (weight.length > 1) {
             for (int i = 0; i < weight.length; i++) {
@@ -383,13 +389,13 @@ public class VerticalLinearModel implements Model {
         return response;
     }
 
-//    public double[] getWeight() {
-//        return weight;
-//    }
-
 
     @Override
     public String serialize() {
+        // 输出扰动需要在保存模型之前对模型的参数进行加噪声
+        if (this.parameter != null && this.parameter.isUseDP() && DifferentialPrivacyType.OUTPUT_PERTURB.equals(this.parameter.getDpType())) {
+            this.differentialPrivacy.addNoises(this.weight, this.weight);
+        }
         return LinearModelSerializer.saveModelVrticalLinear(modelToken, weight, scaling);
     }
 
@@ -403,6 +409,10 @@ public class VerticalLinearModel implements Model {
 
     public AlgorithmType getModelType() {
         return AlgorithmType.VerticalLinearRegression;
+    }
+
+    public IDifferentialPrivacy getDifferentialPrivacy(){
+        return this.differentialPrivacy;
     }
 
 }

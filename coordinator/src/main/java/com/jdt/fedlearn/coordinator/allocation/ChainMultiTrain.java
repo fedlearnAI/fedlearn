@@ -25,7 +25,7 @@ import com.jdt.fedlearn.core.dispatch.common.Control;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.parameter.common.CommonParameter;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.AlgorithmType;
@@ -65,9 +65,9 @@ public class ChainMultiTrain implements Runnable {
         );
         MatchResult idMap = values.getIdMap();
         Map<String, Object> algorithmParamMap = values.getParameter().stream().collect(Collectors.toMap(SingleParameter::getField, SingleParameter::getValue));
-        SuperParameter superParameter = CommonParameter.parseParameter(algorithmParamMap, supportedAlgorithm);
+        HyperParameter hyperParameter = CommonParameter.parseParameter(algorithmParamMap, supportedAlgorithm);
 
-        Control algorithm = DispatcherFactory.getDispatcher(supportedAlgorithm, superParameter);
+        Control algorithm = DispatcherFactory.getDispatcher(supportedAlgorithm, hyperParameter);
         try {
             List<CommonRequest> requests;
             int p = 0;

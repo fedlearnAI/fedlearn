@@ -38,7 +38,7 @@ import com.jdt.fedlearn.core.model.common.loss.crossEntropy;
 import com.jdt.fedlearn.core.model.common.tree.MixTreeNode;
 import com.jdt.fedlearn.core.model.serialize.MixGBSerializer;
 import com.jdt.fedlearn.core.parameter.MixGBParameter;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.MessageType;
@@ -153,7 +153,7 @@ public class MixGBModel implements Model {
      * @return MixGBTrainData
      */
     @Override
-    public MixGBTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter parameter, Features features, Map<String, Object> others) {
+    public MixGBTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, HyperParameter parameter, Features features, Map<String, Object> others) {
         logger.info("come in init process");
         int numP = (int) others.get("numP");
         int encBits = (int) others.get("ENC_BITS");

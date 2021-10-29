@@ -229,7 +229,7 @@ public class TaskManager {
                 continue;
             }
             //获取第一个可以执行的机器
-            WorkerUnit workerUnit = managerLocalApp.getWorkerManager().getFirstReadyWorkerUnit(readyTask);
+            WorkerUnit workerUnit = managerLocalApp.getWorkerManager().getFirstReadyWorkerUnit(readyTask.getTaskTypeEnum());
 
             if (workerUnit == null) {
                 logger.info("没有合适的机器, task is {} ", readyTask.getTaskId());

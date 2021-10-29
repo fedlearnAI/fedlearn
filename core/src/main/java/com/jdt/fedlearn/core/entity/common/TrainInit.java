@@ -15,7 +15,7 @@ package com.jdt.fedlearn.core.entity.common;
 
 import com.jdt.fedlearn.core.entity.Message;
 import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 
 import java.util.Map;
 
@@ -24,13 +24,13 @@ import java.util.Map;
  * @author wangpeiqi
  */
 public class TrainInit implements Message {
-    private final SuperParameter parameter;
+    private final HyperParameter parameter;
     private final Features featureList;
     private final int[] testIndex;
     private final String matchId;
     private final Map<String, Object> others;
 
-    public TrainInit(SuperParameter parameter, Features featureList, int[] testIndex, String matchId, Map<String, Object> others) {
+    public TrainInit(HyperParameter parameter, Features featureList, int[] testIndex, String matchId, Map<String, Object> others) {
         this.parameter = parameter;
         this.featureList = featureList;
         this.testIndex = testIndex;
@@ -38,14 +38,14 @@ public class TrainInit implements Message {
         this.others = others;
     }
 
-    public TrainInit(SuperParameter parameter, Features featureList, String matchId, Map<String, Object> others) {
+    public TrainInit(HyperParameter parameter, Features featureList, String matchId, Map<String, Object> others) {
         this.parameter = parameter;
         this.featureList = featureList;
         this.matchId = matchId;
         this.others = others;
         this.testIndex = new int[]{};
     }
-    public TrainInit(SuperParameter parameter, Features featureList, String matchId, Map<String, Object> others,int[] testIndex) {
+    public TrainInit(HyperParameter parameter, Features featureList, String matchId, Map<String, Object> others, int[] testIndex) {
         this.parameter = parameter;
         this.featureList = featureList;
         this.matchId = matchId;
@@ -53,7 +53,7 @@ public class TrainInit implements Message {
         this.testIndex = testIndex;
     }
 
-    public SuperParameter getParameter() {
+    public HyperParameter getParameter() {
         return parameter;
     }
 

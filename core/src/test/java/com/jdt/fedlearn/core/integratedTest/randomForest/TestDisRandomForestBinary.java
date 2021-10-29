@@ -1,6 +1,6 @@
 package com.jdt.fedlearn.core.integratedTest.randomForest;
 
-import com.jdt.fedlearn.core.dispatch.DistributedRandomForest;
+import com.jdt.fedlearn.core.dispatch.RandomForest;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.feature.Features;
@@ -44,7 +44,7 @@ public class TestDisRandomForestBinary {
             metrics,
             loss,
             666);
-    private static final DistributedRandomForest algo = new DistributedRandomForest(parameter);
+    private static final RandomForest algo = new RandomForest(parameter);
     private ClientInfo[] clientInfos;
     //此处为需要手动配置的四个选项，分别是数据文件夹目录，参与方个数，有label的参与方id，label的名字。
     private final String baseDir = "./src/test/resources/classificationA/";

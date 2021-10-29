@@ -2,7 +2,9 @@ package com.jdt.fedlearn.common.entity.project;
 
 import com.jdt.fedlearn.core.entity.feature.SingleFeature;
 
-public class SingleFeatureDTO {
+import java.io.Serializable;
+
+public class SingleFeatureDTO implements Serializable {
     private  String name;
     private  String type;
     private  int frequency;

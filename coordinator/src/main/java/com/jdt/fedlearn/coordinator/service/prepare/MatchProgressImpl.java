@@ -55,8 +55,7 @@ public class MatchProgressImpl implements TrainService {
     @Override
     public Map<String, Object> service(String content) throws ParseException {
         try {
-            MatchQueryReq matchQueryReq = new MatchQueryReq();
-            matchQueryReq.parseJson(content);
+            MatchQueryReq matchQueryReq = MatchQueryReq.parseJson(content);
             Map<String, Object> data = query(matchQueryReq);
             return ResponseHandler.successResponse(data);
         } catch (Exception e) {

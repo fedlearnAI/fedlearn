@@ -21,6 +21,7 @@ import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.common.util.GZIPCompressUtil;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.common.network.INetWorkService;
+import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.coordinator.util.PacketUtil;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
@@ -51,8 +52,12 @@ public class SendAndRecv {
     private static final List<String> SUPPORT_PROTOCOL = Arrays.asList("http", "https");
     private static final int RETRY = 3;
     private static final Serializer serializer = new JavaSerializer();
-    private static final INetWorkService netWorkService = INetWorkService.getNetWorkService();
 
+    private static INetWorkService getNetWorkService(){
+        String networkType = ConfigUtil.getNetworkType();
+        INetWorkService netWorkService = INetWorkService.getNetWorkService(networkType);
+        return netWorkService;
+    }
     /**
      * @param client     客户端信息
      * @param modelToken 模型id
@@ -364,7 +369,7 @@ public class SendAndRecv {
      */
     public static String send(ClientInfo Client, String path, Map<String, Object> context) {
         String buffer = Client.url() + path;
-        String result = netWorkService.sendAndRecv(buffer, context);
+        String result = getNetWorkService().sendAndRecv(buffer, context);
         result = GZIPCompressUtil.unCompress(result);
         return result;
     }
@@ -390,7 +395,7 @@ public class SendAndRecv {
         String strBody = serializer.serialize(body);
         context.put("body", strBody);
         // 发送数据给客户端并获取客户端反馈
-        String result = netWorkService.sendAndRecv(realUrl, context);
+        String result = getNetWorkService().sendAndRecv(realUrl, context);
 
         ResponseInternal response = new ResponseInternal(result);
         String resData = null;
@@ -412,7 +417,7 @@ public class SendAndRecv {
             String url = client.url() + RequestConstant.TRAIN_PROGRESS_QUERY;
             Map<String, Object> context = new HashMap<>();
             context.put("stamp", stamp);
-            String result = netWorkService.sendAndRecv(url, context);
+            String result = getNetWorkService().sendAndRecv(url, context);
             response = GZIPCompressUtil.unCompress(result);
             Thread.sleep(1000L * i);
             if (i < 30) {
@@ -450,7 +455,7 @@ public class SendAndRecv {
 
         for (int i = 0; i < retryThreshold; i++) {
             long s3 = System.currentTimeMillis();
-            String subRes = netWorkService.sendAndRecv(url, context);
+            String subRes = getNetWorkService().sendAndRecv(url, context);
             logger.info("请求地址：{}", url);
             logger.info("sendWithRetry post : " + (System.currentTimeMillis() - s3) + " ms");
             long s4 = System.currentTimeMillis();
@@ -474,7 +479,7 @@ public class SendAndRecv {
      * @return
      */
     public static ResponseInternal sendPost(String url) {
-        final String result = netWorkService.sendAndRecv(url, Maps.newHashMap());
+        final String result = getNetWorkService().sendAndRecv(url, Maps.newHashMap());
         return new ResponseInternal(result);
     }
 }

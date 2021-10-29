@@ -30,7 +30,7 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HorizontalFedAvgPara implements SuperParameter {
+public class HorizontalFedAvgPara implements HyperParameter {
     private static final Logger logger = LoggerFactory.getLogger(HorizontalFedAvgPara.class);
     //fedAvg algo
     /*  e.g.,

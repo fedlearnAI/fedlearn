@@ -34,7 +34,7 @@ import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
 import com.jdt.fedlearn.core.entity.serialize.Serializer;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.parameter.common.CommonParameter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTaskMapper;
@@ -149,7 +149,7 @@ public class ChainTrainRandomServiceImpl implements TrainService {
         AlgorithmType supportedAlgorithm = AlgorithmType.valueOf(trainInfo.getAlgorithm());
         List<SingleParameter> algorithmParams = trainInfo.getParameterFieldList();
         Map<String, Object> algorithmParamMap = algorithmParams.stream().collect(Collectors.toMap(SingleParameter::getField, SingleParameter::getValue));
-        SuperParameter parameter = CommonParameter.parseParameter(algorithmParamMap, trainInfo.getAlgorithm());
+        HyperParameter parameter = CommonParameter.parseParameter(algorithmParamMap, trainInfo.getAlgorithm());
         Control algorithm = DispatcherFactory.getDispatcher(supportedAlgorithm, parameter);
 
         List<CommonRequest> requests = algorithm.control(responses);

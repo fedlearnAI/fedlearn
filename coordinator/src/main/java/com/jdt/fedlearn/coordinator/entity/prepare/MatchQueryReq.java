@@ -30,7 +30,7 @@ public class MatchQueryReq {
     }
 
 
-    public MatchQueryReq( String matchToken) {
+    public MatchQueryReq(String matchToken) {
         this.matchId = matchToken;
     }
 
@@ -38,12 +38,12 @@ public class MatchQueryReq {
         return matchId;
     }
 
-    public void parseJson(String jsonStr) {
+    public static MatchQueryReq parseJson(String jsonStr) {
         ObjectMapper mapper = new ObjectMapper();
         MatchQueryReq p3r;
         try {
             p3r = mapper.readValue(jsonStr, MatchQueryReq.class);
-            this.matchId = p3r.matchId;
+            return p3r;
         } catch (IOException e) {
             throw new DeserializeException(e.getMessage());
         }

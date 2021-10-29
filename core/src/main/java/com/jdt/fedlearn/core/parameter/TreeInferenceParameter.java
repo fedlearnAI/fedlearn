@@ -13,18 +13,14 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.parameter;
 
-import com.jdt.fedlearn.core.parameter.common.CategoryParameter;
-import com.jdt.fedlearn.core.parameter.common.MultiParameter;
-import com.jdt.fedlearn.core.parameter.common.NumberParameter;
 import com.jdt.fedlearn.core.parameter.common.ParameterField;
 import com.jdt.fedlearn.core.type.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public class TreeInferenceParameter implements SuperParameter {
+public class TreeInferenceParameter implements HyperParameter {
 
     public TreeInferenceParameter() {
     }

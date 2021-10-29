@@ -17,6 +17,8 @@ package com.jdt.fedlearn.core.model;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
+import com.jdt.fedlearn.core.encryption.differentialPrivacy.DifferentialPrivacyFactory;
+import com.jdt.fedlearn.core.encryption.differentialPrivacy.IDifferentialPrivacy;
 import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
 import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.Message;
@@ -30,7 +32,7 @@ import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.loader.verticalLinearRegression.VerticalLinearTrainData;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.model.common.loss.LogisticLoss;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.parameter.VerticalLRParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
 import com.jdt.fedlearn.core.preprocess.Scaling;
@@ -39,11 +41,10 @@ import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.util.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+
 import com.jdt.fedlearn.core.type.*;
 
 /**
@@ -57,10 +58,10 @@ public class VerticalLRModel implements Model {
     private PublicKey pubKey;
     private VerticalLRParameter parameter;
     private double maxGradient = 100;
-    public double[] label;
-    public int datasetSize;
+    private double[] label;
     private Scaling sacling;
     private LogisticLoss logisticLoss;
+    private IDifferentialPrivacy differentialPrivacy;
     EncryptionTool encryptionTool = new PaillierTool();
 
     public VerticalLRModel() {
@@ -75,18 +76,25 @@ public class VerticalLRModel implements Model {
 
     @Override
     public VerticalLinearTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex,
-                                             SuperParameter superParameter, Features features, Map<String, Object> others) {
-        VerticalLinearTrainData trainData = new VerticalLinearTrainData(rawData, uids, features);
-        parameter = (VerticalLRParameter) superParameter;
+                                             HyperParameter hyperParameter, Features features, Map<String, Object> others) {
+        parameter = (VerticalLRParameter) hyperParameter;
+        VerticalLinearTrainData trainData = new VerticalLinearTrainData(rawData, uids, features, this.parameter.isUseDP());
         //初始化预测值和gradient hessian
         logger.info("actual received features:" + features.getFeatureList().toString());
         logger.info("client data dim:" + trainData.getDatasetSize() + "," + trainData.getFeatureDim());
         this.label = trainData.getLabel();
-        this.datasetSize = trainData.getDatasetSize();
+        int datasetSize = trainData.getDatasetSize();
         logger.info("client parameter init");
         weight = Tool.initWeight1(trainData.getFeatureDim());
         sacling = trainData.getScaling();
         logisticLoss = new LogisticLoss();
+        // 如果是目标或者输出扰动的话，则提前生成高斯噪声
+        if (this.parameter.isUseDP()) {
+            this.differentialPrivacy = DifferentialPrivacyFactory.createDifferentialPrivacy(this.parameter.getDpType());
+            this.differentialPrivacy.init(this.weight.length, this.parameter.getMaxEpoch(), datasetSize, this.parameter.getDpEpsilon(),
+                    this.parameter.getDpDelta(), this.parameter.getLamba(), this.parameter.getEta(), this.parameter.getSeed());
+            this.differentialPrivacy.generateNoises();
+        }
         return trainData;
     }
 
@@ -94,7 +102,7 @@ public class VerticalLRModel implements Model {
     @Override
     public Message train(int phase, Message masterRetMsg, TrainData rawData) {
         VerticalLinearTrainData trainData = (VerticalLinearTrainData) rawData;
-        switch (VerLRModelPhaseType.valueOf(phase)){
+        switch (VerLRModelPhaseType.valueOf(phase)) {
             case PASSIVE_LOCAL_PREDICT:
                 //广播表头等属性，客户端根据表头，以及特征是否完整，是否有label 计算u和loss，并返回
                 return trainPhase1(masterRetMsg, trainData);
@@ -112,7 +120,6 @@ public class VerticalLRModel implements Model {
     }
 
 
-
     private LinearP1Response trainPhase1(Message data, VerticalLinearTrainData trainData) {
 
         //首次请求初始化参数
@@ -127,7 +134,7 @@ public class VerticalLRModel implements Model {
 
         //第一轮，有label的数据无需处理
         if (trainData.hasLabel) {
-            return new LinearP1Response(new ClientInfo(),new String[0][],"");
+            return new LinearP1Response(new ClientInfo(), new String[0][], "");
         }
 
         // 无标签方计算 wx
@@ -160,7 +167,7 @@ public class VerticalLRModel implements Model {
         }
         // TODO 此处需优化，当client较多时，会出现性能问题
         if (!trainData.hasLabel) {
-            return new LossGradients(new ClientInfo(),new String[0],new String[0]);
+            return new LossGradients(new ClientInfo(), new String[0], new String[0]);
         }
         // labeled u
         double[] localU = new double[label.length];
@@ -173,7 +180,7 @@ public class VerticalLRModel implements Model {
         String[] yMinusSigmoidWxStr = IntStream.range(0, sigmoidWxMinusY.length).boxed()
                 .map(i -> sigmoidWxMinusY[i].serialize()).toArray(String[]::new);
         String[] lossXiStr = IntStream.range(0, lossXi.length).boxed().map(i -> lossXi[i].serialize()).toArray(String[]::new);
-        return new LossGradients(thisClient,lossXiStr, yMinusSigmoidWxStr);
+        return new LossGradients(thisClient, lossXiStr, yMinusSigmoidWxStr);
     }
 
 
@@ -255,7 +262,7 @@ public class VerticalLRModel implements Model {
         Ciphertext[] gradients = Tool.arrayAppend(gradient0, gradient1);
         logger.info("gradients:" + Arrays.toString(gradients));
         String[] gradientsS = IntStream.range(0, gradients.length).boxed().map(i -> gradients[i].serialize()).toArray(String[]::new);
-        LossGradients res = new LossGradients(lossgradients.getClient(),lossgradients.getLoss(), gradientsS);
+        LossGradients res = new LossGradients(lossgradients.getClient(), lossgradients.getLoss(), gradientsS);
 //        res.setLoss(LossGradients.getLoss());
 //        res.setGradients(gradientsS);
         return res;
@@ -265,6 +272,10 @@ public class VerticalLRModel implements Model {
     private GradientsMetric trainPhase4(Message data) {
         GradientsMetric GradientsMetric = (GradientsMetric) data;
         double[] gradients = GradientsMetric.getGradients();
+        // 目标扰动，求解时根据目标函数对梯度进行噪声添加
+        if (this.parameter.isUseDP() && DifferentialPrivacyType.OBJECTIVE_PERTURB.equals(this.parameter.getDpType())) {
+            this.differentialPrivacy.addNoises(gradients, weight);
+        }
         if (weight.length > 1) {
             for (int i = 0; i < weight.length; i++) {
                 weight[i] = weight[i] + gradients[i];
@@ -317,9 +328,16 @@ public class VerticalLRModel implements Model {
         return weight;
     }
 
+    public IDifferentialPrivacy getDifferentialPrivacy() {
+        return this.differentialPrivacy;
+    }
 
     @Override
     public String serialize() {
+        // 输出扰动需要在保存模型之前对模型的参数进行加噪声
+        if (this.parameter.isUseDP() && DifferentialPrivacyType.OUTPUT_PERTURB.equals(this.parameter.getDpType())) {
+            this.differentialPrivacy.addNoises(this.weight, this.weight);
+        }
         return LinearModelSerializer.saveModelVrticalLinear(modelToken, weight, sacling);
     }
 
@@ -331,7 +349,7 @@ public class VerticalLRModel implements Model {
         this.sacling = model.sacling;
     }
 
-    public AlgorithmType getModelType(){
+    public AlgorithmType getModelType() {
         return AlgorithmType.VerticalLR;
     }
 

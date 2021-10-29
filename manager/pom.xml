@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.jdt.fedlearn</groupId>
         <artifactId>all</artifactId>
-        <version>0.9.3</version>
+        <version>0.9.6</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 

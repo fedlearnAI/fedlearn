@@ -286,7 +286,7 @@ public class StructureGenerate {
         String[][] input = compoundInput._1().get();
         String[] idMap = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        VerticalLinearTrainData verticalLinearTrainData = new VerticalLinearTrainData(input, idMap, features);
+        VerticalLinearTrainData verticalLinearTrainData = new VerticalLinearTrainData(input, idMap, features, false);
         System.out.println(verticalLinearTrainData);
         return verticalLinearTrainData;
     }

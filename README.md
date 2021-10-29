@@ -71,19 +71,5 @@ jdchain.available=true
 - 参照标准版模式启动区块链系统，
 
 ### 4. FAQ
-1.编译或运行中遇到
-```
-org.jblas ERROR Couldn't load copied link file: java.lang.UnsatisfiedLinkError: 
-/tmp/jblas2930149998010945438libjblas_arch_flavor.so: 
-libgfortran.so.3: cannot open shared object file: No such file or directory."
-```
-或者类似错误，请安装libgfortran3。如果系统较新，不存在libgfortran3，请参考
-https://stackoverflow.com/questions/61736953/how-can-i-install-libgfortran3-in-ubuntu-lubuntu-20-04
-
-2.编译过程中遇到其他C/C++包版本不匹配问题，请在目标机器上重新编译libfedlearn项目，编译后将库文件放入
-```
-core/src/main/resources/ 
-```
-目录下，然后重新编译
-
-3.有任何其他问题请联系 fedlearn-support@jd.com
+- 安全推理和多方同台加密依赖gmp包，需要在Linux或者Mac上手动安装
+- 有任何其他问题请联系 fedlearn-support@jd.com

@@ -35,6 +35,25 @@ public class UniversalMapper {
         return trainInfo;
     }
 
+    /**
+     * @param token
+     * @return com.jdt.fedlearn.coordinator.entity.ModelToken
+     * @description 通过key获取modelToken，判断从链上获取还是数据库
+     * @author geyan29
+     * @date: 2021/1/29 2:59 下午
+     */
+    public static TrainInfo getStaticTrainInfo(String token) {
+        TrainInfo trainInfo;
+        if (useJdChain) {
+            JdchainTrainInfo jdchainTrainInfo = ChainTrainMapper.queryModelById(token);
+            trainInfo = new TrainInfo(token, AlgorithmType.valueOf(jdchainTrainInfo.getAlgorithm()), jdchainTrainInfo.getParameterFieldList(), jdchainTrainInfo.getMetrics(),
+                    jdchainTrainInfo.getTrainStartTime().getTime(), jdchainTrainInfo.getTrainEndTime().getTime(), jdchainTrainInfo.getRunningType(), jdchainTrainInfo.getPercent());
+        } else {
+            trainInfo = TrainMapper.getStaticTrainInfo(token);
+        }
+        return trainInfo;
+    }
+
     public static boolean isModelExist(String token) {
         if (useJdChain) {
             JdchainTrainInfo trainInfo = ChainTrainMapper.queryModelById(token);

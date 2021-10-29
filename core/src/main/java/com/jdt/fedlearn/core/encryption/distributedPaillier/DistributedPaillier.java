@@ -17,6 +17,7 @@ package com.jdt.fedlearn.core.encryption.distributedPaillier;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.core.encryption.nativeLibLoader;
 import com.jdt.fedlearn.core.exception.SerializeException;
+import com.jdt.fedlearn.core.exception.WrongValueException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -296,7 +297,7 @@ public class DistributedPaillier {
         } catch (UnsatisfiedLinkError e) {
             logger.error("library: " + System.getProperty("java.library.path"));
             logger.error("Native code library failed to load.  ", e);
-            System.exit(1);
+            throw new WrongValueException("fatal! Failed to load native lib DistPaillier");
         }
     }
 

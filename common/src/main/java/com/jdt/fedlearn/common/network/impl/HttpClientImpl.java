@@ -116,32 +116,4 @@ public class HttpClientImpl implements INetWorkService {
         }
         return "";
     }
-
-    @Override
-    public String send(String uri) {
-        CloseableHttpResponse response = null;
-        try {
-            URIBuilder uriBuilder = new URIBuilder(uri);
-            HttpGet httpGet = new HttpGet(uriBuilder.build());
-            response = httpClient.execute(httpGet);
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (HttpStatus.SC_OK == statusCode) {
-                HttpEntity entity = response.getEntity();
-                if (null != entity) {
-                    return EntityUtils.toString(entity, StandardCharsets.UTF_8);
-                }
-            }
-        } catch (Exception e) {
-            logger.error("CloseableHttpClient-get-请求异常", e);
-        } finally {
-            try {
-                if (null != response) {
-                    response.close();
-                }
-            } catch (IOException e) {
-                logger.error("调用Get-Http请求失败", e);
-            }
-        }
-        return StringUtils.EMPTY;
-    }
 }

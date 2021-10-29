@@ -73,7 +73,7 @@ public class RequestCheck {
         String belongIps = ConfigUtil.getClientConfig().getMasterBelong();
         assert belongIps != null;
         List<String> belongIpList = Arrays.stream(belongIps.split(",")).map(IpAddressUtil::extractIp).collect(Collectors.toList());
-        AlgorithmType[] algorithmTypes = new AlgorithmType[]{AlgorithmType.KernelBinaryClassificationJava, AlgorithmType.VerticalLinearRegression, AlgorithmType.VerticalLR};
+        AlgorithmType[] algorithmTypes = new AlgorithmType[]{AlgorithmType.FederatedKernel, AlgorithmType.VerticalLinearRegression, AlgorithmType.VerticalLR};
         return hasLabel && features.getFeatureList().size() == 2 && Arrays.asList(algorithmTypes).contains(algorithmType) && !belongIpList.contains(remoteIP);
     }
 }

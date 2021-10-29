@@ -40,7 +40,7 @@ import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.math.MathExt;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.parameter.common.CommonParameter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
@@ -276,7 +276,7 @@ public class ValidateService {
     private Control algorithmSelection(TrainInfo model, AlgorithmType supportedAlgorithm) throws JsonProcessingException {
         final List<SingleParameter> finishParameterFields = model.getHyperParameter();
         Map<String, Object> finishParameters = finishParameterFields.stream().collect(Collectors.toMap(SingleParameter::getField, SingleParameter::getValue));
-        SuperParameter parameter = CommonParameter.parseParameter(finishParameters, supportedAlgorithm);
+        HyperParameter parameter = CommonParameter.parseParameter(finishParameters, supportedAlgorithm);
         logger.info("parameter : " + parameter);
         return DispatcherFactory.getDispatcher(supportedAlgorithm, parameter);
     }

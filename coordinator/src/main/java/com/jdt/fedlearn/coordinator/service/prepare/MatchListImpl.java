@@ -69,7 +69,7 @@ public class MatchListImpl implements TrainService {
                 matchEntityList = new ArrayList<>();
             }
             MatchEntity matchEntity = MatchStartImpl.matchEntityMap.get(entry);
-            if (type == null || matchEntity.getRunningType().equals(RunningType.valueOf(type))) {
+            if (type == null || "".equals(type) || matchEntity.getRunningType().equals(RunningType.valueOf(type))) {
                 matchEntityList.add(matchEntity);
             }
             globalMpa.put(key, matchEntityList);
@@ -86,7 +86,7 @@ public class MatchListImpl implements TrainService {
             }
             // 查数据库
             List<Tuple2<String, RunningType>> matchList;
-            if (type != null) {
+            if (type != null && !"".equals(type)) {
                 matchList = MatchMapper.getMatchIdsByTaskIdRunningType(taskId, type);
             } else {
                 matchList = MatchMapper.getMatchIdsByTaskId(taskId);

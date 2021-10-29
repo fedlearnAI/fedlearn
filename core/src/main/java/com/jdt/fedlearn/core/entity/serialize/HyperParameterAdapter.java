@@ -3,17 +3,17 @@ package com.jdt.fedlearn.core.entity.serialize;
 
 import com.google.gson.JsonSerializer;
 import com.google.gson.*;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
-public class HyperParameterAdapter implements JsonSerializer<SuperParameter>, JsonDeserializer<SuperParameter> {
+public class HyperParameterAdapter implements JsonSerializer<HyperParameter>, JsonDeserializer<HyperParameter> {
     private static final String CLASSNAME = "CLASS";
     private static final String DATA = "DATA";
 
-    public SuperParameter deserialize(JsonElement jsonElement, Type type,
-                               JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
+    public HyperParameter deserialize(JsonElement jsonElement, Type type,
+                                      JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
 
         JsonObject jsonObject = jsonElement.getAsJsonObject();
         JsonPrimitive prim = (JsonPrimitive) jsonObject.get(CLASSNAME);
@@ -29,7 +29,7 @@ public class HyperParameterAdapter implements JsonSerializer<SuperParameter>, Js
         return jsonDeserializationContext.deserialize(jsonObject.get(DATA), type(klass, parameterType));
     }
 
-    public JsonElement serialize(SuperParameter jsonElement, Type type, JsonSerializationContext jsonSerializationContext) {
+    public JsonElement serialize(HyperParameter jsonElement, Type type, JsonSerializationContext jsonSerializationContext) {
         JsonObject jsonObject = new JsonObject();
 
         jsonObject.addProperty(CLASSNAME, jsonElement.getClass().getName());

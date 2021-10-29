@@ -32,7 +32,7 @@ public class TestEncryptedGradHess {
         String str = serializer.serialize(boostP5Res);
         System.out.println(str);
 
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.EncryptedGradHess\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"instanceSpace\":[1,2,3],\"gh\":[],\"pubKey\":\"123a\",\"newTree\":true}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.EncryptedGradHess\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"instanceSpace\":[1,2,3],\"gh\":[],\"pubKey\":\"123a\",\"newTree\":true,\"workerNum\":0}}";
         Assert.assertEquals(str, content);
     }
 

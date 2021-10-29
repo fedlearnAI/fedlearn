@@ -12,7 +12,6 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.client.entity.inference.FetchRemote;
 import com.jdt.fedlearn.client.entity.inference.InferenceRequest;
@@ -21,6 +20,7 @@ import com.jdt.fedlearn.client.entity.prepare.MatchRequest;
 import com.jdt.fedlearn.client.service.InferenceService;
 import com.jdt.fedlearn.client.service.PrepareService;
 import com.jdt.fedlearn.client.util.ConfigUtil;
+import com.jdt.fedlearn.common.enums.TaskTypeEnum;
 import com.jdt.fedlearn.worker.cache.WorkerResultCache;
 import com.jdt.fedlearn.worker.entity.train.QueryProgress;
 import com.jdt.fedlearn.worker.exception.ForbiddenException;
@@ -36,7 +36,6 @@ import com.jdt.fedlearn.common.util.*;
 import com.jdt.fedlearn.worker.service.*;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.IOUtils;
-import org.apache.lucene.util.RamUsageEstimator;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
@@ -70,6 +69,7 @@ public class WorkerHttpApp extends AbstractHandler {
     private static final SystemService systemService = new SystemService();
     private static final PrepareService prepareService = new PrepareService();
     private static final TrainService trainService = new TrainService();
+    private static final RuntimeStatusService runtimeStatusService = new RuntimeStatusService();
 
 
     public static void main(String[] args) {
@@ -183,7 +183,10 @@ public class WorkerHttpApp extends AbstractHandler {
 
         switch (workerCommandEnum) {
             case IS_READY:
-                commonResultStatus.getData().put(ResponseConstant.DATA, workerRunner.isReady(request.getLocalPort()));
+                TaskTypeEnum taskTypeEnum = JsonUtil.json2Object(content,TaskTypeEnum.class);
+                Map<String, Object> isReady = runtimeStatusService.service(taskTypeEnum);
+                commonResultStatus.setData(isReady);
+//                commonResultStatus.getData().put(ResponseConstant.DATA, workerRunner.isReady(request.getLocalPort()));
                 break;
             case RUN_TASK: {
                 Task task = JsonUtil.json2Object(content, Task.class);

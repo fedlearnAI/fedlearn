@@ -13,14 +13,15 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.model.common.tree.sampling;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ColSampler {
+public class ColSampler implements Serializable {
 
-    private List<Integer> cols = new ArrayList<>();
-    private List<Integer> colSelected;
+    private ArrayList<Integer> cols = new ArrayList<>();
+    private ArrayList<Integer> colSelected = new ArrayList<>();
     private int nSelected;
 
     public ColSampler(int n, double sampling_rate) {
@@ -28,27 +29,28 @@ public class ColSampler {
             cols.add(i);
         }
         nSelected = (int) (n * sampling_rate);
-        colSelected = cols.subList(0, nSelected);
+        List<Integer> ss = cols.subList(0, nSelected);
+        colSelected.addAll(ss);
     }
 
     public void shuffle() {
         Collections.shuffle(cols);
-        colSelected = cols.subList(0, nSelected);
+        colSelected.addAll(cols.subList(0, nSelected));
     }
 
-    public List<Integer> getCols() {
+    public ArrayList<Integer> getCols() {
         return cols;
     }
 
-    public void setCols(List<Integer> cols) {
+    public void setCols(ArrayList<Integer> cols) {
         this.cols = cols;
     }
 
-    public List<Integer> getColSelected() {
+    public ArrayList<Integer> getColSelected() {
         return colSelected;
     }
 
-    public void setColSelected(List<Integer> colSelected) {
+    public void setColSelected(ArrayList<Integer> colSelected) {
         this.colSelected = colSelected;
     }
 

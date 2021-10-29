@@ -12,12 +12,11 @@ import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.model.Model;
 import com.jdt.fedlearn.core.model.common.tree.InferTreeNode;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -102,7 +101,7 @@ public class TreeInferenceServer implements Model {
     }
 
     @Override
-    public TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter parameter, Features features, Map<String, Object> others) {
+    public TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, HyperParameter parameter, Features features, Map<String, Object> others) {
         throw new NotImplementedException();
     }
     // train function, no need to be completed

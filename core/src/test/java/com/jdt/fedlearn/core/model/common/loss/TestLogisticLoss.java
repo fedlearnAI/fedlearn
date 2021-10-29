@@ -70,4 +70,16 @@ public class TestLogisticLoss {
             assertEquals(target[i],res[i]);
         }
     }
+
+    @Test
+    public void testGainScoreDelta(){
+        LogisticLoss logisticLoss = new LogisticLoss();
+        double gainDelta = logisticLoss.getGainDelta(10, 1.0);
+        double scoreDelta = logisticLoss.getLeafScoreDelta(10, 1.0);
+        assertEquals(gainDelta, 10 / 2.0);
+        assertEquals(scoreDelta, 1.0);
+        gainDelta = logisticLoss.getGainDelta(0, 0);
+        assertEquals(gainDelta, 0);
+        scoreDelta = logisticLoss.getLeafScoreDelta(0, 0);
+    }
 }

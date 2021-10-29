@@ -33,8 +33,9 @@ import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.model.serialize.FgbModelSerializer;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
+import com.jdt.fedlearn.core.preprocess.Scaling;
 import com.jdt.fedlearn.core.type.*;
 import com.jdt.fedlearn.core.type.data.DoubleTuple2;
 import com.jdt.fedlearn.core.type.data.Pair;
@@ -109,6 +110,13 @@ public class FederatedGBModel implements Model {
 
     public int contributeFea = 0;
 
+    // 缩放label，用于回归问题
+    private Scaling scaling;
+    // 总的特征个数
+    private int numFeature = 1;
+
+    private boolean gotNumFeature = false;
+
     public FederatedGBModel() {
     }
 
@@ -146,14 +154,14 @@ public class FederatedGBModel implements Model {
      * 初始化模型，初始化trainId, label, datasetSize, pred, grad, hess, correspondingTreeNode, eta
      * 如果是主动方，则同时初始化privateKey, loss, firstRoundPred
      */
-    public BoostTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, SuperParameter superParameter, Features features, Map<String, Object> others) {
-        Tuple2<String[],String[]> trainTestUId = Tool.splitUid(uids, testIndex);
+    public BoostTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, HyperParameter hyperParameter, Features features, Map<String, Object> others) {
+        Tuple2<String[], String[]> trainTestUId = Tool.splitUid(uids, testIndex);
         String[] trainUids = trainTestUId._1();
         testId = trainTestUId._2();
         BoostTrainData trainData = new BoostTrainData(rawData, trainUids, features, new ArrayList<>());
 //        newTreeNodes = new LinkedList<>();
         //TODO 修改指针
-        parameter = (FgbParameter) superParameter;
+        parameter = (FgbParameter) hyperParameter;
         //初始化预测值和gradient hessian
         logger.info("actual received features:" + features.toString());
         logger.info("client data dim:" + trainData.getDatasetSize() + "," + trainData.getFeatureDim());
@@ -170,6 +178,7 @@ public class FederatedGBModel implements Model {
         this.correspondingTreeNode = new TreeNode[datasetSize];
         //有label 的客户端生成公私钥对
         if (trainData.hasLabel) {
+            this.scaling = new Scaling();
             double initSumLoss = parameter.isMaximize() ? (-Double.MAX_VALUE) : Double.MAX_VALUE;
             List<Pair<Integer, Double>> tmpRoundMetric = new ArrayList<>();
             tmpRoundMetric.add(new Pair<>(0, initSumLoss));
@@ -227,8 +236,7 @@ public class FederatedGBModel implements Model {
     // TODO 修改trainPhase1, trainPhase2, 将参数提出来
 
     /**
-     *
-     * @param phase         训练阶段
+     * @param phase    训练阶段
      * @param jsonData
      * @param train
      * @return
@@ -457,11 +465,12 @@ public class FederatedGBModel implements Model {
                     // feature id -> feature buckets
                     sortedFeatureMap.put(col, buckets);
                     StringTuple2[] full = ghSum(buckets, ghMap2, finalPublicKey, encryptionTool);
-                    return new FeatureLeftGH(req.getClient(),"" + col, full);
+                    return new FeatureLeftGH(req.getClient(), "" + col, full);
                 })
                 .toArray(FeatureLeftGH[]::new);
         return new BoostP2Res(bodyArray);
     }
+
     /**
      * 对于一个feature，计算并返回feature bucket
      */
@@ -475,8 +484,9 @@ public class FederatedGBModel implements Model {
 
     /**
      * encrypt sum of g and h for "left instances" for each bucket cumulatively
-     * @param buckets feature buckets
-     * @param ghMap2 instance index i,  (g_i, h_i)
+     *
+     * @param buckets        feature buckets
+     * @param ghMap2         instance index i,  (g_i, h_i)
      * @param publicKey
      * @param encryptionTool
      * @return StringTuple Array
@@ -502,8 +512,9 @@ public class FederatedGBModel implements Model {
     /**
      * for each feature in the buckets(List), calculate totalG, totalH for each bucket; same function as ghSum
      * the only difference is that ghSum is encrypted but processEachNumericFeature2 is not.
+     *
      * @param buckets
-     * @param ghMap: (index, (g, h))
+     * @param ghMap:  (index, (g, h))
      * @return
      */
     public DoubleTuple2[] processEachNumericFeature2(List<Bucket> buckets, Map<Integer, DoubleTuple2> ghMap) {
@@ -526,14 +537,15 @@ public class FederatedGBModel implements Model {
 
     /**
      * 服务端分发gl hl，含有label的客户端根据gl hl计算 SplitFinding算法，计算(i,k,v)并返回
+     *
      * @param jsonData 迭代数据
      * @param trainSet BoostTrainData
      * @return BoostP3Res
      */
     public Tuple2<BoostP3Res, Double> trainPhase3(Message jsonData, BoostTrainData trainSet, TreeNode currentNode,
-                                   EncryptionTool encryptionTool, PrivateKey privateKey,
-                                   FgbParameter parameter, double[][] grad, double[][] hess,
-                                   int numClassRound) {
+                                                  EncryptionTool encryptionTool, PrivateKey privateKey,
+                                                  FgbParameter parameter, double[][] grad, double[][] hess,
+                                                  int numClassRound) {
         //不含label的客户端无需处理
         if (!trainSet.hasLabel) {
             return new Tuple2<>(new BoostP3Res(), null);
@@ -545,15 +557,24 @@ public class FederatedGBModel implements Model {
         String feature = "";
         int splitIndex = 0;
 //        double gain = -Double.MAX_VALUE;
-
-        //遍历属于其他方的加密特征
-        //先将各个客户端的数据拆分成以特征为维度，然后对该特征计算最大gain，然后取所有特征得gain的最大值
-        GainOutput gainOutput = req.getDataList()
+        // 用于差分隐私
+        if(!gotNumFeature){
+            numFeature = req.getDataList().parallelStream().map(List::size).reduce(0, Integer::sum);
+            numFeature += trainSet.getFeatureDim() - 1;
+            gotNumFeature = true;
+        }
+        List<GainOutput> allGain = req.getDataList()
                 .parallelStream()
                 .flatMap(Collection::stream)
                 .map(x -> fetchGain(x, g, h, encryptionTool, privateKey, parameter))
+                .collect(toList());;
+        //遍历属于其他方的加密特征
+        //先将各个客户端的数据拆分成以特征为维度，然后对该特征计算最大gain，然后取所有特征得gain的最大值
+        GainOutput gainOutput = allGain
+                .parallelStream()
                 .max(Comparator.comparing(GainOutput::getGain))
                 .get();
+
         // Corresponding client, feature, splitIndex for the best gain
         double gain = gainOutput.getGain();
         client = gainOutput.getClient();
@@ -577,7 +598,8 @@ public class FederatedGBModel implements Model {
             sortedFeatureMap.put(col, buckets);
             // body: BucketIndex -> (gL, hL)
             DoubleTuple2[] body = processEachNumericFeature2(buckets, ghMap); // ghMap: index -> (g,h)
-            Optional<Tuple2<Double, Integer>> featureMaxGain = computeGain(body, g, h, parameter).parallelStream().max(Comparator.comparing(Tuple2::_1));
+            List<Tuple2<Double, Integer>> featureGain = computeGain(body, g, h, parameter);
+            Optional<Tuple2<Double, Integer>> featureMaxGain = featureGain.parallelStream().max(Comparator.comparing(Tuple2::_1));
             // 本地特征最佳split gain和其他client进行对比
             if (featureMaxGain.isPresent() && featureMaxGain.get()._1() > gain) {
                 gain = featureMaxGain.get()._1();
@@ -586,7 +608,6 @@ public class FederatedGBModel implements Model {
                 splitIndex = featureMaxGain.get()._2();
             }
         }
-        //根据差分隐私指数机制随机选取一个分裂点
         Tuple2<BoostP3Res, Double> t = new Tuple2<BoostP3Res, Double>(new BoostP3Res(client, feature, splitIndex), gain);
         t._1().setTrainMetric(metricValue);
         return t;
@@ -594,9 +615,10 @@ public class FederatedGBModel implements Model {
 
     /**
      * Compute gain according XGBoost algorithm
+     *
      * @param decryptedGH: GL and HL at this node at each threshold
-     * @param g: G_total at this node
-     * @param h: H_total at this node
+     * @param g:           G_total at this node
+     * @param h:           H_total at this node
      * @return
      */
     public List<Tuple2<Double, Integer>> computeGain(DoubleTuple2[] decryptedGH,
@@ -617,9 +639,10 @@ public class FederatedGBModel implements Model {
 
     /**
      * Get the best split index and gain from this split for one feature according to Xgboost algorithm
-     * @param input FeatureLeftGH from phase2 output
-     * @param g G_Total at this node
-     * @param h H_Total at this node
+     *
+     * @param input          FeatureLeftGH from phase2 output
+     * @param g              G_Total at this node
+     * @param h              H_Total at this node
      * @param encryptionTool
      * @param privateKey
      * @param parameter
@@ -629,13 +652,7 @@ public class FederatedGBModel implements Model {
                                 EncryptionTool encryptionTool, PrivateKey privateKey, FgbParameter parameter) {
         int splitIndex = 0;
         double gain = -Double.MAX_VALUE;
-        // Left G and Left H for one feature at each bucket
-        StringTuple2[] tmpGH = input.getGhLeft();
-        // decrypt G and H
-        DoubleTuple2[] decryptedGH = Arrays.asList(tmpGH)
-                .parallelStream()
-                .map(x -> new DoubleTuple2(encryptionTool.decrypt(x.getFirst(), privateKey), encryptionTool.decrypt(x.getSecond(), privateKey)))
-                .toArray(DoubleTuple2[]::new);
+        DoubleTuple2[] decryptedGH = decryptGH(input, encryptionTool, privateKey);
         // computeGain returns a list of gain of each split according to the bucket
         // returns the best gain and its index
         Tuple2<Double, Integer> maxGain = computeGain(decryptedGH, g, h, parameter)
@@ -645,18 +662,58 @@ public class FederatedGBModel implements Model {
         return new GainOutput(input.getClient(), input.getFeature(), maxGain._2(), maxGain._1());
     }
 
+    /**
+     * Get all split index and gain from this split for one feature according to Xgboost algorithm
+     *
+     * @param input          FeatureLeftGH from phase2 output
+     * @param g              G_Total at this node
+     * @param h              H_Total at this node
+     * @param encryptionTool
+     * @param privateKey
+     * @param parameter
+     * @return
+     */
+    public List<GainOutput> fetchAllGain(FeatureLeftGH input, double g, double h,
+                                         EncryptionTool encryptionTool, PrivateKey privateKey, FgbParameter parameter) {
+        DoubleTuple2[] decryptedGH = decryptGH(input, encryptionTool, privateKey);
+        // computeGain returns a list of gain of each split according to the bucket
+        return computeGain(decryptedGH, g, h, parameter)
+                .parallelStream()
+                .map(x -> new GainOutput(input.getClient(), input.getFeature(), x._2(), x._1()))
+                .collect(toList());
+    }
+
+    /**
+     * decrypt the left g and h
+     *
+     * @param input          FeatureLeftGH from phase2 output
+     * @param encryptionTool
+     * @param privateKey
+     * @return
+     */
+    private DoubleTuple2[] decryptGH(FeatureLeftGH input, EncryptionTool encryptionTool, PrivateKey privateKey) {
+        // Left G and Left H for one feature at each bucket
+        StringTuple2[] tmpGH = input.getGhLeft();
+        // decrypt G and H
+        return Arrays.asList(tmpGH)
+                .parallelStream()
+                .map(x -> new DoubleTuple2(encryptionTool.decrypt(x.getFirst(), privateKey), encryptionTool.decrypt(x.getSecond(), privateKey)))
+                .toArray(DoubleTuple2[]::new);
+    }
+
     //build sub query index based on <i,k,v>
 
 
     /**
      * 发送message和接受message若为不同client会直接返回空，若是相同的client会分裂并计算左子树样本集合
+     *
      * @param jsonData
-     * @param sortedFeatureMap ( feature id, feature buckets)
+     * @param sortedFeatureMap  ( feature id, feature buckets)
      * @param passiveQueryTable
      * @return
      */
     public Tuple2<LeftTreeInfo, List<QueryEntry>> trainPhase4(Message jsonData, Map<Integer, List<Bucket>> sortedFeatureMap,
-                                     List<QueryEntry> passiveQueryTable) {
+                                                              List<QueryEntry> passiveQueryTable) {
 //        Map<Integer, List<Bucket>> sortedFeatureMap,
 //        LinkedHashMap<Integer, QueryEntry> passiveQueryTable, int contributeFea
         BoostP4Req req = (BoostP4Req) (jsonData);
@@ -679,7 +736,8 @@ public class FederatedGBModel implements Model {
             double[] ids = Bucket.getIds();
             for (int j = 0; j < ids.length; j++) {
                 double id = ids[j];
-                leftIns.add((int)id);;
+                leftIns.add((int) id);
+                ;
             }
         }
 
@@ -691,7 +749,7 @@ public class FederatedGBModel implements Model {
                 double v = values[j];
                 if (v <= splitValue) {
                     double id = bucket.getIds()[j];
-                    leftIns.add((int)id);
+                    leftIns.add((int) id);
                 }
             }
         }
@@ -701,7 +759,7 @@ public class FederatedGBModel implements Model {
             passiveQueryTable = new ArrayList<>();
             passiveQueryTable.add(entry);
         } else {
-            QueryEntry lastLine = passiveQueryTable.get(passiveQueryTable.size()-1); // 当前查询表的最后一行
+            QueryEntry lastLine = passiveQueryTable.get(passiveQueryTable.size() - 1); // 当前查询表的最后一行
             assert lastLine != null;
             recordId = lastLine.getRecordId() + 1;
             QueryEntry line = new QueryEntry(recordId, featureIndex, splitValue);
@@ -716,6 +774,7 @@ public class FederatedGBModel implements Model {
 
     /**
      * 有label的client收到了各个client的本次树的分裂信息和左子树样本id list，更新查询树并进行下一轮迭代
+     *
      * @param jsonData
      * @param grad
      * @param hess
@@ -729,10 +788,10 @@ public class FederatedGBModel implements Model {
      * @return
      */
     public List trainPhase5(Message jsonData, double[][] grad, double[][] hess,
-                                  int numClassRound, TreeNode currentNode,
-                                  Queue<TreeNode> newTreeNodes, FgbParameter parameter,
-                                  TreeNode[] correspondingTreeNode, MetricValue metricMap,
-                                  List<Tree> trees, Loss loss, int datasetSize, double[][] pred, double[] label, int depth) {
+                            int numClassRound, TreeNode currentNode,
+                            Queue<TreeNode> newTreeNodes, FgbParameter parameter,
+                            TreeNode[] correspondingTreeNode, MetricValue metricMap,
+                            List<Tree> trees, Loss loss, int datasetSize, double[][] pred, double[] label, int depth) {
 
         // Update了pred, grad, hess三个全局变量， 由updateGH来update
         // update了currentNode.recordId
@@ -815,13 +874,13 @@ public class FederatedGBModel implements Model {
 //            model.updateGradHessMissingForTreeNode(trainSet.missingIndex);
 //            Tree currentTree = trees.get(trees.size() - 1);
             while (newTreeNodes.size() != 0) {
-//                noise = DifferentialPrivacyUtil.laplaceMechanismNoise(deltaV, eNleaf);
                 TreeNode treenode = newTreeNodes.poll();
                 if (treenode.depth >= parameter.getMaxDepth()
                         || treenode.Hess < parameter.getMinChildWeight()
                         || treenode.numSample <= parameter.getMinSampleSplit()
                         || treenode.instanceSpace.length < parameter.getMinSampleSplit()) {
-                    treenode.leafNodeSetter(Tree.calculateLeafScore(treenode.Grad, treenode.Hess, parameter.getLambda()), true);
+                    double leafScore = Tree.calculateLeafScore(treenode.Grad, treenode.Hess, parameter.getLambda());
+                    treenode.leafNodeSetter(leafScore, true);
                 } else {
                     currentTree.getAliveNodes().offer(treenode);
                 }
@@ -836,7 +895,7 @@ public class FederatedGBModel implements Model {
         // 如果不再有待分裂的节点
         if (currentTree.getAliveNodes().isEmpty()) {
             return emptyTreeUpdate(currentTree, parameter, correspondingTreeNode,
-            depth, datasetSize, label, numClassRound, pred, loss, metricMap, res);
+                    depth, datasetSize, label, numClassRound, pred, loss, metricMap, res);
         }
 
         // 如果之前都没有return
@@ -849,8 +908,8 @@ public class FederatedGBModel implements Model {
 
     // method in the if(currentTree.getAliveNodes().byteArrayIsEmpty()) where isStop = true
     private List emptyTreeUpdate(Tree currentTree, FgbParameter parameter, TreeNode[] correspondingTreeNode,
-                                      int depth, int datasetSize, double[] label, int numClassRound,
-                                      double[][] pred, Loss loss, MetricValue metricMap, List res) {
+                                 int depth, int datasetSize, double[] label, int numClassRound,
+                                 double[][] pred, Loss loss, MetricValue metricMap, List res) {
         postPrune(currentTree.getRoot(), parameter, correspondingTreeNode);
         BoostP5Res boostP5Res = new BoostP5Res(true, depth);
         List pgh = updateGH(datasetSize, correspondingTreeNode, label, numClassRound, pred, parameter, loss);
@@ -862,24 +921,25 @@ public class FederatedGBModel implements Model {
             trainMetric.forEach((key, value) -> {
                 int size = metricMap.getMetrics().get(key).size();
                 metricMap.getMetrics().get(key).add(new Pair<>(size, value));
-                        });
+            });
             numClassRound = 0;
         } else {
             numClassRound++;
         }
         // List of <boostP5Res, numClassRound, correspondingTreeNode, pgh_tuple, depth, metricMap>
         res = addElement(res, boostP5Res, numClassRound, correspondingTreeNode,
-                (double[][])pgh.get(0), (double[][])pgh.get(1), (double[][])pgh.get(2), depth, metricMap, currentNode);
+                (double[][]) pgh.get(0), (double[][]) pgh.get(1), (double[][]) pgh.get(2), depth, metricMap, currentNode);
         assert res.size() == 9;
         return res;
     }
 
-    private List addElement (List a, Object ...arg) {
+    private List addElement(List a, Object... arg) {
         for (int i = 0; i < arg.length; i++) {
             a.add(arg[i]);
         }
         return a;
     }
+
     // TODO 修改unit test 把这些应该是private function的还是放成是private function
     // recursively postPrune 可能会更新root， correspondingTreeNode对应的信息
     public void postPrune(TreeNode root, FgbParameter parameter, TreeNode[] correspondingTreeNode) {
@@ -900,10 +960,10 @@ public class FederatedGBModel implements Model {
     }
 
     private List updateGH(int datasetSize, TreeNode[] correspondingTreeNode, double[] label,
-                            int numClassRound, double[][] pred, FgbParameter parameter, Loss loss) {
+                          int numClassRound, double[][] pred, FgbParameter parameter, Loss loss) {
 //        if (this.hasLabel) {
-            // eta = parameter.getEta()
-            // 更新pred, grad, hess需要返回
+        // eta = parameter.getEta()
+        // 更新pred, grad, hess需要返回
         pred = updatePred(parameter.getEta(), datasetSize, correspondingTreeNode, numClassRound, pred);
         Tuple2 ghTuple = updateGradHess(loss, parameter.getScalePosWeight(), label, pred, datasetSize, parameter, numClassRound);
         double[][] grad = (double[][]) ghTuple._1();
@@ -936,11 +996,11 @@ public class FederatedGBModel implements Model {
     }
 
     public double[][] updatePred(double eta, int datasetSize, TreeNode[] correspondingTreeNode,
-                           int numClassRound, double[][] pred) {
+                                 int numClassRound, double[][] pred) {
         for (int i = 0; i < datasetSize; i++) {
             TreeNode tmpNode = correspondingTreeNode[i];
             if (tmpNode == null) {
-                } else {
+            } else {
                 // TODO 在train phase5把pred return出去
                 pred[numClassRound][i] += eta * tmpNode.leafScore;
             }
@@ -1001,9 +1061,10 @@ public class FederatedGBModel implements Model {
 
     /**
      * 判断并筛选uid数据是否存在（可预测）
-     * @param uidList 用户输入的，需要推理的样本id列表
+     *
+     * @param uidList            用户输入的，需要推理的样本id列表
      * @param inferenceCacheFile 根据用户输入的id 加载的样本数据
-     * @param others 自定义参数
+     * @param others             自定义参数
      * @return 初始化中间信息 包含isAllowList 还有uids两部分信息
      */
     public Message inferenceInit(String[] uidList, String[][] inferenceCacheFile, Map<String, Object> others) {
@@ -1026,11 +1087,10 @@ public class FederatedGBModel implements Model {
     }
 
     /**
-     *
-     * @param data 从coordinator传入的迭代数据
-     * @param samples 需要推理的样本
-     * @param trees 训练过程中建好的树
-     * @param firstRoundPred 训练过程中生成的初始化预测值
+     * @param data                      从coordinator传入的迭代数据
+     * @param samples                   需要推理的样本
+     * @param trees                     训练过程中建好的树
+     * @param firstRoundPred            训练过程中生成的初始化预测值
      * @param multiClassUniqueLabelList 多分类类别标记
      * @return 推理中间结果
      */
@@ -1039,7 +1099,7 @@ public class FederatedGBModel implements Model {
         //此处的index是基于initial 请求的uid
 
         String[] newUidIndex = data.getData();
-        CommonInferenceData boostInferenceData = (CommonInferenceData)samples;
+        CommonInferenceData boostInferenceData = (CommonInferenceData) samples;
         boostInferenceData.filterOtherUid(newUidIndex);
         if (!trees.isEmpty()) {
             return new BoostN1Res(trees, firstRoundPred, multiClassUniqueLabelList);
@@ -1096,7 +1156,7 @@ public class FederatedGBModel implements Model {
         this.multiClassUniqueLabelList = fgbModel.getMultiClassUniqueLabelList();
     }
 
-    public AlgorithmType getModelType(){
+    public AlgorithmType getModelType() {
         return AlgorithmType.FederatedGB;
     }
 

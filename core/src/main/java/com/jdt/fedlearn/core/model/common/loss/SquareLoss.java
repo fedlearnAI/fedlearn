@@ -66,4 +66,24 @@ public class SquareLoss extends Loss {
         Arrays.fill(ret, 1.0);
         return ret;
     }
+
+    /**
+     * 获取XGB决策节点收益函数的最大L1敏感度
+     * @param n the count of the sample in current node
+     * @param lambda the lambda of xgb
+     * @return
+     */
+    public double getGainDelta(int n, double lambda) {
+        return 1.0;
+    }
+
+    /**
+     * 获取XGB叶子节点结果函数的最大L1敏感度
+     * @param n the count of the sample in current node
+     * @param lambda the lambda of xgb
+     * @return
+     */
+    public double getLeafScoreDelta(int n, double lambda) {
+        return 1.0 / ((double) n + lambda + Double.MIN_VALUE);
+    }
 }

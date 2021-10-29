@@ -28,7 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public class FgbParameter implements SuperParameter {
+public class FgbParameter implements HyperParameter {
     private final int numBoostRound;   //轮数，树的个数
     private final FirstPredictType firstRoundPred;  //初始化预测值
     private final int earlyStoppingRound; //早停轮数
@@ -49,6 +49,19 @@ public class FgbParameter implements SuperParameter {
     private int numClass;
     //todo catFeatures String[]
     private final String catFeatures;
+
+    // 差分隐私系数lambda
+    private double dpLambda = 1.0;
+    // 差分隐私epsilon
+    private double dpEpsilon;
+    // 差分隐私delta
+    private double dpDelta;
+    //    // 差分隐私类型
+//    private String dpType;
+    // 是否使用差分隐私
+    private boolean useDP;
+
+
     private final double randomizedResponseProbability;
     private final double differentialPrivacyParameter;
 
@@ -74,6 +87,8 @@ public class FgbParameter implements SuperParameter {
         this.numClass = 1;
         this.differentialPrivacyParameter = 0;
         this.randomizedResponseProbability = 0;
+        this.useDP = true;
+        this.dpEpsilon = 1.0;
     }
 
     public FgbParameter(Builder builder) {
@@ -99,6 +114,8 @@ public class FgbParameter implements SuperParameter {
         this.catFeatures = builder.catFeatures;
         this.randomizedResponseProbability = builder.randomizedResponseProbability;
         this.differentialPrivacyParameter = builder.differentialPrivacyParameter;
+        this.useDP = builder.useDp;
+        this.dpEpsilon = builder.dpEpsilon;
     }
 
     public static class Builder {
@@ -126,6 +143,8 @@ public class FgbParameter implements SuperParameter {
         private String catFeatures = "";
         private double randomizedResponseProbability = 0;
         private double differentialPrivacyParameter = 0;
+        private boolean useDp = true;
+        private double dpEpsilon = 3.2;
 
         public Builder(int numRound, MetricType[] evalMetric, ObjectiveType objective) {
             this.numRound = numRound;
@@ -223,6 +242,16 @@ public class FgbParameter implements SuperParameter {
             return this;
         }
 
+        public Builder useDp(boolean useDp) {
+            this.useDp = useDp;
+            return this;
+        }
+
+        public Builder dpEpsilon(double dpEpsilon) {
+            this.dpEpsilon = dpEpsilon;
+            return this;
+        }
+
         public FgbParameter build() {
             return new FgbParameter(this);
         }
@@ -230,7 +259,7 @@ public class FgbParameter implements SuperParameter {
 
     public List<ParameterField> obtainPara() {
         List<ParameterField> res = new ArrayList<>();
-        res.add(new NumberParameter("numBoostRound", "树的个数", 50, new String[]{"1", "100"}, ParameterType.NUMS));
+        res.add(new NumberParameter("numBoostRound", "树的个数", 1, new String[]{"1", "100"}, ParameterType.NUMS));
         res.add(new CategoryParameter("firstRoundPred", "初始化预测值", "AVG", new String[]{"ZERO", "AVG", "RANDOM"}, ParameterType.STRING));
         res.add(new CategoryParameter("maximize", "maximize", "true", new String[]{"true", "false"}, ParameterType.STRING));
         res.add(new NumberParameter("rowSample", "样本抽样比例", 1.0, new String[]{"0.1", "1.0"}, ParameterType.NUMS));
@@ -243,14 +272,16 @@ public class FgbParameter implements SuperParameter {
         res.add(new NumberParameter("scalePosWeight", "scalePosWeight", 1, new String[]{"0", "1"}, ParameterType.NUMS));
         res.add(new NumberParameter("numBin", "特征分桶个数", 33, new String[]{"33", "50"}, ParameterType.NUMS));
         res.add(new MultiParameter("evalMetric", "evalMetric", "MAPE", new String[]{"RMSE", "MAPE", "MSE", "F1", "ACC", "AUC", "RECALL", "PRECISION", "MACC", "MERROR"}, ParameterType.MULTI));
-        res.add(new NumberParameter("maxDepth", "maxDepth", 7, new String[]{"2", "20"}, ParameterType.NUMS));
+        res.add(new NumberParameter("maxDepth", "maxDepth", 5, new String[]{"2", "20"}, ParameterType.NUMS));
         res.add(new NumberParameter("eta", "learning rate", 0.3, new String[]{"0.01", "1"}, ParameterType.NUMS));
         res.add(new CategoryParameter("objective", "objective", "regSquare", new String[]{"regLogistic", "regSquare", "countPoisson", "binaryLogistic", "multiSoftmax", "multiSoftProb"}, ParameterType.STRING));
         res.add(new NumberParameter("numClass", "(仅多分类问题)类别数量", 1, new String[]{"1", "100"}, ParameterType.NUMS));
         res.add(new CategoryParameter("bitLength", "同态加密比特数", "bit1024", new String[]{"bit512", "bit1024", "bit2048"}, ParameterType.STRING));
-        res.add(new CategoryParameter("catFeatures", "catFeatures", "", new String[]{}, ParameterType.STRING));
+        res.add(new CategoryParameter("catFeatures", "catFeatures", "1", new String[]{}, ParameterType.STRING));
         res.add(new NumberParameter("randomizedResponseProbability", "randomizedResponseProbability", 0, new String[]{"0", "1"}, ParameterType.NUMS));
-        res.add(new NumberParameter("differentialPrivacyParameter", "differentialPrivacyParameter", 0, new String[]{"0", "1"}, ParameterType.NUMS));
+        // res.add(new NumberParameter("differentialPrivacyParameter", "differentialPrivacyParameter", 0, new String[]{"0", "1"}, ParameterType.NUMS));
+//        res.add(new NumberParameter("dpEpsilon", "dpEpsilon", 0.4, new String[]{"0.05", "1.6"}, ParameterType.NUMS));
+//        res.add(new CategoryParameter("useDp", "useDp", "false", new String[]{"true", "false"}, ParameterType.STRING));
         return res;
     }
 
@@ -334,6 +365,18 @@ public class FgbParameter implements SuperParameter {
         return differentialPrivacyParameter;
     }
 
+    public boolean isUseDP() {
+        return this.useDP;
+    }
+
+    public double getDpEpsilon() {
+        return this.dpEpsilon;
+    }
+
+    public void averageEpsilon() {
+        this.dpEpsilon = this.dpEpsilon / (this.numBoostRound * this.maxDepth * 2);
+    }
+
     public int getNumClass() {
         return numClass;
     }
@@ -341,6 +384,7 @@ public class FgbParameter implements SuperParameter {
     public void setNumClass(int value) {
         this.numClass = value;
     }
+
 
     public String serialize() {
         return this.toString();

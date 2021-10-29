@@ -76,5 +76,9 @@ public class AppConstant {
 
     public static final String DATA_UPDATE_Value = "dataUpdateValue";
 
+    public static final String NETTY_CONNECT = "connect";
+
+    public static final String NETWORK_TYPE_NETTY = "netty";
+
 
 }

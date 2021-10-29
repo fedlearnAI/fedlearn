@@ -21,6 +21,7 @@ import com.jdt.fedlearn.core.entity.common.MetricValue;
 public class BoostP2Res implements Message {
     private final FeatureLeftGH[] featureGL;
     private MetricValue trainMetric;
+    private int workerNum;
 
 
     public BoostP2Res(FeatureLeftGH[] featureGL) {
@@ -37,5 +38,13 @@ public class BoostP2Res implements Message {
 
     public MetricValue getTrainMetric() {
         return trainMetric;
+    }
+
+    public int getWorkerNum() {
+        return workerNum;
+    }
+
+    public void setWorkerNum(int workerNum) {
+        this.workerNum = workerNum;
     }
 }

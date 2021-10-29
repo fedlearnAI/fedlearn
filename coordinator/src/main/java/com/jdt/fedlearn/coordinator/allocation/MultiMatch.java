@@ -127,6 +127,9 @@ public class MultiMatch implements Runnable {
             MatchEntity matchEntity = MatchStartImpl.matchEntityMap.get(matchId);
             matchEntity.setRunningType(RunningType.FAIL);
             matchEntity.setMatchReport(LogUtil.logLine(e.getMessage()));
+            if (!ConfigUtil.getJdChainAvailable()) {
+                MatchMapper.updateMatchInfo(matchEntity);
+            }
             MatchStartImpl.matchEntityMap.put(matchId, matchEntity);
             logger.error("ParseException " + e.getMessage());
         }

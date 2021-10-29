@@ -15,15 +15,23 @@ package com.jdt.fedlearn.core.preprocess;
 
 import com.jdt.fedlearn.core.math.MathExt;
 
+import java.io.Serializable;
+import java.util.stream.IntStream;
+
 /**
  * feature scaling
  */
-public class Scaling {
+public class Scaling implements Serializable {
     private double[][] table;
     //每列一个scale
     private double[] scales;
     private double[] X_min;
     private double[] X_max;
+
+    // label的scale
+    private double yMin = 0;
+    private double yMax = 1;
+    private double yScale = 1;
 
     public Scaling() {
 
@@ -95,6 +103,19 @@ public class Scaling {
         }
     }
 
+    // 放缩标签值，针对与使用差分隐私的回归任务
+    public void minMaxScalingLabel(double min, double max, double[] label){
+        yMax = MathExt.max(label);
+        yMin = MathExt.min(label);
+        if(yMax != yMin){
+            yScale = (max - min) / (yMax - yMin);
+        }
+        IntStream.range(0, label.length).parallel().forEach(idx -> {
+            double tmp = label[idx];
+            label[idx] = yScale * (tmp - yMin) + min;
+        });
+    }
+
     public void inferenceMinMaxScaling(double[][] table) {
         for (int i = 0; i < table.length; i++) {
             for (int j = 0; j < table[0].length; j++) {
@@ -102,6 +123,10 @@ public class Scaling {
                 table[i][j] = scales[j] * (tmp - X_min[j]);
             }
         }
+    }
+
+    public double inferenceMinMaxYScaling(double y){
+        return y / yScale + yMin;
     }
 
     /*
@@ -141,6 +166,18 @@ public class Scaling {
 
     public void setX_max(double[] x_max) {
         X_max = x_max;
+    }
+
+    public double getYScale(){
+        return this.yScale;
+    }
+
+    public double getYMin(){
+        return this.yMin;
+    }
+
+    public double getYMax(){
+        return this.yMax;
     }
 }
 

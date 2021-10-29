@@ -36,23 +36,6 @@ public class HttpUtilTest {
     }
 
     @Test
-    public void getData() {
-        MockServerClient mockClient = new MockServerClient("127.0.0.1", 1090);
-        String expected = "getData";
-        mockClient.when(
-                request()
-                        .withPath("/getData")
-                        .withMethod("GET")
-        ).respond(
-                response()
-                        .withStatusCode(200)
-                        .withBody(expected)
-        );
-        String data = INetWorkService.getNetWorkService().send("http://127.0.0.1:1090/getData");
-        Assert.assertEquals(expected,data);
-    }
-
-    @Test
     public void postData() {
 
         MockServerClient mockClient = new MockServerClient("127.0.0.1", 1090);

@@ -59,7 +59,6 @@ public class TrainTest {
         C3 = new ClientInfo("127.0.0.1", 8088, "http");
     }
 
-
     private static final String TASK_ID = "taskId";
 
     @Test(invocationCount = 2, threadPoolSize = 2)
@@ -145,6 +144,11 @@ public class TrainTest {
             @Mock
             public boolean getJdChainAvailable() {
                 return false;
+            }
+
+            @Mock
+            public String getNetworkType(){
+                return "";
             }
         };
     }

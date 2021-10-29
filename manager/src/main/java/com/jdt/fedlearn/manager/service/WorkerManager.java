@@ -17,7 +17,7 @@ import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.WorkerUnit;
-import com.jdt.fedlearn.common.entity.Task;
+import com.jdt.fedlearn.common.enums.TaskTypeEnum;
 import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
 import com.jdt.fedlearn.common.util.JsonUtil;
 import com.jdt.fedlearn.common.util.WorkerCommandUtil;
@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -92,38 +93,66 @@ public class WorkerManager {
 
     /**
      * 获取第一个可运行的worker unit
-     * @param readyTask readyTask
+     * @param taskType taskType
      * @return 返回第一个可以用的worker unit service
      */
-    public WorkerUnit getFirstReadyWorkerUnit(Task readyTask) {
+    public WorkerUnit getFirstReadyWorkerUnit(TaskTypeEnum taskType) {
+        //先获取空闲的worker
+        WorkerUnit workerUnit = getFreeWorker();
         // 循环遍历， 获取合适的机器
-        for (WorkerUnit workerUnit : workerUnitMap.keySet()) {
-            boolean isReady = isReady(workerUnit);
-            if (isReady) {
-                return workerUnit;
+        if(workerUnit == null){
+            logger.info("没有空闲的worker，查询是否有空闲资源的worker。");
+            List<WorkerUnit> workerUnits = new ArrayList<>(workerUnitMap.keySet());
+            Collections.shuffle(workerUnits);
+            for (WorkerUnit worker : workerUnits) {
+                boolean isUsable = isUsable(worker,taskType);
+                if (isUsable) {
+                    return worker;
+                }
+            }
+        }else{
+            return workerUnit;
+        }
+        return null;
+    }
+
+    /***
+    * @description: 判断worker是否空闲
+    * @param
+    * @return: com.jdt.fedlearn.common.entity.WorkerUnit
+    * @author: geyan29
+    * @date: 2021/9/22 11:15 上午
+    */
+    private WorkerUnit getFreeWorker() {
+        for (Map.Entry<WorkerUnit, AtomicBoolean> entry : workerUnitMap.entrySet()) {
+            boolean isLocked = entry.getValue().compareAndSet(false, true);
+            if(isLocked){
+                return entry.getKey();
             }
         }
         return null;
     }
 
-    private boolean isReady(WorkerUnit workerUnit) {
+    /**
+    * @description: 查询worker是否存在空闲资源
+    * @param workerUnit
+    * @param taskTypeEnum
+    * @return: boolean
+    * @author: geyan29
+    * @date: 2021/9/22 11:15 上午
+    */
+    private boolean isUsable(WorkerUnit workerUnit, TaskTypeEnum taskTypeEnum) {
+        boolean isReady = false;
         try {
             String url = WorkerCommandUtil.buildUrl(workerUnit);
-            //如果已经被锁，直接返回, 一锁 二判同时进行
-            boolean isLocked = workerUnitMap.get(workerUnit).compareAndSet(false, true);
-            if (!isLocked) {
-                return false;
-            }
-            //有延迟， 不能保证锁， 用map 的value 标记， 避免出问题
-            CommonResultStatus commonResultStatus = WorkerCommandUtil.request(url, WorkerCommandEnum.IS_READY, "");
-            boolean isReady =
+            CommonResultStatus commonResultStatus = WorkerCommandUtil.request(url, WorkerCommandEnum.IS_READY, taskTypeEnum);
+            isReady =
                     Boolean.parseBoolean(commonResultStatus.getData().get(ResponseConstant.DATA).toString());
-
-            return isReady;
+            logger.info(isReady?"当前worker有剩余资源。":"当前worker没有足够的资源。");
         } catch (Exception e) {
             logger.warn("check workerUnit {}  exception", workerUnit);
         }
-        return false;
+        return isReady;
     }
 
 

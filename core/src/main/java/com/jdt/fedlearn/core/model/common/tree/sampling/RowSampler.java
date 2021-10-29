@@ -13,11 +13,13 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.model.common.tree.sampling;
 
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 
 
-public class RowSampler {
+public class RowSampler implements Serializable {
     public ArrayList<Double> row_mask = new ArrayList<>();
 
     public RowSampler(int n, double sampling_rate) {
@@ -28,5 +30,13 @@ public class RowSampler {
 
     public void shuffle() {
         Collections.shuffle(this.row_mask);
+    }
+
+    public ArrayList<Double> getRow_mask() {
+        return row_mask;
+    }
+
+    public void setRow_mask(ArrayList<Double> row_mask) {
+        this.row_mask = row_mask;
     }
 }

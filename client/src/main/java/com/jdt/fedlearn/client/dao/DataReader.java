@@ -64,8 +64,23 @@ public interface DataReader {
      * @author: geyan29
      * @date: 2021/5/18 4:32 下午
      */
-    default String[][] readDataLine(String sourceFile, List<Integer> seeksList) throws IOException{
+    default String[][] readDataLine(String sourceFile, List<Integer> seeksList) throws IOException {
         return null;
-    };
+    }
+
+
+    /***
+     * 读取指定行和指定列
+     * @param sourceFile 数据文件名
+     * @param rows 指定行
+     * @param cols 指定列
+     * @return 需要读取的二维数组
+     * @throws IOException
+     */
+    default String[][] readDataCol(String sourceFile, List<Integer> rows, List<Integer> cols) throws IOException {
+        return null;
+    }
+
+    ;
 
 }

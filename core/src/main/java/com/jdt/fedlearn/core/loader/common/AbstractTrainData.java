@@ -18,6 +18,7 @@ import com.jdt.fedlearn.core.entity.feature.SingleFeature;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.util.Tool;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
  * label 是指label列，不含表头
  * hasLabel是该数据是否有label的标记，如无label，则label字段为null
  */
-public abstract class AbstractTrainData implements TrainData {
+public abstract class AbstractTrainData implements TrainData, Serializable {
     protected double[][] sample;
     protected String[] featureName;
     protected String[] uid;
@@ -39,6 +40,9 @@ public abstract class AbstractTrainData implements TrainData {
     protected int datasetSize;
     public int[] fullInstance;
     public boolean hasLabel;
+
+    public AbstractTrainData() {
+    }
 
     public String[][] scan(String[][] rawTable, String[] commonIds, Features features) {
 //         确认是否有label
@@ -70,7 +74,7 @@ public abstract class AbstractTrainData implements TrainData {
     }
 
 
-    public void scanHorizontal(String[][] rawTable, Features features){
+    public void scanHorizontal(String[][] rawTable, Features features) {
         //         确认是否有label
         if (features.getLabel() != null && !features.getLabel().isEmpty()) {
             this.hasLabel = true;
@@ -172,7 +176,7 @@ public abstract class AbstractTrainData implements TrainData {
         String[][] sortedTable = Arrays.stream(rawTable).parallel().sorted(Comparator.comparing(x -> x[0])).toArray(String[][]::new);
         List<String> rawUidList = new ArrayList<>();
         long newUid = 0L;
-        for (String[] line:sortedTable) {
+        for (String[] line : sortedTable) {
             if (idMapSet.contains(line[0])) {
                 rawUidList.add(line[0]);
                 line[0] = String.valueOf(newUid);
@@ -213,7 +217,7 @@ public abstract class AbstractTrainData implements TrainData {
     }
 
     public double[][] columnTrans(double[][] horizon) {
-        if(horizon == null || horizon.length==0){
+        if (horizon == null || horizon.length == 0) {
             return new double[0][];
         }
         int height = horizon.length;
@@ -238,7 +242,7 @@ public abstract class AbstractTrainData implements TrainData {
                 res.add(line);
             }
         }
-        if (res.size() == 0){
+        if (res.size() == 0) {
             return new double[0][];
         }
         String[][] result = MathExt.transpose(res.toArray(new String[0][]));
@@ -345,4 +349,43 @@ public abstract class AbstractTrainData implements TrainData {
     }
 
 
+    public void setSample(double[][] sample) {
+        this.sample = sample;
+    }
+
+    public void setFeatureName(String[] featureName) {
+        this.featureName = featureName;
+    }
+
+    public void setUid(String[] uid) {
+        this.uid = uid;
+    }
+
+    public void setLabel(double[] label) {
+        this.label = label;
+    }
+
+    public void setFeatureDim(int featureDim) {
+        this.featureDim = featureDim;
+    }
+
+    public void setDatasetSize(int datasetSize) {
+        this.datasetSize = datasetSize;
+    }
+
+    public int[] getFullInstance() {
+        return fullInstance;
+    }
+
+    public void setFullInstance(int[] fullInstance) {
+        this.fullInstance = fullInstance;
+    }
+
+    public boolean isHasLabel() {
+        return hasLabel;
+    }
+
+    public void setHasLabel(boolean hasLabel) {
+        this.hasLabel = hasLabel;
+    }
 }

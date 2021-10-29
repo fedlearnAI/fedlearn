@@ -77,17 +77,6 @@
 
         <fileSet>
             <directory>
-                ${project.parent.basedir}/frontend/target/
-            </directory>
-            <includes>
-                <include>*.jar</include>
-            </includes>
-            <outputDirectory>lib</outputDirectory>
-        </fileSet>
-
-
-        <fileSet>
-            <directory>
                 ${project.parent.basedir}/coordinator/target/lib/
             </directory>
             <includes>

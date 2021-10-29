@@ -17,6 +17,7 @@ import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.WorkerUnit;
 import com.jdt.fedlearn.common.entity.Task;
+import com.jdt.fedlearn.common.enums.TaskTypeEnum;
 import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
 import com.jdt.fedlearn.common.util.WorkerCommandUtil;
 
@@ -75,7 +76,7 @@ public class WorkerManagerTest extends PowerMockTestCase {
     @Test
     public void getFirstReadyWorkerUnit() throws IOException {
         mockRequest();
-        WorkerUnit firstReadySalveUnit = workerManager.getFirstReadyWorkerUnit(new Task());
+        WorkerUnit firstReadySalveUnit = workerManager.getFirstReadyWorkerUnit(TaskTypeEnum.MAP);
         Assert.assertEquals(firstReadySalveUnit, workerUnit);
     }
 

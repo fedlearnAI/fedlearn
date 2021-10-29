@@ -34,7 +34,7 @@ public class TestBoostP2Res {
         String str = serializer.serialize(boostP3Req);
         System.out.println(str);
 
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP2Res\",\"DATA\":{\"featureGL\":[]}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.BoostP2Res\",\"DATA\":{\"featureGL\":[],\"workerNum\":0}}";
         Assert.assertEquals(str, content);
     }
 

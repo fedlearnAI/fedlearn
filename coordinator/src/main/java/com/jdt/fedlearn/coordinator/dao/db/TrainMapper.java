@@ -45,26 +45,27 @@ public class TrainMapper {
         PreparedStatement ps = null;
         Connection conn = DbUtil.getConnection();
         try {
-            String sql = "INSERT INTO model_table (model_token, task_id, algorithm_type, hyper_parameter, train_start_time, created_time, modified_time) VALUES (?,?,?,?,?,?,?)";
+            String sql = "INSERT INTO model_table (model_token, task_id, algorithm_type, match_id, hyper_parameter, start_time, created_time, modified_time) VALUES (?,?,?,?,?,?,?,?)";
             if (conn != null) {
                 ps = conn.prepareStatement(sql);
                 ps.setString(1, info.getModelToken());
                 TokenDTO tokenDTO = TokenUtil.parseToken(info.getModelToken());
                 ps.setString(2, tokenDTO.getTaskId());
                 ps.setString(3, info.getAlgorithmType().getAlgorithm());
-                ps.setString(4,mapper.writeValueAsString(info.getHyperParameter()));
-                ps.setString(5, String.valueOf(info.getTrainStartTime()));
+                ps.setString(4, info.getMatchId());
+                ps.setString(5, mapper.writeValueAsString(info.getHyperParameter()));
+                ps.setString(6, String.valueOf(info.getStartTime()));
                 final String time = TimeUtil.defaultFormat(new Date());
-                ps.setString(6, time);
                 ps.setString(7, time);
+                ps.setString(8, time);
                 ps.execute();
                 ps.close();
             }
-        } catch (SQLException  e) {
+        } catch (SQLException e) {
             logger.error("insert train info: modelId=" + info.getModelToken());
             logger.error(e.toString());
         } catch (JsonProcessingException e) {
-            logger.error("getHyperParameter to string error " ,e);
+            logger.error("getHyperParameter to string error ", e);
         } finally {
             DbUtil.close(conn, ps, null);
         }
@@ -96,7 +97,6 @@ public class TrainMapper {
             DbUtil.close(conn, ps, null);
         }
     }
-
 
 
     public static List<String> getModelTokensByTask(String taskId) {
@@ -133,7 +133,7 @@ public class TrainMapper {
     public static List<Tuple2<String, RunningType>> getModelsByTaskId(String taskId) {
         PreparedStatement ps = null;
         ResultSet resultSet = null;
-        List<Tuple2<String,RunningType>> modelList = new ArrayList<>();
+        List<Tuple2<String, RunningType>> modelList = new ArrayList<>();
         Connection conn = DbUtil.getConnection();
         try {
             String sql = "SELECT model_token,running_type FROM model_table where status = 0 and task_id = ? order by modified_time desc ";
@@ -170,7 +170,7 @@ public class TrainMapper {
         ResultSet resultSet = null;
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            String sql = "SELECT task_id,algorithm_type,hyper_parameter,metric_info,train_start_time,modified_time,running_type,train_percent FROM model_table where status = 0 and model_token=?";
+            String sql = "SELECT task_id,algorithm_type,hyper_parameter,metric_info,start_time,modified_time,running_type,train_percent FROM model_table where status = 0 and model_token=?";
             if (conn != null) {
                 ps = conn.prepareStatement(sql);
                 ps.setString(1, token);
@@ -178,7 +178,8 @@ public class TrainMapper {
                 if (resultSet.next()) {
                     String algorithm = resultSet.getString(2);
                     String describe = resultSet.getString(3);
-                    final List<SingleParameter> finshParameterFields = objectMapper.readValue(describe, new TypeReference<List<SingleParameter>>() {});
+                    final List<SingleParameter> finshParameterFields = objectMapper.readValue(describe, new TypeReference<List<SingleParameter>>() {
+                    });
                     String trainMetricInfo = resultSet.getString(4);
                     //兼容sqlite
                     String trainStartTime = (resultSet.getString(5));
@@ -187,16 +188,59 @@ public class TrainMapper {
                     MetricValue metricValue = MetricValue.parseJson(trainMetricInfo);
                     RunningType runningType = RunningType.valueOf(resultSet.getString(7));
                     int percent = Integer.parseInt(resultSet.getString(8));
-                    trainInfo = new TrainInfo(token, algorithmType, finshParameterFields,  metricValue, Long.parseLong(trainStartTime), Long.parseLong(trainEndTime),runningType,percent);
+                    trainInfo = new TrainInfo(token, algorithmType, finshParameterFields, metricValue, Long.parseLong(trainStartTime), Long.parseLong(trainEndTime), runningType, percent);
                 }
                 ps.close();
             }
         } catch (SQLException e) {
             logger.error("other exception:", e);
         } catch (JsonMappingException e) {
-            logger.error("finshParameterFields to singleParameter error " ,e);
+            logger.error("finshParameterFields to singleParameter error ", e);
         } catch (JsonProcessingException e) {
-            logger.error("finshParameterFields jsonProcessing error " ,e);
+            logger.error("finshParameterFields jsonProcessing error ", e);
+        } finally {
+            DbUtil.close(conn, ps, resultSet);
+        }
+        return trainInfo;
+    }
+
+
+    /**
+     * @param token
+     * @return
+     */
+    public static TrainInfo getStaticTrainInfo(String token) {
+        TrainInfo trainInfo = new TrainInfo();
+        PreparedStatement ps = null;
+        Connection conn = DbUtil.getConnection();
+        ResultSet resultSet = null;
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            String sql = "SELECT task_id,match_id,algorithm_type,hyper_parameter,start_time,modified_time FROM model_table where status = 0 and model_token=?";
+            if (conn != null) {
+                ps = conn.prepareStatement(sql);
+                ps.setString(1, token);
+                resultSet = ps.executeQuery();
+                if (resultSet.next()) {
+                    String matchId = resultSet.getString(2);
+                    String algorithm = resultSet.getString(3);
+                    String describe = resultSet.getString(4);
+                    final List<SingleParameter> finshParameterFields = objectMapper.readValue(describe, new TypeReference<List<SingleParameter>>() {
+                    });
+                    //兼容sqlite
+                    long trainStartTime = (resultSet.getLong(5));
+                    long trainEndTime = (resultSet.getLong(6));
+                    AlgorithmType algorithmType = AlgorithmType.valueOf(algorithm);
+                    trainInfo = new TrainInfo(token, matchId, algorithmType, finshParameterFields, trainStartTime, trainEndTime);
+                }
+                ps.close();
+            }
+        } catch (SQLException e) {
+            logger.error("other exception:", e);
+        } catch (JsonMappingException e) {
+            logger.error("finshParameterFields to singleParameter error ", e);
+        } catch (JsonProcessingException e) {
+            logger.error("finshParameterFields jsonProcessing error ", e);
         } finally {
             DbUtil.close(conn, ps, resultSet);
         }
@@ -213,7 +257,7 @@ public class TrainMapper {
         Connection conn = DbUtil.getConnection();
         ResultSet resultSet = null;
         try {
-            String sql = "SELECT task_id,algorithm_type,hyper_parameter,metric_info,train_start_time,modified_time FROM model_table where status = 0 and model_token=?";
+            String sql = "SELECT task_id,algorithm_type,hyper_parameter,metric_info,start_time,modified_time FROM model_table where status = 0 and model_token=?";
             if (conn != null) {
                 ps = conn.prepareStatement(sql);
                 ps.setString(1, token);

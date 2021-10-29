@@ -29,8 +29,9 @@ public class CommonLoad {
         switch (algorithm) {
             case VerticalLinearRegression:
             case VerticalLR:
-            case KernelBinaryClassificationJava:
+            case FederatedKernel:
             case FederatedGB:
+            case DistributedFederatedGB:
             case HorizontalFedAvg:
                 inferenceData = new CommonInferenceData(rawData, "uid", null);
                 break;
@@ -38,7 +39,7 @@ public class CommonLoad {
                 inferenceData = new LinearInferenceData(rawData, null);
                 break;
             }
-            case RandomForestJava:
+            case RandomForest:
             case DistributedRandomForest: {
                 inferenceData = new RFInferenceData(rawData);
                 break;

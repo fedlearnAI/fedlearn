@@ -168,7 +168,7 @@ public class TestLinearRegressionModel {
         MatchResourceLinReg ret = (MatchResourceLinReg) model.train(1, null, clientTrainData);
         Assert.assertEquals(ret.getFeatNameList(), new String[]{"f1", "f2", "f3"});
         Assert.assertEquals(ret.getIdNameList(), new String[]{"u1", "u2", "u3"});
-        Assert.assertEquals(ret.getLabelList(), new double[]{1, 2, 3});
+        Assert.assertEquals(ret.getLabelList(), new double[]{1, 1, 1});
     }
 
     private LinearRegressionModel mockTrainInit(int skStrIdx, String selfPort) {

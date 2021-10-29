@@ -13,17 +13,15 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.service.train;
 
-import com.jdt.fedlearn.common.constant.ResponseConstant;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jdt.fedlearn.common.entity.SingleParameter;
-import com.jdt.fedlearn.common.util.TimeUtil;
+import com.jdt.fedlearn.common.tool.ResponseHandler;
 import com.jdt.fedlearn.common.util.TokenUtil;
-import com.jdt.fedlearn.coordinator.constant.Constant;
 import com.jdt.fedlearn.coordinator.dao.UniversalMapper;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.*;
-import com.jdt.fedlearn.coordinator.exception.ForbiddenException;
+import com.jdt.fedlearn.coordinator.exception.NotExistException;
 import com.jdt.fedlearn.coordinator.service.TrainService;
-import com.jdt.fedlearn.coordinator.service.train.inner.TrainProgressInnerServiceImpl;
 import com.jdt.fedlearn.core.parameter.common.*;
 import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.MappingType;
@@ -32,30 +30,44 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * 查询训练参数接口的实现类
+ * 查询训练参数接口的实现类,
+ * 包含 使用已完成训练的参数重新训练 和 查看训练详情 均查询本接口
  */
 public class TrainParameterServiceImpl implements TrainService {
     private static final Logger logger = LoggerFactory.getLogger(TrainParameterServiceImpl.class);
+    public static final String LABEL = "label";
+    public static final String CROSS_VALIDATION = "crossValidation";
+    public static final String MATCH_ALGORITHM = "matchAlgorithm";
+    public static final String FIELD = "field";
+    public static final String NAME = "name";
+    public static final String DESCRIBE = "describe";
+    public static final String TYPE = "type";
+    public static final String DEFAULT_VALUE = "defaultValue";
+    public static final String VALUE = "value";
+    public static final String DEFAULT_LABEL = "y";
+
 
     @Override
     public Map<String, Object> service(String content) {
-        Map<String, Object> modelMap = new HashMap<>();
         try {
+            TrainParameterQuery trainParameterQuery = TrainParameterQuery.parseJson(content);
             // 处理流程
-            final TrainParameterQuery trainParameterQuery = new TrainParameterQuery(content);
-            modelMap.put(ResponseConstant.DATA, queryTrainParam(trainParameterQuery));
-            modelMap.put(ResponseConstant.STATUS, ResponseConstant.SUCCESS);
-            modelMap.put(ResponseConstant.CODE, ResponseConstant.SUCCESS_CODE);
+            TrainParameterRes trainParameterRes = queryTrainParam(trainParameterQuery);
+            return ResponseHandler.successResponse(trainParameterRes);
+        } catch (JsonProcessingException e) {
+            logger.error("参数解析错误", e);
+            return ResponseHandler.error(-5, "参数解析错误");
+        } catch (NotExistException e) {
+            logger.error("模型不存在", e);
+            return ResponseHandler.error(-5, "模型不存在");
         } catch (Exception e) {
             logger.error("训练参数获取失败", e);
-            modelMap.put(ResponseConstant.STATUS, ResponseConstant.FAIL);
-            modelMap.put(ResponseConstant.CODE, ResponseConstant.FAIL_CODE);
+            return ResponseHandler.error(-6, "未知错误");
         }
-        return modelMap;
     }
-
 
     /**
      * 获取任务训练参数: 包括正在训练、训练完成和重新训练
@@ -63,58 +75,36 @@ public class TrainParameterServiceImpl implements TrainService {
      * @param trainParameterQuery 训练中训练参数查询
      * @return 查询结果
      */
-    private static TrainParameterRes queryTrainParam(TrainParameterQuery trainParameterQuery) {
-        String modelToken = trainParameterQuery.getModelToken();
-        //优先从内存中查询，
-        TrainContext trainContext = null;
-        AlgorithmType algorithmType = null;
-        List<String> des = null;
-        String endTime = TimeUtil.getNowTime();
-        if (TrainCommonServiceImpl.trainContextMap.containsKey(modelToken)) {
-            trainContext = TrainCommonServiceImpl.trainContextMap.get(modelToken);
-            algorithmType = trainContext.getDispatcher().getAlgorithmType();
-            des = TrainProgressInnerServiceImpl.addDesc(trainContext.getPercent(), TrainStatusServiceImpl.getCacheMetric(trainContext.getMetrics(), TrainStatusServiceImpl.TRAIN), modelToken);
-        } else if (UniversalMapper.isModelExist(modelToken)) {
-            TrainInfo trainInfo = UniversalMapper.getModelToken(trainParameterQuery.getModelToken());
-            algorithmType = trainInfo.getAlgorithmType();
-            String startTime = TimeUtil.parseLongtoStr(trainInfo.getTrainStartTime());
-            endTime = TimeUtil.parseLongtoStr(trainInfo.getTrainEndTime());
-            des = TrainProgressInnerServiceImpl.addDesc(trainInfo.getPercent(), TrainStatusServiceImpl.getCacheMetric(trainInfo.getMetricInfo(), TrainStatusServiceImpl.TRAIN), modelToken);
-            trainContext = new TrainContext(trainInfo.getRunningType(), startTime, trainInfo.getPercent(), trainInfo.getMetricInfo(), trainInfo.getHyperParameter());
-        } else {
-            throw new ForbiddenException("");
+    private TrainParameterRes queryTrainParam(TrainParameterQuery trainParameterQuery) throws NotExistException {
+        String trainId = trainParameterQuery.getModelToken();
+        if (!UniversalMapper.isModelExist(trainId)) {
+            throw new NotExistException("model not exist");
         }
-        String taskId = TokenUtil.parseToken(trainParameterQuery.getModelToken()).getTaskId();
-        boolean reTrain = trainParameterQuery.getType().equals(Constant.TYPE_RESTART);
-        List<Map<String, Object>> parameterCrossFields = new ArrayList<>();
+        //从数据库读取该训练的静态信息
+        TrainInfo trainInfo = UniversalMapper.getStaticTrainInfo(trainParameterQuery.getModelToken());
+        AlgorithmType algorithmType = trainInfo.getAlgorithmType();
+        String matchId = trainInfo.getMatchId();
         List<Map<String, Object>> parameterFields = new ArrayList<>();
-        for (SingleParameter parameter : trainContext.getParameterFieldList()) {
-            Map<String, Object> single = new HashMap<>();
+        for (SingleParameter parameter : trainInfo.getHyperParameter()) {
             List<ParameterField> fields = CommonParameter.constructList(algorithmType);
-            if ("label".equals(parameter.getField())) {
-                labelParam(parameter, single, reTrain);
-                parameterFields.add(single);
+            if (LABEL.equals(parameter.getField())) {
+                Map<String, Object> label = labelParam(parameter);
+                parameterFields.add(label);
                 continue;
             }
-            if ("crossValidation".equals(parameter.getField())) {
-                crossValidationParam(parameter, single, reTrain);
-                parameterFields.add(single);
-                continue;
-            }
-            if ("matchAlgorithm".equals(parameter.getField())) {
-//                Map<String, Object> single1 = new HashMap<>();
-                matchAlgorithmParam(parameter, single, reTrain);
-                parameterCrossFields.add(single);
+            if (CROSS_VALIDATION.equals(parameter.getField())) {
+                Map<String, Object> cross = crossValidationParam(parameter);
+                parameterFields.add(cross);
                 continue;
             }
             // 除了label和crossValidation之外的参数
-            allParam(fields, parameter, single, reTrain);
+            Map<String, Object> single = allParam(fields, parameter);
             parameterFields.add(single);
         }
-        TrainParameterRes trainParameterRes = new TrainParameterRes(taskId, trainParameterQuery.getModelToken(), parameterFields, trainContext.getTrainStartTime(), endTime, trainContext.getPercent(), algorithmType.getAlgorithm(), trainContext.getRunningType());
-        trainParameterRes.setCrosspParams(parameterCrossFields);
-        trainParameterRes.setTrainInfo(des);
-        return trainParameterRes;
+        String taskId = TokenUtil.parseToken(trainId).getTaskId();
+        long startTime = trainInfo.getStartTime();
+        long endTime = trainInfo.getEndTime();
+        return new TrainParameterRes(taskId, matchId, algorithmType, parameterFields, startTime, endTime);
     }
 
 
@@ -123,39 +113,26 @@ public class TrainParameterServiceImpl implements TrainService {
      *
      * @param fields    参数列表
      * @param parameter 参数值
-     * @param single    单个参数
-     * @param reTrain   是否是重新训练
      * @return 完成构造的参数
      */
-    private static Map<String, Object> allParam(List<ParameterField> fields, SingleParameter parameter, Map<String, Object> single, boolean reTrain) {
+    private static Map<String, Object> allParam(List<ParameterField> fields, SingleParameter parameter) {
+        Map<String, Object> single = new HashMap<>();
         ParameterField defaultV = new ParameterField() {
         };
         if (fields != null) {
-            defaultV = fields.stream().filter(x -> x.getField().equals(parameter.getField())).findAny().get();
+            Optional<ParameterField> optional = fields.stream().filter(x -> x.getField().equals(parameter.getField())).findAny();
+            if (optional.isPresent()) {
+                defaultV = optional.get();
+            } else {
+                logger.error("the search field is" + parameter.getField());
+                logger.error("all fields are:" + fields.stream().map(ParameterField::getField).collect(Collectors.toList()));
+            }
         }
-        single.put("field", parameter.getField());
-        single.put("value", parameter.getValue());
-        single.put("describe", defaultV.getDescribe());
+        single.put(FIELD, parameter.getField());
+        single.put(VALUE, parameter.getValue());
+        single.put(DESCRIBE, defaultV.getDescribe());
         ParameterType type = defaultV.getType();
-        if (reTrain) {
-            single.put("type", defaultV.getType());
-            if (ParameterType.MULTI.equals(type)) {
-                single.put("defaultValue", parameter.getValue());
-            } else if (ParameterType.NUMS.equals(type)) {
-                single.put("defaultValue", parameter.getValue());
-            } else {
-                single.put("defaultValue", parameter.getValue());
-            }
-        } else {
-            if (ParameterType.MULTI.equals(type)) {
-                single.put("defaultValue", ((MultiParameter) defaultV).getDefaultValue());
-            } else if (ParameterType.NUMS.equals(type)) {
-                single.put("defaultValue", ((NumberParameter) defaultV).getDefaultValue());
-            } else {
-                single.put("defaultValue", ((CategoryParameter) defaultV).getDefaultValue());
-            }
-        }
-        single.put("name", defaultV.getName());
+        single.put(NAME, defaultV.getName());
         return single;
     }
 
@@ -163,21 +140,15 @@ public class TrainParameterServiceImpl implements TrainService {
      * 构造label参数
      *
      * @param parameter 参数值
-     * @param single    单个参数
-     * @param reTrain   是否是重新训练
      * @return 完成label信息构造的参数
      */
-    private static Map<String, Object> labelParam(SingleParameter parameter, Map<String, Object> single, boolean reTrain) {
-        single.put("field", parameter.getField());
-        single.put("value", parameter.getValue());
-        single.put("describe", "");
-        if (reTrain) {
-            single.put("defaultValue", parameter.getValue());
-        } else {
-            single.put("defaultValue", "y");
-        }
-        single.put("name", "标签");
-        single.put("type", ParameterType.STRING);
+    private static Map<String, Object> labelParam(SingleParameter parameter) {
+        Map<String, Object> single = new HashMap<>();
+        single.put(FIELD, parameter.getField());
+        single.put(VALUE, parameter.getValue());
+        single.put(DESCRIBE, "");
+        single.put(NAME, "标签");
+        single.put(TYPE, ParameterType.STRING);
         return single;
     }
 
@@ -185,21 +156,15 @@ public class TrainParameterServiceImpl implements TrainService {
      * 构造交叉验证参数
      *
      * @param parameter 参数值
-     * @param single    单个参数
-     * @param reTrain   是否是重新训练
      * @return 完成交叉验证信息构造的参数
      */
-    private static Map<String, Object> crossValidationParam(SingleParameter parameter, Map<String, Object> single, boolean reTrain) {
-        single.put("field", parameter.getField());
-        single.put("value", parameter.getValue());
-        single.put("describe", new String[]{"0.0", "1.0"});
-        if (reTrain) {
-            single.put("defaultValue", parameter.getValue());
-        } else {
-            single.put("defaultValue", 0.7);
-        }
-        single.put("name", "交叉验证参数");
-        single.put("type", ParameterType.NUMS);
+    private static Map<String, Object> crossValidationParam(SingleParameter parameter) {
+        Map<String, Object> single = new HashMap<>();
+        single.put(FIELD, parameter.getField());
+        single.put(VALUE, parameter.getValue());
+        single.put(DESCRIBE, new String[]{"0.0", "1.0"});
+        single.put(NAME, "交叉验证参数");
+        single.put(TYPE, ParameterType.NUMS);
         return single;
     }
 
@@ -208,21 +173,14 @@ public class TrainParameterServiceImpl implements TrainService {
      *
      * @param parameter 参数值
      * @param single    单个参数
-     * @param reTrain   是否是重新训练
      * @return 完成id对齐信息构造的参数
      */
-    private static Map<String, Object> matchAlgorithmParam(SingleParameter parameter, Map<String, Object> single, boolean reTrain) {
-        single.put("field", "matchAlgorithm");
-        single.put("name", "id对齐算法");
-        if (reTrain) {
-            logger.info("matchAlgorithm " + parameter.getValue());
-            single.put("defaultValue", parameter.getValue());
-        } else {
-            single.put("defaultValue", MappingType.MD5.name());
-        }
-        single.put("describe", MappingType.getMappings());
-        single.put("type", ParameterType.STRING);
-        single.put("value", parameter.getValue());
+    private static Map<String, Object> matchAlgorithmParam(SingleParameter parameter, Map<String, Object> single) {
+        single.put(FIELD, MATCH_ALGORITHM);
+        single.put(NAME, "id对齐算法");
+        single.put(DESCRIBE, MappingType.getMappings());
+        single.put(TYPE, ParameterType.STRING);
+        single.put(VALUE, parameter.getValue());
         return single;
     }
 

@@ -14,8 +14,15 @@ limitations under the License.
 package com.jdt.fedlearn.core.encryption.differentialPrivacy;
 
 import org.apache.commons.math3.distribution.LaplaceDistribution;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Laplace {
+
+    private static final Logger logger = LoggerFactory.getLogger(Laplace.class);
+
+    private final static double MIN_LEVEL = 1e-10;
+    private final static double MIN_EPSILON = 1e-5;
     /**
      * 拉普拉斯机制，通过生成基于拉普拉斯分布的噪声来提供差分隐私保护
      * @param deltaF 参数为全局敏感度，代表了邻近数据集在函数F下的最大差值
@@ -23,10 +30,23 @@ public class Laplace {
      * @return
      */
     public static double laplaceMechanismNoise(double deltaF, double level) {
-        if (level <= 1e-10) {
+        if (level <= MIN_LEVEL) {
             return 0;
         }
         double epsilon = 1 / level;
+        LaplaceDistribution ld = new LaplaceDistribution(0, Math.abs(deltaF) / epsilon);
+        return ld.sample();
+    }
+
+    public static double laplaceMechanismNoiseV1(double deltaF, double epsilon){
+        if(epsilon < MIN_EPSILON){
+            logger.error("The epsilon is too small. It will generate large noise");
+            epsilon = MIN_EPSILON;
+        }
+        if(deltaF <= 0){
+            logger.error("The delta must be positive. 0 is returned as noise");
+            return 0;
+        }
         LaplaceDistribution ld = new LaplaceDistribution(0, Math.abs(deltaF) / epsilon);
         return ld.sample();
     }

@@ -91,7 +91,6 @@ public class OkHttpUtil {
 
     //    private static final String DEFAULT_MEDIA_TYPE = "application/octet-stream";
     public static String post(String url, Map<String, Object> params) {
-        String responseBody = "";
 //        FormBody.Builder builder = new FormBody.Builder();
         //添加参数
 //        if (params != null && params.keySet().size() > 0) {
@@ -127,7 +126,7 @@ public class OkHttpUtil {
                 response.close();
             }
         }
-        return responseBody;
+        return "";
     }
 
 

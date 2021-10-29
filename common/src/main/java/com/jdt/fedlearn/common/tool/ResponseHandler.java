@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 用于对外的 HTTP 服务
+ * 用于对外的 HTTP 服务, 不适用于系统内部传输
  */
 public class ResponseHandler {
 

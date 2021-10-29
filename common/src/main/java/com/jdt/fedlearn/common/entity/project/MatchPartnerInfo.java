@@ -16,6 +16,7 @@ package com.jdt.fedlearn.common.entity.project;
 
 import com.jdt.fedlearn.core.entity.ClientInfo;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -23,7 +24,7 @@ import java.util.Objects;
  * 删除token，把ip port protocol合并成url
  * 后续所有partnerinfo都改成这种格式
  */
-public class MatchPartnerInfo {
+public class MatchPartnerInfo implements Serializable {
     private String url;
     private String index;
     private String dataset;

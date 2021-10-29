@@ -19,6 +19,7 @@ import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.loader.common.AbstractTrainData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -27,14 +28,15 @@ import java.util.*;
  * 用户数据的所有内容均只读
  * 原始数据分为两种类型，数值型和类别型
  */
-public class BoostTrainData extends AbstractTrainData implements TrainData {
+public class BoostTrainData extends AbstractTrainData implements TrainData, Serializable {
     //原始数据，列式存储,即每行一个特征，每列一个样本
-    private final double[][] column_sample;
+    private double[][] column_sample;
     //非数值型列名和非数值型列id
-    private final List<String> catFeaturesNames;
+    private List<String> catFeaturesNames;
     private RowSampler rowSampler;
     private ColSampler colSampler;
 
+    public BoostTrainData(){}
     public BoostTrainData(String[][] rawTable, String[] idMap, Features features, List<String> categoricalFeatures) {
         this.catFeaturesNames = categoricalFeatures;
 

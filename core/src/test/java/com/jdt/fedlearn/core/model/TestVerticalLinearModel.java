@@ -63,6 +63,8 @@ public class TestVerticalLinearModel {
         Assert.assertEquals(scaling.getScales(), scales);
         Assert.assertEquals(scaling.getX_min(), X_min);
         Assert.assertEquals(scaling.getX_max(), X_max);
+        double[] noises = model.getDifferentialPrivacy().getNoises();
+        Assert.assertEquals(noises.length, 3);
     }
 
     @Test
@@ -142,7 +144,7 @@ public class TestVerticalLinearModel {
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        VerticalLinearTrainData trainData = new VerticalLinearTrainData(raw, result, features);
+        VerticalLinearTrainData trainData = new VerticalLinearTrainData(raw, result, features, false);
         VerticalLinearModel model = new VerticalLinearModel(false, new VerticalLinearParameter(), ft, weight1, trainData.getScaling());
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         PrivateKey privateKey = ft.keyGenerate(256, 64);
@@ -167,7 +169,7 @@ public class TestVerticalLinearModel {
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        VerticalLinearTrainData trainData = new VerticalLinearTrainData(raw, result, features);
+        VerticalLinearTrainData trainData = new VerticalLinearTrainData(raw, result, features, false);
         VerticalLinearModel model = new VerticalLinearModel(false, new VerticalLinearParameter(), ft, weight1, trainData.getScaling());
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
         PrivateKey privateKey = ft.keyGenerate(256, 64);
@@ -195,7 +197,7 @@ public class TestVerticalLinearModel {
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        VerticalLinearTrainData trainData = new VerticalLinearTrainData(raw, result, features);
+        VerticalLinearTrainData trainData = new VerticalLinearTrainData(raw, result, features, false);
         PrivateKey privateKey = ft.keyGenerate(256, 64);
         VerticalLinearModel model = new VerticalLinearModel(false, new VerticalLinearParameter(), ft, weight1, trainData.getScaling(), privateKey.generatePublicKey());
         List<ClientInfo> clientInfos = StructureGenerate.threeClients();
@@ -233,7 +235,7 @@ public class TestVerticalLinearModel {
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
         Features features = compoundInput._3().get();
-        VerticalLinearTrainData trainData = new VerticalLinearTrainData(raw, result, features);
+        VerticalLinearTrainData trainData = new VerticalLinearTrainData(raw, result, features, false);
         PrivateKey privateKey = ft.keyGenerate(256, 64);
         double[] random = new double[]{0.5, 0.1, 0.2, 0.1};
         VerticalLinearModel model = new VerticalLinearModel(false, new VerticalLinearParameter(), ft, weight1,
@@ -342,7 +344,7 @@ public class TestVerticalLinearModel {
         String s = model.serialize();
         Assert.assertEquals(s.split("\n")[1], "weight=0.1,0.5,1.0");
         Assert.assertEquals(s.split("\n")[2], "scaling=0.058823529411764705,0.8196721311475418");
-
+        Assert.assertEquals(s.split("\n")[3], "xMin=8.0,1.1");
         model.deserialize(s);
     }
 

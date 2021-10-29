@@ -15,6 +15,7 @@ package com.jdt.fedlearn.coordinator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
+import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.util.FileUtil;
 import com.jdt.fedlearn.coordinator.constant.RequestConstant;
 import com.jdt.fedlearn.coordinator.util.JdChainUtils;
@@ -23,6 +24,7 @@ import com.jdt.fedlearn.coordinator.type.APIEnum;
 import com.jdt.fedlearn.coordinator.exception.UnknownInterfaceException;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.coordinator.constant.Constant;
+import com.jdt.fedlearn.netty.server.SocketServer;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -138,6 +140,10 @@ public class HttpApp extends AbstractHandler {
             logger.error("config initial error", e);
             System.exit(-1);
         }
+        String networkType = ConfigUtil.getNetworkType();
+        if(AppConstant.NETWORK_TYPE_NETTY.equals(networkType)){
+            initNetty(ConfigUtil.getProperty("app.netty.port"));
+        }
         boolean flag = ConfigUtil.getJdChainAvailable();
         if(flag){
             JdChainUtils.init();
@@ -156,5 +162,26 @@ public class HttpApp extends AbstractHandler {
         } catch (Exception e) {
             logger.error("server start error with port:" + port, e);
         }
+    }
+
+
+    /***
+    * @description: 初始化netty的服务
+    * @param port
+    * @return: void
+    * @author: geyan29
+    * @date: 2021/8/18 3:16 下午
+    */
+    private static void initNetty(String port) {
+        Thread t = new Thread(() -> {
+            SocketServer socketServer = new SocketServer();
+            try {
+                logger.info("netty init for :{}",port);
+                socketServer.init(Integer.parseInt(port));
+            } catch (InterruptedException e) {
+                logger.error("netty server start error:{}",e.getMessage());
+            }
+        });
+        t.start();
     }
 }

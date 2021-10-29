@@ -19,7 +19,6 @@ import com.jdt.fedlearn.common.util.*;
 import com.jdt.fedlearn.core.entity.distributed.InitResult;
 import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.model.DistributedRandomForestModel;
-import com.jdt.fedlearn.core.type.EncryptionType;
 import com.jdt.fedlearn.worker.cache.ManagerCache;
 import com.jdt.fedlearn.worker.entity.train.QueryProgress;
 import com.jdt.fedlearn.common.constant.AppConstant;
@@ -30,7 +29,6 @@ import com.jdt.fedlearn.core.entity.serialize.Serializer;
 import com.jdt.fedlearn.core.model.common.CommonModel;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
 import com.jdt.fedlearn.core.type.AlgorithmType;
-import com.jdt.fedlearn.core.type.MetricType;
 import org.apache.commons.lang3.StringUtils;
 
 import org.mockito.Mockito;
@@ -71,8 +69,6 @@ public class TrainServiceTest extends PowerMockTestCase {
         other.put("dataset", "dataset");
         String matchId = "2-MD5-210719144319";
         TrainInit trainInit = new TrainInit(parameter, localFeature, matchId, other);
-        MetricType[] eval_metric = {MetricType.RMSE};
-        RandomForestParameter randomForestParameter = new RandomForestParameter(2,3,300,25,0.6,30,10,"Null",10, EncryptionType.Paillier,eval_metric,"Regression:MSE");
         Map<Long,Object> map = new HashMap<>();
         List<Integer> list = new ArrayList<>();
         for(int i = 0 ; i < 19 ;i++){

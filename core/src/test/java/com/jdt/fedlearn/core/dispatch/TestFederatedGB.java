@@ -216,15 +216,12 @@ public class TestFederatedGB {
         responses.add(new CommonResponse(clientInfos.get(0), bp2r1));
         responses.add(new CommonResponse(clientInfos.get(1), bp2r2));
         List<CommonRequest> requests = federatedGB.control(responses);
-        BoostP3Req bp3q1 = (BoostP3Req) requests.get(0).getBody();
+        EmptyMessage bp3q1 = (EmptyMessage) requests.get(0).getBody();
         BoostP3Req bp3q2 = (BoostP3Req) requests.get(1).getBody();
         Assert.assertEquals(requests.size(), 2);
         Assert.assertEquals(requests.get(0).getPhase(), 3);
-        Assert.assertEquals(bp3q1.getClient(), clientInfos.get(0));
+        Assert.assertEquals(bp3q1,EmptyMessage.message());
         Assert.assertEquals(bp3q2.getClient(), clientInfos.get(1));
-        Assert.assertEquals(bp3q1.getDataList().size(), 1);
-        Assert.assertEquals(bp3q1.getDataList().get(0).size(), 1);
-        Assert.assertEquals(bp3q1.getDataList().get(0).get(0), fgh1);
         Assert.assertEquals(bp3q2.getDataList().size(), 1);
         Assert.assertEquals(bp3q2.getDataList().get(0).size(), 1);
         Assert.assertEquals(bp3q2.getDataList().get(0).get(0), fgh1);

@@ -54,6 +54,12 @@ public class TestVerticalLRModel {
         Assert.assertEquals(scaling.getScales(), scales);
         Assert.assertEquals(scaling.getX_min(), X_min);
         Assert.assertEquals(scaling.getX_max(), X_max);
+       // Assert.assertNull(model.getDifferentialPrivacy());
+        double[] noises = model.getDifferentialPrivacy().getNoises();
+        Assert.assertEquals(noises.length, 3);
+//        for(double noise: noises){
+//            System.out.println(noise);
+//        }
     }
 
     @Test

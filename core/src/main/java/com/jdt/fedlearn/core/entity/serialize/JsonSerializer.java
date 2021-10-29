@@ -16,7 +16,7 @@ package com.jdt.fedlearn.core.entity.serialize;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.parameter.SuperParameter;
+import com.jdt.fedlearn.core.parameter.HyperParameter;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -27,7 +27,7 @@ import java.lang.reflect.Type;
 public class JsonSerializer implements Serializer{
     final Gson gson = new GsonBuilder()
             .registerTypeAdapter(Message.class, new MessageAdapter())
-            .registerTypeAdapter(SuperParameter.class, new HyperParameterAdapter())
+            .registerTypeAdapter(HyperParameter.class, new HyperParameterAdapter())
             .create();
     final Type type = Message.class;
 
