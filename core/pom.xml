@@ -289,7 +289,18 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
-                        <configuration>
+						<configuration>
+
+							<filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
                             <transformers>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
@@ -357,17 +368,5 @@
             </plugin>
         </plugins>
     </build>
-
-<!--    对外开源需删除-->
-    <distributionManagement>
-        <repository>
-            <id>releases</id>
-            <url>http://nexus.cbpmgt.com/nexus/content/repositories/releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>snapshots</id>
-            <url>http://nexus.cbpmgt.com/nexus/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
 
 </project>
