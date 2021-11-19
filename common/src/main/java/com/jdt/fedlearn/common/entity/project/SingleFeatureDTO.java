@@ -1,6 +1,6 @@
 package com.jdt.fedlearn.common.entity.project;
 
-import com.jdt.fedlearn.core.entity.feature.SingleFeature;
+import com.jdt.fedlearn.common.entity.core.feature.SingleFeature;
 
 import java.io.Serializable;
 

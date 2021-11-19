@@ -2,7 +2,7 @@ package com.jdt.fedlearn.coordinator.dao.jdchain;
 
 import com.jdt.fedlearn.common.constant.JdChainConstant;
 import com.jdt.fedlearn.common.entity.jdchain.JdchainTask;
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import com.jdt.fedlearn.coordinator.util.JdChainUtils;
 
 

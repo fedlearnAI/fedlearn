@@ -1,13 +1,13 @@
 //package com.jdt.fedlearn.core.example.fgb;
 //
 //import com.jdt.fedlearn.core.dispatch.FederatedGB;
-//import com.jdt.fedlearn.core.entity.ClientInfo;
+//import com.jdt.fedlearn.common.entity.core.ClientInfo;
 //import com.jdt.fedlearn.core.util.DataLoad;
 //import com.jdt.fedlearn.core.example.CommonRun;
 //import com.jdt.fedlearn.core.model.FederatedGBModel;
 //import com.jdt.fedlearn.core.parameter.FgbParameter;
 //import com.jdt.fedlearn.core.entity.common.CommonRequest;
-//import com.jdt.fedlearn.core.entity.feature.Features;
+//import com.jdt.fedlearn.common.entity.core.feature.Features;
 //import com.jdt.fedlearn.core.loader.boost.BoostInferenceData;
 //import com.jdt.fedlearn.core.metrics.Metric;
 //import com.jdt.fedlearn.core.model.Model;

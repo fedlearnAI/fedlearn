@@ -14,13 +14,15 @@ limitations under the License.
 package com.jdt.fedlearn.core.model;
 
 
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.ReduceType;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.base.Int2dArray;
 import com.jdt.fedlearn.core.entity.base.StringArray;
@@ -29,8 +31,8 @@ import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.entity.common.TrainInit;
 import com.jdt.fedlearn.core.entity.distributed.InitResult;
 import com.jdt.fedlearn.core.entity.distributed.SplitResult;
-import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.entity.feature.SingleFeature;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.SingleFeature;
 import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.exception.NotMatchException;
 import com.jdt.fedlearn.core.loader.boost.BoostTrainData;
@@ -68,8 +70,8 @@ import java.util.stream.IntStream;
 import static java.util.stream.Collectors.toList;
 
 /**
- * TODO:items(sortedFeatureMap currentNode passiveQueryTable trees...)
- * should save as map(trainID, item) for train parallel
+ * 分布式XGB model端，包括模型训练、推理、请求拆分、结果合并、模型存储和读取等
+ *  @author fanmingjie
  */
 public class DistributedFederatedGBModel implements Model, Serializable {
     private static final Logger logger = LoggerFactory.getLogger(DistributedFederatedGBModel.class);
@@ -77,15 +79,14 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     private int depth = 0;
     //four col, id,val,grad,hess
     private Map<Integer, List<Bucket>> sortedFeatureMap = new ConcurrentHashMap<>();
-    private TreeNode currentNode;
+    public TreeNode currentNode;
     private List<QueryEntry> passiveQueryTable = new ArrayList<>();
-    private List<Tree> trees = new ArrayList<>();
+    public List<Tree> trees = new ArrayList<>();
     private double eta;
-    private double firstRoundPred;
+    private double firstRoundPredict;
     private Loss loss;
     private Queue<TreeNode> newTreeNodes = new LinkedList<>();
     private FgbParameter parameter;
-    //private KeyPair keyPair;
     private String privateKeyString;
     private String publicKeyString;
     private MetricValue metricValue;
@@ -94,23 +95,16 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     public int datasetSize;
     public double[] label;
 
-    public TreeNode[] correspondingTreeNode; // 记录每一个datapoint对应的Treenode
+    public TreeNode[] correspondingTreeNode; // 记录每一个datapoint对应的TreeNode
     public double[][] pred;
     // new double[parameter.getNumClass()][datasetSize]
     public double[][] grad;
     public double[][] hess;
-    private List<String> encryptedG;
-    private List<String> encryptedH;
-    private String[] testId;
 
     private List<Double> multiClassUniqueLabelList = new ArrayList<>();
 
     //phase2 缓存
-//    private Map<Integer, Tuple2<Ciphertext, Ciphertext>> ghMap2;
-    private Map<Integer, Tuple2<String, String>> ghMap2String;
-
-    //用于计算全局敏感度
-    public double maxg = 1;
+    private Map<Integer, Tuple2<Ciphertext, Ciphertext>> ghMap2 = new HashMap<>();
 
     public int contributeFea = 0;
     // 是否采用分布式
@@ -119,29 +113,9 @@ public class DistributedFederatedGBModel implements Model, Serializable {
 //    private int featureId;
     private int modelId;
     private int workerNum;
-    private List<Integer> featureindexs;
+    private List<Integer> featureIndexs;
 
     public DistributedFederatedGBModel() {
-    }
-
-    public DistributedFederatedGBModel(List<Tree> trees, Loss loss, double firstRoundPredict, double eta, List<QueryEntry> passiveQueryTable, List<Double> multiClassUniqueLabelList) {
-        this.trees = trees;
-        this.loss = loss;
-        this.firstRoundPred = firstRoundPredict;
-        this.eta = eta;
-        this.passiveQueryTable = passiveQueryTable;
-        this.multiClassUniqueLabelList = multiClassUniqueLabelList;
-//        this.contributeFea = contributeFea;
-    }
-
-    public DistributedFederatedGBModel(FgbModelSerializer serializer) {
-        this.trees = serializer.getTrees();
-        this.loss = serializer.getLoss();
-        this.firstRoundPred = serializer.getFirstRoundPred();
-        this.eta = serializer.getEta();
-        this.passiveQueryTable = serializer.getPassiveQueryTable();
-        this.multiClassUniqueLabelList = serializer.getMultiClassUniqueLabelList();
-//        this.contributeFea = contributeFea;
     }
 
     public void multiLabelTransform() {
@@ -164,11 +138,10 @@ public class DistributedFederatedGBModel implements Model, Serializable {
 //            this.featureId = (int) (others.get("featureId"));
             this.workerNum = (int) (others.get("workerNum"));
             this.modelId = (int) (others.get("modelId"));
-            this.featureindexs = (List<Integer>) others.get("featureindexs");
+            this.featureIndexs = (List<Integer>) others.get("featureindexs");
         }
         Tuple2<String[], String[]> trainTestUId = Tool.splitUid(uids, testIndex);
         String[] trainUids = trainTestUId._1();
-        testId = trainTestUId._2();
         BoostTrainData trainData = new BoostTrainData(rawData, trainUids, features, new ArrayList<>());
 
 //        newTreeNodes = new LinkedList<>();
@@ -184,13 +157,13 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         }
         this.label = trainData.getLabel();
         this.datasetSize = trainData.getDatasetSize();
-        this.pred = new double[parameter.getNumClass()][datasetSize];
-        this.grad = new double[parameter.getNumClass()][datasetSize];
-        this.hess = new double[parameter.getNumClass()][datasetSize];
         this.correspondingTreeNode = new TreeNode[datasetSize];
         EncryptionTool encryptionTool = getEncryptionTool();
         //有label 的客户端生成公私钥对
         if (trainData.hasLabel) {
+            this.pred = new double[parameter.getNumClass()][datasetSize];
+            this.grad = new double[parameter.getNumClass()][datasetSize];
+            this.hess = new double[parameter.getNumClass()][datasetSize];
             double initSumLoss = parameter.isMaximize() ? (-Double.MAX_VALUE) : Double.MAX_VALUE;
             List<Pair<Integer, Double>> tmpRoundMetric = new ArrayList<>();
             tmpRoundMetric.add(new Pair<>(0, initSumLoss));
@@ -203,39 +176,39 @@ public class DistributedFederatedGBModel implements Model, Serializable {
             if (ObjectiveType.regLogistic.equals(parameter.getObjective())) {
                 this.loss = new LogisticLoss();
 //                this.firstRoundPred = parameter.getFirstRoundPred();
-                this.firstRoundPred = firstRoundPredict();
+                this.firstRoundPredict = firstRoundPredict();
             } else if (ObjectiveType.regSquare.equals(parameter.getObjective())) {
                 this.loss = new SquareLoss();
 //                this.firstRoundPred = parameter.getFirstRoundPred();
 //                this.firstRoundPred = MathExt.average(this.label);
-                this.firstRoundPred = firstRoundPredict();
+                this.firstRoundPredict = firstRoundPredict();
             } else if (ObjectiveType.countPoisson.equals(parameter.getObjective())) {
                 if (Arrays.stream(this.label).filter(m -> m <= 0).findAny().isPresent()) {
                     throw new UnsupportedOperationException("There exist zero or negative labels for objective count:poisson!!!");
                 } else {
 //                    this.firstRoundPred = Math.log(MathExt.average(this.label));
-                    this.firstRoundPred = firstRoundPredict();
+                    this.firstRoundPredict = firstRoundPredict();
                 }
                 this.loss = new SquareLoss();
                 this.label = loss.logTransform(label);
             } else if (ObjectiveType.binaryLogistic.equals(parameter.getObjective())) {
                 this.loss = new LogisticLoss();
 //                this.firstRoundPred = parameter.getFirstRoundPred();
-                this.firstRoundPred = firstRoundPredict();
+                this.firstRoundPredict = firstRoundPredict();
             } else if (ObjectiveType.multiSoftmax.equals(parameter.getObjective())) {
                 multiLabelTransform();
                 this.loss = new crossEntropy(parameter.getNumClass());
 //                this.firstRoundPred = parameter.getFirstRoundPred();
-                this.firstRoundPred = firstRoundPredict();
+                this.firstRoundPredict = firstRoundPredict();
             } else if (ObjectiveType.multiSoftProb.equals(parameter.getObjective())) {
                 multiLabelTransform();
                 this.loss = new crossEntropy(parameter.getNumClass());
 //                this.firstRoundPred = parameter.getFirstRoundPred();
-                this.firstRoundPred = firstRoundPredict();
+                this.firstRoundPredict = firstRoundPredict();
             } else {
                 throw new NotImplementedException();
             }
-            initializePred(this.firstRoundPred);
+            initializePred(this.firstRoundPredict);
             Tuple2 ghTuple = updateGradHess(loss, parameter.getScalePosWeight(), label, pred, datasetSize, parameter, numClassRound);
             grad = (double[][]) ghTuple._1();
             hess = (double[][]) ghTuple._2();
@@ -249,10 +222,12 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     // TODO 修改trainPhase1, trainPhase2, 将参数提出来
 
     /**
+     * 模型训练，客户端整个控制流程
+     *
      * @param phase    训练阶段
-     * @param jsonData
-     * @param train
-     * @return
+     * @param jsonData 训练请求
+     * @param train    训练数据
+     * @return 训练结果
      */
     public Message train(int phase, Message jsonData, TrainData train) {
         BoostTrainData trainData = (BoostTrainData) train;
@@ -269,6 +244,9 @@ public class DistributedFederatedGBModel implements Model, Serializable {
                     currentNode.client = req._1().getClient();
                     currentNode.gain = req._2();
                     currentNode.splitFeature = Integer.parseInt(req._1().getFeature());
+                    if (isDistributed) {
+                        req._1().setSubModel(new SubModel(currentNode.client, currentNode.splitFeature, currentNode.gain));
+                    }
                 }
                 return req._1();
             }
@@ -278,6 +256,9 @@ public class DistributedFederatedGBModel implements Model, Serializable {
                 passiveQueryTable = req._2();
                 if (trainData.hasLabel) {
                     req._1().setTrainMetric(metricValue);
+                }
+                if (isDistributed) {
+                    req._1().setSubModel(new SubModel(passiveQueryTable));
                 }
                 return req._1();
             }
@@ -298,6 +279,9 @@ public class DistributedFederatedGBModel implements Model, Serializable {
                     LeftTreeInfo lfi = (LeftTreeInfo) jsonData;
                     currentNode.recordId = lfi.getRecordId();
                     res0.setTrainMetric(metricValue);
+                    if (isDistributed) {
+                        res0.setSubModel(new SubModel(grad, hess, currentNode.recordId, trees));
+                    }
                 }
                 return res0;
             }
@@ -310,22 +294,22 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     private double firstRoundPredict() {
         if (ObjectiveType.countPoisson.equals(parameter.getObjective())) {
             if (FirstPredictType.ZERO.equals(parameter.getFirstRoundPred())) {
-                this.firstRoundPred = 0.0;
+                this.firstRoundPredict = 0.0;
             } else if (FirstPredictType.AVG.equals(parameter.getFirstRoundPred())) {
-                this.firstRoundPred = Math.log(MathExt.average(this.label));//TODO 需要加差分隐私
+                this.firstRoundPredict = Math.log(MathExt.average(this.label));//TODO 需要加差分隐私
             } else if (FirstPredictType.RANDOM.equals(parameter.getFirstRoundPred())) {
-                this.firstRoundPred = Math.log(Math.random());//TODO 随机种子
+                this.firstRoundPredict = Math.log(Math.random());//TODO 随机种子
             }
-            return firstRoundPred;
+            return firstRoundPredict;
         }
         if (FirstPredictType.ZERO.equals(parameter.getFirstRoundPred())) {
-            this.firstRoundPred = 0.0;
+            this.firstRoundPredict = 0.0;
         } else if (FirstPredictType.AVG.equals(parameter.getFirstRoundPred())) {
-            this.firstRoundPred = MathExt.average(this.label);//TODO 需要加差分隐私
+            this.firstRoundPredict = MathExt.average(this.label);//TODO 需要加差分隐私
         } else if (FirstPredictType.RANDOM.equals(parameter.getFirstRoundPred())) {
-            this.firstRoundPred = Math.random();//TODO 随机种子
+            this.firstRoundPredict = Math.random();//TODO 随机种子
         }
-        return firstRoundPred;
+        return firstRoundPredict;
     }
 
     private void treeInit(int workerNum) {
@@ -375,10 +359,12 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         // 初始化分为全局初始化和每棵树的初始化
         // 加密g和h
         EncryptionTool encryptionTool = getEncryptionTool();
+        List<Ciphertext> encryptedG = null;
+        List<Ciphertext> encryptedH = null;
         if (req.isNewTree()) {
             treeInit(workerNum);
-            encryptedG = Arrays.stream(grad[numClassRound]).parallel().mapToObj(g -> (encryptionTool.encrypt(g, privateKey.generatePublicKey()))).map(Ciphertext::serialize).collect(toList());
-            encryptedH = Arrays.stream(hess[numClassRound]).parallel().mapToObj(h -> encryptionTool.encrypt(h, privateKey.generatePublicKey())).map(Ciphertext::serialize).collect(toList());
+            encryptedG = Arrays.stream(grad[numClassRound]).parallel().mapToObj(g -> (encryptionTool.encrypt(g, privateKey.generatePublicKey()))).collect(toList());
+            encryptedH = Arrays.stream(hess[numClassRound]).parallel().mapToObj(h -> encryptionTool.encrypt(h, privateKey.generatePublicKey())).collect(toList());
         }
 
         // 有label的客户端计算g 和 h(第一轮g、h已在初始化过程计算，其他轮在phase5计算)
@@ -396,13 +382,22 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         // generate publickey and encrytedArray storing (g, h) only at root(new tree)
         EncryptedGradHess res;
         if (req.isNewTree()) {
-            StringTuple2[] encryptedArray = Arrays.stream(instanceSpace).parallel().mapToObj(x -> new StringTuple2(encryptedG.get(x), encryptedH.get(x))).toArray(StringTuple2[]::new);
+            List<Ciphertext> finalEncryptedG = encryptedG;
+            List<Ciphertext> finalEncryptedH = encryptedH;
+            StringTuple2[] encryptedArray = Arrays.stream(instanceSpace).parallel().mapToObj(x -> new StringTuple2(finalEncryptedG.get(x).serialize(), finalEncryptedH.get(x).serialize())).toArray(StringTuple2[]::new);
             String pk = privateKey.generatePublicKey().serialize();
             res = new EncryptedGradHess(req.getClient(), instanceSpace, encryptedArray, pk, true);
+            if (isDistributed) {
+                res.setSubModel(new SubModel(privateKeyString, pk, currentNode));
+            }
         } else {
             res = new EncryptedGradHess(req.getClient(), instanceSpace);
+            if (isDistributed) {
+                res.setSubModel(new SubModel(currentNode));
+            }
         }
         res.setTrainMetric(metricValue);
+
         return res;
     }
 
@@ -423,6 +418,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
             res.setWorkerNum(workerNum);
             return res;
         }
+        long s = System.currentTimeMillis();
         // jsonData is output from phase1
         EncryptedGradHess req = (EncryptedGradHess) (jsonData);
         // get instance information from the processing node
@@ -430,16 +426,15 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         // initialize publicKey with null
 //        EncryptionTool encryptionTool = getEncryptionTool();
         if (req.getNewTree()) {
-            // if new tree, get Grad Hess.
-            StringTuple2[] gh = req.getGh();
-            // if new tree, get publicKey.
             publicKeyString = req.getPubKey();
-//            PublicKey publicKey = encryptionTool.restorePublicKey(pubKey);
-            // instance index i - (g_i, h_i)
-            ghMap2String = new HashMap<>();
-            for (int i = 0; i < instanceSpace.length; i++) {
-//                ghMap2.put(instanceSpace[i], new Tuple2<>(encryptionTool.restoreCiphertext(gh[i].getFirst()), encryptionTool.restoreCiphertext(gh[i].getSecond())));
-                ghMap2String.put(instanceSpace[i], new Tuple2<>(gh[i].getFirst(), gh[i].getSecond()));
+            if (!isDistributed) {
+                // if new tree, get Grad Hess.
+                StringTuple2[] gh = req.getGh();
+                // if new tree, get publicKey.
+                // instance index i - (g_i, h_i)
+                for (int i = 0; i < instanceSpace.length; i++) {
+                    ghMap2.put(instanceSpace[i], new Tuple2<>(encryptionTool.restoreCiphertext(gh[i].getFirst()), encryptionTool.restoreCiphertext(gh[i].getSecond())));
+                }
             }
         }
         //TODO 根据样本空间查询
@@ -449,10 +444,6 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         PublicKey finalPublicKey = encryptionTool.restorePublicKey(publicKeyString);
         // feature从1开始，不是从0开始
         // TODO 为什么会从这里print出来很多的is true??
-        Map<Integer, Tuple2<Ciphertext, Ciphertext>> ghMap2 = new HashMap<>();
-        for (int i = 0; i < instanceSpace.length; i++) {
-            ghMap2.put(instanceSpace[i], new Tuple2<>(encryptionTool.restoreCiphertext(ghMap2String.get(instanceSpace[i])._1()), encryptionTool.restoreCiphertext(ghMap2String.get(instanceSpace[i])._2())));
-        }
         FeatureLeftGH[] bodyArray = IntStream.range(1, trainSet.getFeatureDim() + 1)
                 .parallel()
                 .mapToObj(col -> {
@@ -460,21 +451,161 @@ public class DistributedFederatedGBModel implements Model, Serializable {
                     double[][] theFeature = trainSet.getFeature(instanceSpace, col);
                     // use feature value to sort and bucket the feature
                     List<Bucket> buckets = sortAndGroup(theFeature, parameter.getNumBin());
+                    // todo 过滤一遍bucket，得到存在和不存在的list ，存在用于ghSum的计算，不存在的返回到train response【map<fea_inx,list<list<integer>>】，广播给其他worker算
+                    // todo 其他worker算的过程要不要拆成另一个phase【标准版在这个phase不返回东西，但是分桶需要设成全局变量，在算完gh之后，释放内存】；算完之后还需要合并一下得最终phase2的结果【又一个phase？】
+                    // todo 要不要一直存着全部的gh 还是每次传递分裂节点的gh【这样就是速度会慢，但是内存会随着深度增加个减少，不会一直占内存】
                     // feature id -> feature buckets
                     sortedFeatureMap.put(col, buckets);
                     StringTuple2[] full = ghSum(buckets, ghMap2, finalPublicKey, encryptionTool);
                     String feature;
                     // todo 是否可用isDistributed
                     if (isDistributed) {
-                        feature = "" + featureindexs.get(col);
+                        feature = "" + featureIndexs.get(col);
+                        List<int[]> instanceList = filterInstances(buckets, ghMap2);
+                        return new FeatureLeftGH(req.getClient(), feature, full, instanceList);
                     } else {
                         feature = "" + col;
+                        return new FeatureLeftGH(req.getClient(), feature, full);
                     }
-                    return new FeatureLeftGH(req.getClient(), feature, full);
                 })
                 .toArray(FeatureLeftGH[]::new);
+        long e = System.currentTimeMillis();
+        logger.info("core phase2训练耗时：{} ms", (e - s));
         return new BoostP2Res(bodyArray);
     }
+
+
+    /**
+     * 从phase2的返回结果message中获取待计算的instance列表
+     *
+     * @param message BoostP2Res
+     * @return 各个特征待计算的id集合
+     */
+    public Map<String, List<int[]>> getInstanceLists(Message message) {
+        Map<String, List<int[]>> listMap = new HashMap<>();
+        if (message instanceof BoostP2Res) {
+            BoostP2Res boostP2Res = (BoostP2Res) message;
+            FeatureLeftGH[] featureLeftGHS = boostP2Res.getFeatureGL();
+            if (featureLeftGHS == null || featureLeftGHS[0].getInstanceList().size() == 0 || featureLeftGHS[0].getInstanceList() == null) {
+                return listMap;
+            }
+            for (FeatureLeftGH leftGH : featureLeftGHS) {
+                listMap.put(leftGH.getFeature(), leftGH.getInstanceList());
+            }
+        }
+        return listMap;
+    }
+
+
+    /**
+     * 计算各特征待计算id的sum(gh)
+     *
+     * @param listMap 各个特征待计算的id集合
+     * @return 各特征sum(GH)
+     */
+    // todo 把筛查待计算uid列表和计算合二为一  gh直接按照参数传进来，用完直接删掉；worker缓存的gh能不改成cipertext 这样就不用每次都restore不会占地方
+    public Message subCalculation(Map<String, List<int[]>> listMap) {
+        long s1 = System.currentTimeMillis();
+        EncryptionTool encryptionTool = getEncryptionTool();
+        PublicKey finalPublicKey = encryptionTool.restorePublicKey(publicKeyString);
+        FeatureLeftGH[] featureLeftGHS = new FeatureLeftGH[listMap.entrySet().size()];
+        int m = 0;
+        for (Map.Entry<String, List<int[]>> e : listMap.entrySet()) {
+            List<int[]> instances = e.getValue();
+            StringTuple2[] full = instances
+                    .parallelStream()
+                    .map(d -> {
+                        logger.info("fea" + e.getKey() + " subCalculation send uid length:" + d.length);
+                        if (d.length == 0) {
+                            logger.info("send uids  is: null");
+                            return new StringTuple2("", "");
+                        }
+                        logger.info("fea" + e.getKey() + " subCalculation send uid examples :" + d[0] + " , gh map uid " + ghMap2.keySet().toArray()[0]);
+                        int[] existsIds = Arrays.stream(d).filter(x -> ghMap2.containsKey(x)).toArray();
+                        logger.info("fea" + e.getKey() + " subCalculation existsIds length:" + existsIds.length);
+                        if (existsIds.length == 0) {
+                            logger.info("subCalculation r is: null");
+                            return new StringTuple2("", "");
+                        }
+                        return Arrays.stream(Arrays.stream(d).filter(ghMap2::containsKey).toArray())
+                                .parallel()
+                                .mapToObj(id -> ghMap2.get(id))
+                                // 求和g h
+                                .reduce((x, y) -> new Tuple2<>(encryptionTool.add(x._1(), y._1(), finalPublicKey), encryptionTool.add(x._2(), y._2(), finalPublicKey)))
+                                .map(x -> new StringTuple2((x._1().serialize()), (x._2().serialize())))
+                                .get();
+                    }).toArray(StringTuple2[]::new);
+            featureLeftGHS[m] = new FeatureLeftGH(e.getKey(), full);
+            m++;
+        }
+        long e1 = System.currentTimeMillis();
+        logger.info("core部分计算耗时：{} ms", (e1 - s1));
+        return new BoostP2Res(featureLeftGHS);
+    }
+
+    /**
+     * 各个worker部分GH加和汇总
+     *
+     * @param message 当前map的response
+     * @param subGHs  其余worker的计算结果
+     * @return 当前map的完整response
+     */
+    public Message mergeSubResult(Message message, List<Message> subGHs) {
+        long s1 = System.currentTimeMillis();
+        EncryptionTool encryptionTool = getEncryptionTool();
+        PublicKey finalPublicKey = encryptionTool.restorePublicKey(publicKeyString);
+        Message result = message;
+        if (message instanceof BoostP2Res) {
+            BoostP2Res boostP2Res = (BoostP2Res) message;
+            FeatureLeftGH[] leftGHS = boostP2Res.getFeatureGL();
+            FeatureLeftGH[] res = Arrays.stream(leftGHS).parallel().map(x ->
+                    {
+                        StringTuple2[] ghLeft = x.getGhLeft();
+                        int num = x.getInstanceList().size();
+                        StringTuple2[] stringTuple2s = new StringTuple2[num];
+                        logger.info("feature " + x.getFeature() + ", num is " + num);
+                        for (Message sub : subGHs) {
+                            if (sub instanceof BoostP2Res) {
+                                BoostP2Res boostP2Res1 = (BoostP2Res) sub;
+                                FeatureLeftGH[] leftGHS1 = boostP2Res1.getFeatureGL();
+                                StringTuple2[] othersGH = Arrays.stream(leftGHS1).filter(f -> f.getFeature().equals(x.getFeature())).findFirst().get().getGhLeft();
+                                if (othersGH.length == 0) {
+                                    return new FeatureLeftGH(x.getClient(), x.getFeature(), ghLeft);
+                                }
+                                IntStream.range(0, stringTuple2s.length).forEach(ss -> {
+                                    String ciphertext;
+                                    String ciphertext1;
+                                    if (othersGH[ss] != null && othersGH[ss].getFirst() != null && !"".equals(othersGH[ss].getFirst())) {
+                                        if (ghLeft[ss] != null && ghLeft[ss].getFirst() != null && !"".equals(ghLeft[ss].getFirst())) {
+                                            ciphertext = encryptionTool.add(encryptionTool.restoreCiphertext(ghLeft[ss].getFirst()), encryptionTool.restoreCiphertext(othersGH[ss].getFirst()), finalPublicKey).serialize();
+                                            ciphertext1 = encryptionTool.add(encryptionTool.restoreCiphertext(ghLeft[ss].getSecond()), encryptionTool.restoreCiphertext(othersGH[ss].getSecond()), finalPublicKey).serialize();
+                                        } else {
+                                            ciphertext = othersGH[ss].getFirst();
+                                            ciphertext1 = othersGH[ss].getSecond();
+                                        }
+                                    } else {
+                                        if (ghLeft[ss] != null && ghLeft[ss].getFirst() != null && !"".equals(ghLeft[ss].getFirst())) {
+                                            ciphertext = ghLeft[ss].getFirst();
+                                            ciphertext1 = ghLeft[ss].getSecond();
+                                        } else {
+                                            logger.error("othersGH " + othersGH[ss] + ", ghLeftCipher " + ghLeft[ss].getFirst());
+                                            throw new UnsupportedOperationException("不合法的分桶，当前分桶结果为null");
+                                        }
+                                    }
+                                    stringTuple2s[ss] = new StringTuple2(ciphertext, ciphertext1);
+                                });
+                            }
+                        }
+                        return new FeatureLeftGH(x.getClient(), x.getFeature(), stringTuple2s);
+                    }
+            ).toArray(FeatureLeftGH[]::new);
+            result = new BoostP2Res(res);
+        }
+        long e1 = System.currentTimeMillis();
+        logger.info("core合并耗时:{} ms ", (e1 - s1));
+        return result;
+    }
+
 
     private EncryptionTool getEncryptionTool() {
         return new JavallierTool();
@@ -492,39 +623,60 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     }
 
     /**
+     * @param buckets 当前特征的分桶结果
+     * @param ghMap2  当前worker存在的gh
+     * @return 待计算的id列表
+     */
+    public List<int[]> filterInstances(List<Bucket> buckets, Map<Integer, Tuple2<Ciphertext, Ciphertext>> ghMap2) {
+        List<int[]> instanceList = new ArrayList<>();
+        for (Bucket bucket : buckets) {
+            double[] instance = Arrays.stream(bucket.getIds()).filter(x -> !ghMap2.containsKey((int) x)).toArray();
+            int[] instance1 = Arrays.stream(instance).mapToInt(d -> (int) d).toArray();
+            instanceList.add(instance1);
+        }
+        return instanceList;
+    }
+
+    /**
      * encrypt sum of g and h for "left instances" for each bucket cumulatively
      *
      * @param buckets        feature buckets
      * @param ghMap2         instance index i,  (g_i, h_i)
-     * @param publicKey
-     * @param encryptionTool
+     * @param publicKey      publicKey
+     * @param encryptionTool encryptionTool
      * @return StringTuple Array
      */
     public StringTuple2[] ghSum(List<Bucket> buckets, Map<Integer, Tuple2<Ciphertext,
             Ciphertext>> ghMap2, PublicKey publicKey, EncryptionTool encryptionTool) {
 //        final String zero = PaillierTool.encryption(0, paillierPublicKey);
-        StringTuple2[] full = buckets
+//        double[] ids = Arrays.stream(buckets.get(0).getIds()).filter(ghMap2::containsKey).toArray();
+        return buckets
                 .parallelStream()
                 .map(bucket -> {
-                    StringTuple2 res = Arrays.stream(bucket.getIds())
+                    double[] existsIds = Arrays.stream(bucket.getIds()).filter(x -> ghMap2.containsKey((int) x)).toArray();
+                    logger.info("existsIds length:" + existsIds.length);
+                    if (existsIds.length == 0) {
+                        logger.info("r is: null");
+                        return new StringTuple2("", "");
+                    }
+                    return Arrays.stream(existsIds)
                             .parallel()
                             .mapToObj(id -> ghMap2.get((int) id))
                             // 求和g h
                             .reduce((x, y) -> new Tuple2<>(encryptionTool.add(x._1(), y._1(), publicKey), encryptionTool.add(x._2(), y._2(), publicKey)))
                             .map(x -> new StringTuple2((x._1().serialize()), (x._2().serialize())))
                             .get();
-                    return res;
                 }).toArray(StringTuple2[]::new);
-        return full;
     }
+
 
     /**
      * for each feature in the buckets(List), calculate totalG, totalH for each bucket; same function as ghSum
      * the only difference is that ghSum is encrypted but processEachNumericFeature2 is not.
      *
-     * @param buckets
+     * @param buckets feature buckets
      * @param ghMap:  (index, (g, h))
-     * @return
+     * @return ghSum array
      */
     public DoubleTuple2[] processEachNumericFeature2(List<Bucket> buckets, Map<Integer, DoubleTuple2> ghMap) {
         List<DoubleTuple2> ghList = new ArrayList<>();
@@ -609,7 +761,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
                 gain = featureMaxGain.get()._1();
                 client = req.getClient();
                 if (isDistributed) {
-                    feature = "" + featureindexs.get(col);
+                    feature = "" + featureIndexs.get(col);
                 } else {
                     feature = "" + col;
                 }
@@ -633,7 +785,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
      * @param decryptedGH: GL and HL at this node at each threshold
      * @param g:           G_total at this node
      * @param h:           H_total at this node
-     * @return
+     * @return (gain, index)
      */
     public List<Tuple2<Double, Integer>> computeGain(DoubleTuple2[] decryptedGH,
                                                      double g, double h, FgbParameter parameter) {
@@ -657,9 +809,9 @@ public class DistributedFederatedGBModel implements Model, Serializable {
      * @param input          FeatureLeftGH from phase2 output
      * @param g              G_Total at this node
      * @param h              H_Total at this node
-     * @param encryptionTool
-     * @param privateKey
-     * @param parameter
+     * @param encryptionTool encryptionTool
+     * @param privateKey     privateKey
+     * @param parameter      FgbParameter
      * @return GainOutput(ClientInfo client, String feature, int bestSplitIndex, double BestGain)
      */
     public GainOutput fetchGain(FeatureLeftGH input, double g, double h,
@@ -688,10 +840,10 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     /**
      * 发送message和接受message若为不同client会直接返回空，若是相同的client会分裂并计算左子树样本集合
      *
-     * @param jsonData
+     * @param jsonData          request from coordinator
      * @param sortedFeatureMap  ( feature id, feature buckets)
-     * @param passiveQueryTable
-     * @return
+     * @param passiveQueryTable passive Query Table
+     * @return LeftTreeInfo and query table
      */
     public Tuple2<LeftTreeInfo, List<QueryEntry>> trainPhase4(Message jsonData, Map<Integer, List<Bucket>> sortedFeatureMap,
                                                               List<QueryEntry> passiveQueryTable) {
@@ -699,8 +851,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
 //        LinkedHashMap<Integer, QueryEntry> passiveQueryTable, int contributeFea
         BoostP4Req req = (BoostP4Req) (jsonData);
         if (!req.isAccept()) {
-            Tuple2<LeftTreeInfo, List<QueryEntry>> t = new Tuple2<>(new LeftTreeInfo(0, null), passiveQueryTable);
-            return t;
+            return new Tuple2<>(new LeftTreeInfo(0, null), passiveQueryTable);
         }
         //本次要分裂的特征
         int featureIndex = req.getkOpt();
@@ -708,11 +859,10 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         //根据phase3 的训练结果 生成的分裂点，并不是直接的数值，而是在原始给出的分裂选项中的第i个选项
         int splitIndex = req.getvOpt();
         if (isDistributed) {
-            if (!featureindexs.contains(featureIndex)) {
-                Tuple2<LeftTreeInfo, List<QueryEntry>> t = new Tuple2<>(new LeftTreeInfo(0, null), passiveQueryTable);
-                return t;
+            if (!featureIndexs.contains(featureIndex)) {
+                return new Tuple2<>(new LeftTreeInfo(0, null), passiveQueryTable);
             } else {
-                loaclIndex = featureindexs.indexOf(featureIndex);
+                loaclIndex = featureIndexs.indexOf(featureIndex);
             }
         }
         List<Bucket> sortedFeature2 = sortedFeatureMap.get(loaclIndex); // 最佳特征分桶
@@ -724,10 +874,8 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         for (int i = 0; i <= splitIndex; i++) {
             Bucket Bucket = sortedFeature2.get(i);
             double[] ids = Bucket.getIds();
-            for (int j = 0; j < ids.length; j++) {
-                double id = ids[j];
+            for (double id : ids) {
                 leftIns.add((int) id);
-                ;
             }
         }
 
@@ -756,8 +904,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
             passiveQueryTable.add(line);
         }
         int[] left = Tool.list2IntArray(leftIns);
-        Tuple2<LeftTreeInfo, List<QueryEntry>> t = new Tuple2<>(new LeftTreeInfo(recordId, left), passiveQueryTable);
-        return t;
+        return new Tuple2<>(new LeftTreeInfo(recordId, left), passiveQueryTable);
     }
 
     //build full query index and update prediction and grad
@@ -765,17 +912,17 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     /**
      * 有label的client收到了各个client的本次树的分裂信息和左子树样本id list，更新查询树并进行下一轮迭代
      *
-     * @param jsonData
-     * @param grad
-     * @param hess
-     * @param numClassRound
-     * @param currentNode
-     * @param newTreeNodes
-     * @param parameter
-     * @param correspondingTreeNode
-     * @param metricMap
-     * @param trees
-     * @return
+     * @param jsonData              协调端发送的请求
+     * @param grad                  g
+     * @param hess                  h
+     * @param numClassRound         类别
+     * @param currentNode           当前节点
+     * @param newTreeNodes          新的节点
+     * @param parameter             训练参数
+     * @param correspondingTreeNode 树节点
+     * @param metricMap             训练精度
+     * @param trees                 树
+     * @return 更新结果
      */
     public List trainPhase5(Message jsonData, double[][] grad, double[][] hess,
                             int numClassRound, TreeNode currentNode,
@@ -848,6 +995,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         // 处理nan的方式，默认没有nan子树
         double bestNanGoTo = 1;
         node.internalNodeSetterSecure(bestNanGoTo, nanChild, leftChild, rightChild, false);
+
         //phase 5 运行完成后，根据条件检测，
 //        }
         //每层最后一个节点，执行更新
@@ -918,15 +1066,13 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         }
         // List of <boostP5Res, numClassRound, correspondingTreeNode, pgh_tuple, depth, metricMap>
         res = addElement(res, boostP5Res, numClassRound, correspondingTreeNode,
-                (double[][]) pgh.get(0), (double[][]) pgh.get(1), (double[][]) pgh.get(2), depth, metricMap, currentNode);
+                pgh.get(0), pgh.get(1), pgh.get(2), depth, metricMap, currentNode);
         assert res.size() == 9;
         return res;
     }
 
     private List addElement(List a, Object... arg) {
-        for (int i = 0; i < arg.length; i++) {
-            a.add(arg[i]);
-        }
+        Collections.addAll(a, arg);
         return a;
     }
 
@@ -1101,6 +1247,69 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         return sampleData;
     }
 
+    private static final String TRAIN_REQUEST = "trainRequest";
+    private static final String MESSAGE_LIST = "messageList";
+
+    /**
+     * 请求拆分，用于分布式请求内容分布存储
+     *
+     * @param message 协调端给客户端的请求内容
+     * @return 拆分结果
+     */
+    public Map<String, Object> messageSplit(Message message) {
+        Map<String, Object> messageSplit = new HashMap<>();
+        if (!(message instanceof EncryptedGradHess)) {
+            messageSplit.put(TRAIN_REQUEST, message);
+            return messageSplit;
+        }
+        EncryptedGradHess encryptedGradHess = (EncryptedGradHess) message;
+        StringTuple2[] gh = encryptedGradHess.getGh();
+        int workerNum = encryptedGradHess.getWorkerNum();
+        if (!encryptedGradHess.getNewTree() || gh == null || gh.length == 0 || workerNum == 0) {
+            messageSplit.put(TRAIN_REQUEST, message);
+            return messageSplit;
+        }
+        int instanceMin = 0;
+        int instanceMax;
+        List<StringTuple2> allGh = Arrays.asList(gh);
+        List<List<StringTuple2>> ghList = splitList(allGh, workerNum);
+        ((EncryptedGradHess) message).setGh(null);
+        messageSplit.put(TRAIN_REQUEST, message);
+        List<Message> messageList = new ArrayList<>();
+        for (int i = 0; i < workerNum; i++) {
+            instanceMax = instanceMin + ghList.get(i).size() - 1;
+            EncryptedGradHess encryptedGradHess1 = new EncryptedGradHess();
+            encryptedGradHess1.setModelId(i);
+            encryptedGradHess1.setGh(ghList.get(i).toArray(new StringTuple2[0]));
+            encryptedGradHess1.setInstanceMin(instanceMin);
+            encryptedGradHess1.setInstanceMax(instanceMax);
+            messageList.add(encryptedGradHess1);
+            instanceMin = instanceMax + 1;
+        }
+        messageSplit.put(MESSAGE_LIST, messageList);
+        return messageSplit;
+    }
+
+    /**
+     * 更新部分请求内容
+     *
+     * @param subMessage 部分请求
+     */
+    public void updateSubMessage(List<Message> subMessage) {
+        EncryptionTool encryptionTool = getEncryptionTool();
+        for (Message message : subMessage) {
+            if (message instanceof EncryptedGradHess) {
+                EncryptedGradHess encryptedGradHess = (EncryptedGradHess) message;
+                if (encryptedGradHess.getGh() != null && encryptedGradHess.getGh().length > 0) {
+                    StringTuple2[] subGh = encryptedGradHess.getGh();
+                    int instanceMin = encryptedGradHess.getInstanceMin();
+                    IntStream.range(0, subGh.length).parallel().forEach(i -> ghMap2.put(instanceMin + i, new Tuple2<>(encryptionTool.restoreCiphertext(subGh[i].getFirst()), encryptionTool.restoreCiphertext(subGh[i].getSecond()))));
+                }
+            }
+        }
+    }
+
+
     /***
      * 分布式任务拆分
      * @param phase 训练阶段
@@ -1129,8 +1338,8 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     /***
      * 训练初始化任务拆分
      * 根据总特征数和每个任务的特征数，拆分训练任务，构造训练初始化请求。
-     * @param req
-     * @return
+     * @param req 请求
+     * @return 拆分结果
      */
     private SplitResult mapPhase0(Message req) {
         TrainInit request;
@@ -1147,12 +1356,9 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         if (features.hasLabel()) {
             featuresNum = featuresNum - 1;
         }
+        int matchSize = (int) request.getOthers().get("matchSize");
+        int workerNum = dynamicMapNum(matchSize, featuresNum);
         // todo 每个任务的特征数,需改成动态的
-        int eachFeature = 3;
-        int workerNum = featuresNum / eachFeature;
-        if (featuresNum % eachFeature != 0) {
-            workerNum = workerNum + 1;
-        }
         List<Integer> allFeatureIndexs = IntStream.range(1, featuresNum + 1).boxed().collect(Collectors.toList());
         List<SingleFeature> featureList = features.getFeatureList();
         SingleFeature uid = featureList.get(0);
@@ -1194,6 +1400,43 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         return splitResult;
     }
 
+    /**
+     * 根据数据量和特征数动态调整map个数
+     *
+     * @param matchSize  id对齐结果的数据量
+     * @param featureNum 特征个数
+     * @return 拆分的map数量
+     */
+    private int dynamicMapNum(int matchSize, int featureNum) {
+        int eachFeature = 2;
+        if (matchSize <= 100000) {
+            if (featureNum > 10 && featureNum <= 20) {
+                eachFeature = 5;
+            } else if (featureNum > 20 && featureNum <= 30) {
+                eachFeature = 8;
+            } else if (featureNum > 30 && featureNum <= 40) {
+                eachFeature = 10;
+            } else if (featureNum > 40) {
+                eachFeature = 20;
+            }
+        } else if (matchSize <= 2000000) {
+            if (featureNum <= eachFeature) {
+                eachFeature = 1;
+            } else if (featureNum <= 60) {
+                eachFeature = featureNum;
+            } else {
+                eachFeature = 58;
+            }
+        } else {
+            eachFeature = 10;
+        }
+        int mapNum = featureNum / eachFeature;
+        if (featureNum % eachFeature != 0) {
+            mapNum = mapNum + 1;
+        }
+        return mapNum;
+    }
+
     /***
      * 列表拆分
      * 给定需要拆分的列表和拆分的数量，返回拆分结果
@@ -1209,7 +1452,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         int number = list.size() / n; //然后是商
         int offset = 0;//偏移量
         for (int i = 0; i < n; i++) {
-            List<T> value = null;
+            List<T> value;
             if (remaider > 0) {
                 value = list.subList(i * number + offset, (i + 1) * number + offset + 1);
                 remaider--;
@@ -1248,20 +1491,19 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     private SplitResult mapPhase2(Message req) {
         SplitResult splitResult = new SplitResult();
         List<String> modelIDs = new ArrayList<>();
-        List<Message> messageBodys = new ArrayList<>();
+        List<Message> messageBodies = new ArrayList<>();
         EncryptedGradHess gradHess;
         // TODO
         if (req instanceof EmptyMessage) {
-            messageBodys.add(req);
+            messageBodies.add(req);
             modelIDs.add(String.valueOf(0));
         } else if (req instanceof EncryptedGradHess) {
             gradHess = (EncryptedGradHess) req;
             for (int i = 0; i < gradHess.getWorkerNum(); i++) {
-                messageBodys.add(req);
                 modelIDs.add(String.valueOf(i));
             }
         }
-        splitResult.setMessageBodys(messageBodys);
+        splitResult.setMessageBodys(messageBodies);
         splitResult.setModelIDs(modelIDs);
         splitResult.setReduceType(ReduceType.needMerge);
         return splitResult;
@@ -1277,19 +1519,18 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     private SplitResult mapPhase3(Message req) {
         SplitResult splitResult = new SplitResult();
         List<String> modelIDs = new ArrayList<>();
-        List<Message> messageBodys = new ArrayList<>();
+        List<Message> messageBodies = new ArrayList<>();
         BoostP3Req boostP3Req;
         if (req instanceof EmptyMessage) {
-            messageBodys.add(req);
+            messageBodies.add(req);
             modelIDs.add(String.valueOf(0));
         } else if (req instanceof BoostP3Req) {
             boostP3Req = (BoostP3Req) req;
             for (int i = 0; i < boostP3Req.getWorkerNum(); i++) {
-                messageBodys.add(req);
                 modelIDs.add(String.valueOf(i));
             }
         }
-        splitResult.setMessageBodys(messageBodys);
+        splitResult.setMessageBodys(messageBodies);
         splitResult.setModelIDs(modelIDs);
         splitResult.setReduceType(ReduceType.needMerge);
         return splitResult;
@@ -1305,18 +1546,17 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     private SplitResult mapPhase4(Message req) {
         SplitResult splitResult = new SplitResult();
         List<String> modelIDs = new ArrayList<>();
-        List<Message> messageBodys = new ArrayList<>();
+        List<Message> messageBodies = new ArrayList<>();
         BoostP4Req boostP4Req = (BoostP4Req) req;
         if (boostP4Req.isAccept()) {
             for (int i = 0; i < boostP4Req.getWorkerNum(); i++) {
-                messageBodys.add(req);
                 modelIDs.add(String.valueOf(i));
             }
         } else {
-            messageBodys.add(req);
+            messageBodies.add(req);
             modelIDs.add(String.valueOf(0));
         }
-        splitResult.setMessageBodys(messageBodys);
+        splitResult.setMessageBodys(messageBodies);
         splitResult.setModelIDs(modelIDs);
         splitResult.setReduceType(ReduceType.needMerge);
         return splitResult;
@@ -1357,8 +1597,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
      * @return 合并结果
      */
     private static Message reducePhase1(List<Message> result) {
-        EncryptedGradHess res0 = (EncryptedGradHess) result.get(0);
-        return res0;
+        return result.get(0);
     }
 
     /***
@@ -1428,68 +1667,76 @@ public class DistributedFederatedGBModel implements Model, Serializable {
      * @return 直接返回
      */
     private static Message reducePhase5(List<Message> result) {
-        BoostP5Res res0 = (BoostP5Res) result.get(0);
-        return res0;
+        return result.get(0);
     }
 
 
-    /***
-     * 各任务model中间数据合并
-     * 主动方分布式：需要同步的中间结果包括当前分裂节点信息、g和h、树结构、查询表；
-     * 被动方分布式：需要同步的中间结果包括最新树结构、查询表；
-     * @param models 模型列表
-     * @return 完成合并的模型列表
+    /**
+     * 更新部分模型，减少数据传输
+     *
+     * @param message 需要更新的model信息
+     * @return 更新之后的model
      */
-    public List<Model> mergeModel(List<Model> models) {
-        if (models.size() == 0) {
-            return models;
+    public Message updateSubModel(Message message) {
+        SubModel subModel;
+        if (message instanceof EncryptedGradHess) {
+            EncryptedGradHess encryptedGradHess = ((EncryptedGradHess) message);
+            subModel = encryptedGradHess.getSubModel();
+            if (subModel == null) {
+                return message;
+            }
+            if (modelId != 0) {
+                currentNode = subModel.getCurrentNode();
+                trees = subModel.getTrees();
+            }
+            if (subModel.getPrivateKey() != null || subModel.getKeyPublic() != null) {
+                privateKeyString = subModel.getPrivateKey();
+                publicKeyString = subModel.getKeyPublic();
+            }
+//            encryptedGradHess.setSubModel(null);
+            return encryptedGradHess;
+        } else if (message instanceof BoostP3Res) {
+            BoostP3Res boostP3Res = ((BoostP3Res) message);
+            subModel = boostP3Res.getSubModel();
+            if (subModel == null) {
+                return message;
+            }
+            currentNode.client = subModel.getClientInfo();
+            currentNode.splitFeature = subModel.getSplitFeature();
+            currentNode.gain = subModel.getGain();
+//            boostP3Res.setSubModel(null);
+            return boostP3Res;
+        } else if (message instanceof LeftTreeInfo) {
+            LeftTreeInfo leftTreeInfo = ((LeftTreeInfo) message);
+            subModel = leftTreeInfo.getSubModel();
+            if (subModel == null) {
+                return message;
+            }
+
+            passiveQueryTable = subModel.getPassiveQueryTable();
+
+//            leftTreeInfo.setSubModel(null);
+            return leftTreeInfo;
+        } else if (message instanceof BoostP5Res) {
+            BoostP5Res boostP5Res = ((BoostP5Res) message);
+            subModel = boostP5Res.getSubModel();
+            if (subModel == null) {
+                return message;
+            }
+            grad = subModel.getGrad();
+            hess = subModel.getHess();
+            currentNode.recordId = subModel.getRecordId();
+            if (modelId != 0) {
+                trees = subModel.getTrees();
+            }
+//            boostP5Res.setSubModel(null);
+            return boostP5Res;
+        } else if (message instanceof BoostP2Res) {
+            ghMap2.clear();
+            return message;
+        } else {
+            throw new UnsupportedOperationException("unsupported message type in federated gradient boost model");
         }
-        DistributedFederatedGBModel gbModel = ((DistributedFederatedGBModel) models.get(0));
-        TreeNode currentNode = null;
-        ClientInfo clientInfo = null;
-        int splitFeature = 0;
-        double gain = 0;
-        double[][] grad = gbModel.grad;
-        double[][] hess = gbModel.hess;
-        String privateKey = null;
-        String keyPublic = null;
-        List<QueryEntry> passiveQueryTable = gbModel.passiveQueryTable;
-        for (Model value : models) {
-            DistributedFederatedGBModel model = (DistributedFederatedGBModel) value;
-            if (privateKey == null) {
-                privateKey = model.privateKeyString;
-                keyPublic = model.publicKeyString;
-            }
-            if (model.encryptedG != null) {
-                currentNode = model.currentNode;
-                grad = model.grad;
-                hess = model.hess;
-            }
-            if (model.currentNode != null && model.currentNode.gain > gain) {
-                gain = model.currentNode.gain;
-                clientInfo = model.currentNode.client;
-                splitFeature = model.currentNode.splitFeature;
-            }
-            if ((passiveQueryTable == null || model.passiveQueryTable != null) && (passiveQueryTable != null && model.passiveQueryTable.size() > passiveQueryTable.size())) {
-                passiveQueryTable = model.passiveQueryTable;
-            }
-        }
-        for (Model model : models) {
-            DistributedFederatedGBModel model1 = (DistributedFederatedGBModel) model;
-            model1.privateKeyString = privateKey;
-            model1.publicKeyString = keyPublic;
-            model1.passiveQueryTable = passiveQueryTable;
-            model1.currentNode = currentNode;
-            // 只有主动方分布式需要更新这些参数
-            if (currentNode != null && clientInfo != null) {
-                model1.currentNode.client = clientInfo;
-                model1.currentNode.splitFeature = splitFeature;
-                model1.currentNode.gain = gain;
-                model1.grad = grad;
-                model1.hess = hess;
-            }
-        }
-        return models;
     }
 
     /**
@@ -1511,7 +1758,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     public Message inference(int phase, Message jsonData, InferenceData inferenceData) {
         if (phase == -1) {
             StringArray parameterData = (StringArray) jsonData;
-            return inferencePhase1(parameterData, inferenceData, this.trees, this.firstRoundPred, this.multiClassUniqueLabelList);
+            return inferencePhase1(parameterData, inferenceData, this.trees, this.firstRoundPredict, this.multiClassUniqueLabelList);
         } else if (phase == -2) {
             return inferencePhase2(jsonData, inferenceData, this.passiveQueryTable);
         } else {
@@ -1575,7 +1822,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
     }
 
     public String serialize() {
-        FgbModelSerializer fgbModelSerializer = new FgbModelSerializer(trees, loss, firstRoundPred, eta, passiveQueryTable, multiClassUniqueLabelList);
+        FgbModelSerializer fgbModelSerializer = new FgbModelSerializer(trees, loss, firstRoundPredict, eta, passiveQueryTable, multiClassUniqueLabelList);
         return fgbModelSerializer.saveModel();
     }
 
@@ -1583,7 +1830,7 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         FgbModelSerializer fgbModel = new FgbModelSerializer(content);
         this.trees = fgbModel.getTrees();
         this.loss = fgbModel.getLoss();
-        this.firstRoundPred = fgbModel.getFirstRoundPred();
+        this.firstRoundPredict = fgbModel.getFirstRoundPred();
         this.eta = fgbModel.getEta();
         this.passiveQueryTable = fgbModel.getPassiveQueryTable();
         this.multiClassUniqueLabelList = fgbModel.getMultiClassUniqueLabelList();
@@ -1593,4 +1840,15 @@ public class DistributedFederatedGBModel implements Model, Serializable {
         return AlgorithmType.FederatedGB;
     }
 
+    public String getPrivateKeyString() {
+        return privateKeyString;
+    }
+
+    public void setModelId(int modelId) {
+        this.modelId = modelId;
+    }
+
+    public void setPublicKeyString(String publicKeyString) {
+        this.publicKeyString = publicKeyString;
+    }
 }

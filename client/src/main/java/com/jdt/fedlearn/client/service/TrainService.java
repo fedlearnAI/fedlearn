@@ -28,25 +28,27 @@ import com.jdt.fedlearn.client.util.*;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.constant.JdChainConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.util.FileUtil;
-import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.common.util.LogUtil;
-import com.jdt.fedlearn.common.network.INetWorkService;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.tools.FileUtil;
+import com.jdt.fedlearn.tools.LogUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
+import com.jdt.fedlearn.tools.network.INetWorkService;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.TrainInit;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.model.*;
 import com.jdt.fedlearn.core.model.common.CommonModel;
 import com.jdt.fedlearn.core.parameter.HyperParameter;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.common.enums.RunningType;
+import com.jdt.fedlearn.tools.serializer.KryoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
+
 
 
 /**
@@ -83,7 +85,7 @@ public class TrainService {
                 Model localModel = CommonModel.constructModel(algorithm);
                 modelCache.put(modelToken, localModel);
                 //构造trainData
-                Message message = Constant.serializer.deserialize(parameterData);
+                Message message = KryoUtil.readFromString(parameterData);
                 TrainInit trainInit = (TrainInit) message;
                 Features features = trainInit.getFeatureList();
                 if (RequestCheck.needBelongCoordinator(features, algorithm, remoteIP)) {
@@ -153,7 +155,7 @@ public class TrainService {
             logger.info("trainData: " + trainData);
             // 提交到子线程执行
             if (trainRequest.isSync()) {
-                Message restoreMessage = Constant.serializer.deserialize(parameterData);
+                Message restoreMessage = KryoUtil.readFromString(parameterData);
                 Message data = null;
                 if (model != null) {
                     data = model.train(phase, restoreMessage, trainData);

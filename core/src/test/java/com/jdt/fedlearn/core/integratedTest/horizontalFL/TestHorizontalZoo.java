@@ -1,15 +1,15 @@
 
 package com.jdt.fedlearn.core.integratedTest.horizontalFL;
 
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.example.CommonRun;
 import com.jdt.fedlearn.core.model.HorizontalFedAvgModel;
 import com.jdt.fedlearn.core.parameter.HorizontalFedAvgPara;
 import com.jdt.fedlearn.core.dispatch.HorizontalFedAvg;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.MappingType;
 import com.jdt.fedlearn.core.type.data.Tuple2;

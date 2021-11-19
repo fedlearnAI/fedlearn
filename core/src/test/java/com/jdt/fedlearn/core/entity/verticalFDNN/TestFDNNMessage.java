@@ -1,8 +1,8 @@
 package com.jdt.fedlearn.core.entity.verticalFDNN;
 
 import com.google.protobuf.ByteString;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import org.testng.annotations.Test;
 
 import java.io.UnsupportedEncodingException;

@@ -1,8 +1,8 @@
 package com.jdt.fedlearn.coordinator.entity.train;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.core.exception.DeserializeException;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
+import com.jdt.fedlearn.common.exception.DeserializeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

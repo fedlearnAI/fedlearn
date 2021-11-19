@@ -14,21 +14,22 @@ package com.jdt.fedlearn.worker.service;
 
 import com.jdt.fedlearn.client.cache.TrainDataCache;
 import com.jdt.fedlearn.client.util.ConfigUtil;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.common.util.*;
+import com.jdt.fedlearn.tools.*;
 import com.jdt.fedlearn.core.entity.distributed.InitResult;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.model.DistributedRandomForestModel;
 import com.jdt.fedlearn.worker.cache.ManagerCache;
 import com.jdt.fedlearn.worker.entity.train.QueryProgress;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.TrainRequest;
 import com.jdt.fedlearn.core.entity.common.TrainInit;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import com.jdt.fedlearn.core.model.common.CommonModel;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import org.apache.commons.lang3.StringUtils;
 
 import org.mockito.Mockito;
@@ -122,11 +123,11 @@ public class TrainServiceTest extends PowerMockTestCase {
     @Test
     public void train() throws Exception {
         DistributedRandomForestModel model = new DistributedRandomForestModel();
-        String serializeModel = SerializationUtils.serialize(model);
-
-        Map<String,String> data = new HashMap<>();
-        data.put(AppConstant.MODEL_KEY,serializeModel);
-        data.put(AppConstant.TRAIN_DATA_KEY,"test");
+//        String serializeModel = KryoUtil.writeToString(model);
+        TrainData trainData = null;
+        Map<String,Object> data = new HashMap<>();
+        data.put(AppConstant.MODEL_KEY,model);
+        data.put(AppConstant.TRAIN_DATA_KEY,trainData);
         PowerMockito.mockStatic(TrainService.class);
         PowerMockito.when(TrainService.getLocalModelAndData(Mockito.any())).thenReturn(data);
 

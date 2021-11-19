@@ -18,7 +18,7 @@
     <dependencies>
         <dependency>
             <groupId>com.jdt.fedlearn</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>tools</artifactId>
         </dependency>
 
         <dependency>
@@ -34,6 +34,11 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.jdt.fedlearn</groupId>
+            <artifactId>core</artifactId>
         </dependency>
 
     </dependencies>

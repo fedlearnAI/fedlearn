@@ -14,14 +14,14 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.service.prepare;
 
 import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.common.util.TokenUtil;
-import com.jdt.fedlearn.common.tool.ResponseHandler;
 import com.jdt.fedlearn.coordinator.dao.db.MatchMapper;
 import com.jdt.fedlearn.coordinator.entity.common.CommonQuery;
 import com.jdt.fedlearn.coordinator.entity.prepare.MatchListRes;
 import com.jdt.fedlearn.coordinator.entity.table.MatchEntity;
 import com.jdt.fedlearn.coordinator.service.CommonService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
+import com.jdt.fedlearn.tools.TokenUtil;
+import com.jdt.fedlearn.tools.internel.ResponseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;

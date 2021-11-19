@@ -18,7 +18,7 @@ import java.util.ArrayList;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 
 import java.util.List;
 
@@ -117,6 +117,118 @@ public class TreeNodeRF implements Serializable {
 
     public Double getScore() {
         return score;
+    }
+
+    public int getNodeId() {
+        return nodeId;
+    }
+
+    public void setNodeId(int nodeId) {
+        this.nodeId = nodeId;
+    }
+
+    public int getTreeId() {
+        return treeId;
+    }
+
+    public void setTreeId(int treeId) {
+        this.treeId = treeId;
+    }
+
+    public TreeNodeRF getLeft() {
+        return left;
+    }
+
+    public void setLeft(TreeNodeRF left) {
+        this.left = left;
+    }
+
+    public TreeNodeRF getRight() {
+        return right;
+    }
+
+    public void setRight(TreeNodeRF right) {
+        this.right = right;
+    }
+
+    public boolean isLeaf() {
+        return isLeaf;
+    }
+
+    public void setLeaf(boolean leaf) {
+        isLeaf = leaf;
+    }
+
+    public String getReferenceJsonStr() {
+        return referenceJsonStr;
+    }
+
+    public void setReferenceJsonStr(String referenceJsonStr) {
+        this.referenceJsonStr = referenceJsonStr;
+    }
+
+    public Double getThres() {
+        return thres;
+    }
+
+    public void setThres(Double thres) {
+        this.thres = thres;
+    }
+
+    public Double getPrediction() {
+        return prediction;
+    }
+
+    public void setPrediction(Double prediction) {
+        this.prediction = prediction;
+    }
+
+    public Integer getFeatureId() {
+        return featureId;
+    }
+
+    public void setFeatureId(Integer featureId) {
+        this.featureId = featureId;
+    }
+
+    public List<Integer> getSampleIds() {
+        return sampleIds;
+    }
+
+    public void setSampleIds(List<Integer> sampleIds) {
+        this.sampleIds = sampleIds;
+    }
+
+    public void setScore(Double score) {
+        this.score = score;
+    }
+
+    public Double getPercentile() {
+        return percentile;
+    }
+
+    public void setPercentile(Double percentile) {
+        this.percentile = percentile;
+    }
+
+    public void setNumSamples(int numSamples) {
+        this.numSamples = numSamples;
+    }
+
+    public List<ClientInfo> getY1ClientMapping() {
+        return Y1ClientMapping;
+    }
+
+    public void setY1ClientMapping(List<ClientInfo> y1ClientMapping) {
+        Y1ClientMapping = y1ClientMapping;
+    }
+
+    public String getParty() {
+        return party;
+    }
+
+    public void setParty(String party) {
+        this.party = party;
     }
 }
 

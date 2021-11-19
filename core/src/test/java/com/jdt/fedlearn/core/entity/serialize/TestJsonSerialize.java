@@ -1,6 +1,7 @@
 package com.jdt.fedlearn.core.entity.serialize;
 
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
 import org.testng.Assert;
 import org.testng.annotations.Test;

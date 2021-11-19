@@ -15,8 +15,8 @@ package com.jdt.fedlearn.core.entity.common;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.exception.DeserializeException;
+import com.jdt.fedlearn.common.entity.core.Message;
+import com.jdt.fedlearn.common.exception.DeserializeException;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.data.Pair;
 

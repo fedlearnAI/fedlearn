@@ -1,11 +1,11 @@
 package com.jdt.fedlearn.coordinator.service.match;
 
 import com.jdt.fedlearn.common.entity.TokenDTO;
-import com.jdt.fedlearn.common.tool.ResponseHandler;
-import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.entity.prepare.MatchDetailRes;
 import com.jdt.fedlearn.coordinator.entity.prepare.MatchQueryReq;
 import com.jdt.fedlearn.coordinator.service.TrainService;
+import com.jdt.fedlearn.tools.TokenUtil;
+import com.jdt.fedlearn.tools.internel.ResponseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

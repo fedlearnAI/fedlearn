@@ -13,6 +13,8 @@ limitations under the License.
 package com.jdt.fedlearn.worker;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jdt.fedlearn.client.cache.ModelCache;
+import com.jdt.fedlearn.client.dao.ModelDao;
 import com.jdt.fedlearn.client.entity.inference.FetchRemote;
 import com.jdt.fedlearn.client.entity.inference.InferenceRequest;
 import com.jdt.fedlearn.client.entity.inference.PutRemote;
@@ -20,8 +22,16 @@ import com.jdt.fedlearn.client.entity.prepare.MatchRequest;
 import com.jdt.fedlearn.client.service.InferenceService;
 import com.jdt.fedlearn.client.service.PrepareService;
 import com.jdt.fedlearn.client.util.ConfigUtil;
-import com.jdt.fedlearn.common.enums.TaskTypeEnum;
+import com.jdt.fedlearn.client.util.PacketUtil;
+import com.jdt.fedlearn.common.constant.CacheConstant;
+import com.jdt.fedlearn.common.entity.core.Message;
+import com.jdt.fedlearn.core.entity.boost.EncryptedGradHess;
+import com.jdt.fedlearn.core.loader.common.TrainData;
+import com.jdt.fedlearn.core.model.Model;
+import com.jdt.fedlearn.tools.serializer.KryoUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import com.jdt.fedlearn.worker.cache.WorkerResultCache;
+import com.jdt.fedlearn.worker.constant.Constant;
 import com.jdt.fedlearn.worker.entity.train.QueryProgress;
 import com.jdt.fedlearn.worker.exception.ForbiddenException;
 import com.jdt.fedlearn.common.constant.AppConstant;
@@ -32,10 +42,11 @@ import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
 import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
-import com.jdt.fedlearn.common.util.*;
+import com.jdt.fedlearn.tools.*;
 import com.jdt.fedlearn.worker.service.*;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.IOUtils;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
@@ -57,7 +68,7 @@ import java.util.Map;
 /**
  * @author wangpeiqi
  * 2020/8/20 15:49
- *  客户端http app 入口
+ * 客户端http app 入口
  */
 public class WorkerHttpApp extends AbstractHandler {
     private static final Logger logger = LoggerFactory.getLogger(WorkerHttpApp.class);
@@ -183,8 +194,8 @@ public class WorkerHttpApp extends AbstractHandler {
 
         switch (workerCommandEnum) {
             case IS_READY:
-                TaskTypeEnum taskTypeEnum = JsonUtil.json2Object(content,TaskTypeEnum.class);
-                Map<String, Object> isReady = runtimeStatusService.service(taskTypeEnum);
+                WorkerStatus workerStatus = JsonUtil.json2Object(content, WorkerStatus.class);
+                Map<String, Object> isReady = runtimeStatusService.service(workerStatus);
                 commonResultStatus.setData(isReady);
 //                commonResultStatus.getData().put(ResponseConstant.DATA, workerRunner.isReady(request.getLocalPort()));
                 break;
@@ -221,7 +232,8 @@ public class WorkerHttpApp extends AbstractHandler {
             case API_QUERY: {
                 QueryProgress query = new QueryProgress(content);
                 Map<String, Object> res = trainService.queryProgress(query);
-                commonResultStatus.setData(res);
+                Map<String, Object> map = PacketUtil.splitData(res);
+                commonResultStatus.setData(map);
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                 break;
             }
@@ -256,7 +268,7 @@ public class WorkerHttpApp extends AbstractHandler {
                     logger.error("exInfo: ", e);
                     modelMap.put(ResponseConstant.CODE, -2);
                     modelMap.put(ResponseConstant.STATUS, e.getMessage());
-                } catch (Exception e){
+                } catch (Exception e) {
                     modelMap.put(ResponseConstant.CODE, -3);
                     modelMap.put(ResponseConstant.STATUS, e.getMessage());
                 }
@@ -270,7 +282,7 @@ public class WorkerHttpApp extends AbstractHandler {
                 Map<String, Object> modelMap = new HashMap<>();
                 // 先解压
                 InferenceRequest subRequest = new InferenceRequest(content);
-                logger.info("subRequest cost : {}",(System.currentTimeMillis() - start));
+                logger.info("subRequest cost : {}", (System.currentTimeMillis() - start));
                 try {
                     logger.info("inferenceid : " + subRequest.getInferenceId() + " inference modelToken:" + subRequest.getModelToken() + " phase:" + subRequest.getPhase() + " algorithm:" + subRequest.getAlgorithm());
                     start = System.currentTimeMillis();
@@ -391,9 +403,33 @@ public class WorkerHttpApp extends AbstractHandler {
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                 break;
             }
+            case API_TRAIN_RESULT_UPDATE: {
+                Map<String, Object> modelMap = new HashMap<>();
+                ObjectMapper mapper = new ObjectMapper();
+                Map json = mapper.readValue(content, Map.class);
+                String stamp = (String) json.get("stamp");
+                String strMessage = (String) json.get("strMessage");
+                TrainService.updateTrainResult(stamp, strMessage);
+                modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.STATUS, "success");
+                commonResultStatus.setData(modelMap);
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
             case API_MODEL_DATA_QUERY: {
                 Map<String, Object> modelMap = new HashMap<>();
                 Map result = TrainService.getLocalModelAndData(content);
+                String data = KryoUtil.writeToString(result);
+                modelMap.put(ResponseConstant.DATA, data);
+                modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.STATUS, "success");
+                commonResultStatus.setData(modelMap);
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
+            case API_MESSAGE_DATA_QUERY: {
+                Map<String, Object> modelMap = new HashMap<>();
+                String result = TrainService.getLocalMessageData(content);
                 modelMap.put(ResponseConstant.DATA, result);
                 modelMap.put(ResponseConstant.CODE, 0);
                 modelMap.put(ResponseConstant.STATUS, "success");
@@ -401,9 +437,26 @@ public class WorkerHttpApp extends AbstractHandler {
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                 break;
             }
+            case API_MESSAGE_DATA_DELETE: {
+                trainService.clearMessageCache(content);
+//                TrainService.subMessageCache.entrySet().parallelStream().filter(e -> e.getKey().equals(content)).forEach(e -> TrainService.subMessageCache.remove(e.getKey()));
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
+
+            case API_SUB_MESSAGE_DATA_DELETE: {
+                logger.info("delete key :{}", content);
+//                trainService.clearMessageCache(content);
+                logger.info("删除前: {}",TrainService.subMessageCache.size());
+                TrainService.subMessageCache.entrySet().parallelStream().filter(e -> e.getKey().equals(content)).forEach(e -> TrainService.subMessageCache.remove(e.getKey()));
+                logger.info("删除完：{}",TrainService.subMessageCache.size());
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
             case API_MODEL_QUERY: {
                 Map<String, Object> modelMap = new HashMap<>();
-                String result = TrainService.getLocalModel(content);
+                Model model = TrainService.getLocalModel(content);
+                String result = KryoUtil.writeToString(model);
                 modelMap.put(ResponseConstant.DATA, result);
                 modelMap.put(ResponseConstant.CODE, 0);
                 modelMap.put(ResponseConstant.STATUS, "success");
@@ -414,8 +467,29 @@ public class WorkerHttpApp extends AbstractHandler {
             case API_MODEL_UPDATE: {
                 Map<String, Object> modelMap = new HashMap<>();
                 ObjectMapper mapper = new ObjectMapper();
-                Map<String,String> map = mapper.readValue(content, Map.class);
-                TrainService.updateLocalModel(map.get(AppConstant.MODEL_UPDATE_KEY),map.get(AppConstant.MODEL_UPDATE_VALUE));
+                Map<String, String> map = mapper.readValue(content, Map.class);
+                String modelStr = map.get(AppConstant.MODEL_UPDATE_VALUE);
+                Model model = KryoUtil.readFromString(modelStr);
+                TrainService.updateLocalModel(map.get(AppConstant.MODEL_UPDATE_KEY), model);
+                modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.STATUS, "success");
+                commonResultStatus.setData(modelMap);
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
+            case API_MODEL_SAVE: {
+                Map<String, Object> modelMap = new HashMap<>();
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, String> map = mapper.readValue(content, Map.class);
+                String modelToken = map.get(AppConstant.MODEL_SAVE_KEY);
+                String modelKey = TrainService.modelCache.keySet().parallelStream().findFirst().get();
+                Model model = TrainService.modelCache.get(modelKey);
+                ModelDao.saveModel(modelToken, model);
+                //删除本地缓存的 model和TrainData
+                TrainService.clearCache(modelToken);
+                ModelCache modelCache = ModelCache.getInstance();
+                modelCache.put(map.get(AppConstant.MODEL_SAVE_KEY), model);
+//                TrainService.clearInitCache(map.get(AppConstant.MODEL_SAVE_KEY));
                 modelMap.put(ResponseConstant.CODE, 0);
                 modelMap.put(ResponseConstant.STATUS, "success");
                 commonResultStatus.setData(modelMap);
@@ -425,9 +499,68 @@ public class WorkerHttpApp extends AbstractHandler {
             case API_TRAIN_DATA_UPDATE: {
                 Map<String, Object> modelMap = new HashMap<>();
                 ObjectMapper mapper = new ObjectMapper();
-                Map<String,String> map = mapper.readValue(content, Map.class);
-                TrainService.updateLocalTrainData(map.get(AppConstant.DATA_UPDATE_KEY),map.get(AppConstant.DATA_UPDATE_Value));
+                Map<String, String> map = mapper.readValue(content, Map.class);
+                String trainDataStr = map.get(AppConstant.DATA_UPDATE_VALUE);
+                TrainData trainData = KryoUtil.readFromString(trainDataStr);
+                TrainService.updateLocalTrainData(map.get(AppConstant.DATA_UPDATE_KEY), trainData);
                 modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.STATUS, "success");
+                commonResultStatus.setData(modelMap);
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
+            case API_SUB_MODEL_UPDATE: {
+                Map<String, Object> modelMap = new HashMap<>();
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, String> map = mapper.readValue(content, Map.class);
+                String modelToken = map.get("modelToken");
+                Message message = Constant.serializer.deserialize(map.get("subModel"));
+                logger.info("需要更新的subModel大小:{}", RamUsageEstimator.humanSizeOf(message));
+                Message[] updateMessage = new Message[1];
+                TrainService.modelCache.entrySet().stream().filter(e -> e.getKey().contains(modelToken)).forEach(e -> {
+                    Model model = e.getValue();
+                    TrainService.modelCache.remove(e.getKey());
+                    updateMessage[0] = model.updateSubModel(message);
+                    TrainService.modelCache.put(e.getKey(), model);
+                });
+                modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.DATA, Constant.serializer.serialize(updateMessage[0]));
+                modelMap.put(ResponseConstant.STATUS, "success");
+                commonResultStatus.setData(modelMap);
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
+            case API_TRAIN_SPLIT_DATA: {
+                Map<String, Object> modelMap = new HashMap<>();
+                Map<String, Object> map = KryoUtil.readFromString(content);
+                String modelToken = (String) map.get("modelToken");
+                EncryptedGradHess message = (EncryptedGradHess) map.get("message");
+                int modelId = message.getModelId();
+                String key = CacheConstant.getSubMessageKey(modelToken, String.valueOf(modelId));
+                logger.info("subMessageCache put key {}", key);
+                logger.info("添加前：{}",TrainService.subMessageCache.size());
+                TrainService.subMessageCache.put(key, (Message) map.get("message"));
+                logger.info("添加后：{}",TrainService.subMessageCache.size());
+                modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.STATUS, "success");
+                commonResultStatus.setData(modelMap);
+                commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
+                break;
+            }
+            case API_TRAIN_SUB: {
+                Map<String, Object> modelMap = new HashMap<>();
+                Map<String, Object> paramMap = KryoUtil.readFromString(content);
+                Map<String, List<int[]>> instancesMap = (Map<String, List<int[]>>) paramMap.get("instancesMap");
+                String modelToken = (String) paramMap.get("modelToken");
+                String modelKey = TrainService.modelCache.keySet().parallelStream().filter(k -> k.contains(modelToken)).findFirst().get();
+                Model model = TrainService.modelCache.get(modelKey);
+                List<Message> subMessageList = TrainService.getLocalSubMessage(modelToken);
+                logger.info("subMessageList size is :{}", subMessageList.size());
+                model.updateSubMessage(subMessageList);
+                Message message = model.subCalculation(instancesMap);
+                String messageStr = KryoUtil.writeToString(message);
+                modelMap.put(ResponseConstant.CODE, 0);
+                modelMap.put(ResponseConstant.DATA, messageStr);
                 modelMap.put(ResponseConstant.STATUS, "success");
                 commonResultStatus.setData(modelMap);
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
@@ -469,7 +602,7 @@ public class WorkerHttpApp extends AbstractHandler {
 
     }
 
-    private void exit(){
+    private void exit() {
         System.exit(-1);
     }
 

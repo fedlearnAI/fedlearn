@@ -20,7 +20,7 @@ import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.jdchain.JdChainConfig;
 import com.jdt.fedlearn.common.exception.ConfigParseException;
 import com.jdt.fedlearn.client.type.SourceType;
-import com.jdt.fedlearn.common.util.LogbackConfigLoader;
+import com.jdt.fedlearn.tools.LogbackConfigLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

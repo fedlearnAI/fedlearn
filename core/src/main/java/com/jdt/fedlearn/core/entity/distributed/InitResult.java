@@ -15,7 +15,6 @@ package com.jdt.fedlearn.core.entity.distributed;
 
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.model.Model;
-import com.jdt.fedlearn.core.type.ReduceType;
 
 import java.util.List;
 

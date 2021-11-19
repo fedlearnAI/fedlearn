@@ -14,7 +14,7 @@ limitations under the License.
 package com.jdt.fedlearn.core.psi.rsa;
 
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.psi.PrepareClient;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.BigIntegerUtil;

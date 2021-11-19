@@ -1,6 +1,6 @@
 package com.jdt.fedlearn.coordinator.entity.prepare;
 
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

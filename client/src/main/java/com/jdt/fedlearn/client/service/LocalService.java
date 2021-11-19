@@ -5,8 +5,8 @@ import com.jdt.fedlearn.client.entity.local.SingleConfig;
 import com.jdt.fedlearn.client.entity.local.ConfigUpdateReq;
 import com.jdt.fedlearn.client.entity.source.*;
 import com.jdt.fedlearn.client.util.ConfigUtil;
-import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.common.tool.internel.ResponseConstruct;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
+import com.jdt.fedlearn.tools.internel.ResponseConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

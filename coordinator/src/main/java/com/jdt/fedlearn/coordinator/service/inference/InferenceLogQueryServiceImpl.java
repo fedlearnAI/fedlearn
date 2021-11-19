@@ -14,7 +14,6 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.service.inference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.coordinator.dao.db.InferenceLogMapper;
 import com.jdt.fedlearn.coordinator.entity.inference.InferenceDto;
 import com.jdt.fedlearn.coordinator.entity.table.InferenceEntity;
@@ -22,6 +21,7 @@ import com.jdt.fedlearn.coordinator.entity.inference.InferenceInfoDto;
 import com.jdt.fedlearn.coordinator.entity.inference.InferenceResp;
 import com.jdt.fedlearn.coordinator.service.AbstractDispatchService;
 import com.jdt.fedlearn.coordinator.service.IDispatchService;
+import com.jdt.fedlearn.tools.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

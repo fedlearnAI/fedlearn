@@ -4,14 +4,14 @@ import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jdt.fedlearn.common.constant.JdChainConstant;
 import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdChainTaskStatus;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdchainTrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.service.train.jdchain.ChainTrainCommonServiceImpl;
 import com.jdt.fedlearn.coordinator.util.JdChainUtils;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.entity.serialize.JsonSerializer;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.tools.TimeUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;

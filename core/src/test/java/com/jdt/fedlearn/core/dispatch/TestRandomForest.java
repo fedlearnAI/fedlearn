@@ -1,12 +1,12 @@
 package com.jdt.fedlearn.core.dispatch;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.*;
-import com.jdt.fedlearn.core.entity.feature.SingleFeature;
+import com.jdt.fedlearn.common.entity.core.feature.SingleFeature;
 import com.jdt.fedlearn.core.entity.randomForest.*;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
 import com.jdt.fedlearn.core.psi.MatchResult;
@@ -385,7 +385,7 @@ public class TestRandomForest {
 
         res = randomForest.inferenceControl(responses);
         for (int i = 0; i < 3; i++) {
-            Assert.assertEquals(res.get(i).getBody(), null);
+            Assert.assertEquals(((RandomForestTrainReq)res.get(i).getBody()).getBody(), null);
         }
 
         double[][] result = randomForest.postInferenceControl(null).getPredicts();

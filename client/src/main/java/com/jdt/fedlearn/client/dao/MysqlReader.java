@@ -16,7 +16,7 @@ package com.jdt.fedlearn.client.dao;
 import com.jdt.fedlearn.client.entity.source.DataSourceConfig;
 import com.jdt.fedlearn.client.entity.source.DbSourceConfig;
 import com.jdt.fedlearn.client.util.DbUtil;
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

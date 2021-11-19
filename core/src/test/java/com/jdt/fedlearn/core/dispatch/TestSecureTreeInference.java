@@ -1,9 +1,9 @@
 //package com.jdt.fedlearn.core.dispatch;
 //
-//import com.jdt.fedlearn.core.entity.ClientInfo;
+//import com.jdt.fedlearn.common.entity.core.ClientInfo;
 //import com.jdt.fedlearn.core.entity.uniqueId.TrainId;
 //import com.jdt.fedlearn.core.fake.StructureGenerate;
-//import com.jdt.fedlearn.core.type.AlgorithmType;
+//import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 //import org.testng.annotations.Test;
 //
 //import java.util.List;

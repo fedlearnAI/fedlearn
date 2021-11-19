@@ -13,8 +13,8 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.entity.kernelLinearRegression;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.PredictRes;
 
 import java.util.List;

@@ -2,7 +2,7 @@ package com.jdt.fedlearn.client.util;
 
 
 import com.jdt.fedlearn.client.entity.local.AuthToken;
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

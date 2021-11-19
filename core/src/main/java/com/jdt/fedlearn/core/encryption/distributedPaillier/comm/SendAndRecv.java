@@ -2,7 +2,7 @@
 //
 //import com.google.common.collect.Maps;
 //import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierNative;
-//import com.jdt.fedlearn.core.entity.ClientInfo;
+//import com.jdt.fedlearn.common.entity.core.ClientInfo;
 //
 //import java.io.IOException;
 //import java.util.Map;

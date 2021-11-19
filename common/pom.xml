@@ -17,14 +17,10 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-		</dependency>
-
-        <dependency>
-            <groupId>com.jdt.fedlearn</groupId>
-            <artifactId>core</artifactId>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>

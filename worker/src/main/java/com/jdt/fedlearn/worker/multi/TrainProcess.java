@@ -13,11 +13,9 @@ limitations under the License.
 package com.jdt.fedlearn.worker.multi;
 
 import com.jdt.fedlearn.common.constant.CacheConstant;
-import com.jdt.fedlearn.worker.cache.ManagerCache;
+import com.jdt.fedlearn.tools.serializer.KryoUtil;
 import com.jdt.fedlearn.worker.service.TrainService;
-import com.jdt.fedlearn.common.util.SerializationUtils;
-import com.jdt.fedlearn.common.constant.AppConstant;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.model.Model;
 import com.jdt.fedlearn.worker.util.ExceptionUtil;
@@ -49,11 +47,10 @@ public class TrainProcess {
     public void run() {
         try {
             logger.info("enter TrainProcess run!!!");
-            Message restoreMessage = Constant.serializer.deserialize(parameterData);
-            Message trainResult = model.train( phase, restoreMessage, trainData);
+            Message trainResult = TrainService.subTrain(model,phase,modelToken,parameterData,trainData);
+//            Message restoreMessage = KryoUtil.readFromString(parameterData);
+//            Message trainResult = model.train( phase, restoreMessage, trainData);
             String strMessage =  Constant.serializer.serialize(trainResult);
-//            ModelCache modelCache = ModelCache.getInstance();
-//            modelCache.put(modelToken, model);
             String trainResultKey = CacheConstant.getTrainResultKey(stamp);
             TrainService.responseQueue.put(trainResultKey, strMessage);
             logger.info("trainResultKey={}, phase={}, stamp={}", trainResultKey, phase, stamp);

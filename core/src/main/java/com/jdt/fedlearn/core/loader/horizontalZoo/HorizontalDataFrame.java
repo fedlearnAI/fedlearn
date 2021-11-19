@@ -13,7 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.loader.horizontalZoo;
 
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 //import com.jdd.ml.federated.core.load.common.AbstractInferenceData;
 //import com.jdd.ml.federated.core.load.common.InferenceData;
 //import com.jdd.ml.federated.core.load.common.TrainData;

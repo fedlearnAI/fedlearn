@@ -17,16 +17,19 @@ import com.google.common.collect.Maps;
 import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.common.constant.CacheConstant;
 import com.jdt.fedlearn.common.entity.*;
-import com.jdt.fedlearn.common.network.INetWorkService;
-import com.jdt.fedlearn.common.util.*;
+import com.jdt.fedlearn.common.entity.core.type.ReduceType;
+import com.jdt.fedlearn.tools.network.INetWorkService;
+import com.jdt.fedlearn.tools.*;
 import com.jdt.fedlearn.core.entity.distributed.SplitResult;
+import com.jdt.fedlearn.core.model.DistributedFederatedGBModel;
+import com.jdt.fedlearn.core.model.DistributedRandomForestModel;
 import com.jdt.fedlearn.core.model.Model;
 import com.jdt.fedlearn.core.model.common.CommonModel;
-import com.jdt.fedlearn.core.type.ReduceType;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import com.jdt.fedlearn.worker.cache.ManagerCache;
 import com.jdt.fedlearn.worker.constant.Constant;
 import com.jdt.fedlearn.common.constant.AppConstant;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.enums.RunStatusEnum;
 import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
@@ -37,8 +40,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
-
+import com.jdt.fedlearn.tools.serializer.KryoUtil;
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 /**
  * @className: AlgorithmService
@@ -50,6 +54,7 @@ public class AlgorithmService implements IAlgorithm {
     private static final Logger logger = LoggerFactory.getLogger(AlgorithmService.class);
     private static final TrainService trainService = new TrainService();
     private INetWorkService netWorkService = INetWorkService.getNetWorkService();
+    public static Map<String, String> messageBodyCache = new ConcurrentSkipListMap<>();
 
     @Override
     public Map<String, Object> run(Task task) {
@@ -88,7 +93,7 @@ public class AlgorithmService implements IAlgorithm {
         if (isGzip) {
             jsonData = GZIPCompressUtil.unCompress(jsonData);
         }
-        Message restoreMessage = Constant.serializer.deserialize(jsonData);
+        Message restoreMessage = KryoUtil.readFromString(jsonData);
         int phase = trainRequest.getPhase();
         Model model = CommonModel.constructModel(trainRequest.getAlgorithm());
         SplitResult mapResult = model.split(phase, restoreMessage);
@@ -103,7 +108,18 @@ public class AlgorithmService implements IAlgorithm {
                 for (int i = 0; i < modelIDList.size(); i++) {
                     TrainRequest trainRequestSlip = new TrainRequest();
                     BeanUtils.copyProperties(trainRequest, trainRequestSlip);
-                    trainRequestSlip.setData(Constant.serializer.serialize(messageBodyList.get(i)));
+
+                    if (model instanceof DistributedRandomForestModel || phase == 0) {
+                        trainRequestSlip.setData(KryoUtil.writeToString(messageBodyList.get(i)));
+                    } else if (model instanceof DistributedFederatedGBModel && Integer.parseInt(modelIDList.get(0)) == i) {
+                        String modelToken = trainRequest.getModelToken();
+                        /* 将message保存在本地并通知manager保存结果的地址*/
+                        String messageAddressKey = CacheConstant.getModelAddressKey(modelToken, String.valueOf(phase));
+                        messageBodyCache.put(messageAddressKey,jsonData);
+                        String address = IpAddressUtil.getLocalHostLANAddress().getHostAddress() + AppConstant.COLON + ConfigUtil.getPortElseDefault();
+                        //保存message的worker
+                        ManagerCache.putCache(AppConstant.MODEL_MESSAGE_CACHE, messageAddressKey, address);
+                    }
                     trainRequestSlip.setRequestId(modelIDList.get(i));
                     trainRequestSlip.setGzip(false);
                     trainRequests.add(trainRequestSlip);
@@ -209,6 +225,7 @@ public class AlgorithmService implements IAlgorithm {
             requestReduce.setAlgorithm(trainRequest.getAlgorithm());
             requestReduce.setReduceType(reduceType);
             requestReduce.setStatus(trainRequest.getStatus());
+            requestReduce.setModelToken(trainRequest.getModelToken());
             reduceTask.setSubRequest(requestReduce);
             String s = JsonUtil.object2json(preTaskList);
             List<Task> newPreList;
@@ -275,9 +292,7 @@ public class AlgorithmService implements IAlgorithm {
             Map<String, Object> param = Maps.newHashMap();
             param.put(STAMP, stamp);
             // 调用http 接口查询
-            String remoteTrainResult = netWorkService.sendAndRecv(AppConstant.HTTP_PREFIX + resultAddress + AppConstant.SLASH + WorkerCommandEnum.API_TRAIN_RESULT_QUERY.getCode(), param);
-            String finalResult = GZIPCompressUtil.unCompress(remoteTrainResult);
-            CommonResultStatus commonResultStatus = JsonUtil.json2Object(finalResult, CommonResultStatus.class);
+            CommonResultStatus commonResultStatus = WorkerCommandUtil.request(AppConstant.HTTP_PREFIX + resultAddress, WorkerCommandEnum.API_TRAIN_RESULT_QUERY, param);
             return commonResultStatus.getData().get(ResponseConstant.DATA);
         } catch (Exception e) {
             logger.error("获取远端worker训练结果失败", e);

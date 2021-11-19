@@ -16,7 +16,7 @@ package com.jdt.fedlearn.coordinator.entity.train;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.common.entity.project.PartnerInfoNew;
-import com.jdt.fedlearn.core.exception.DeserializeException;
+import com.jdt.fedlearn.common.exception.DeserializeException;
 
 import java.io.IOException;
 import java.util.List;

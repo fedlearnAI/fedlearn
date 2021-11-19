@@ -15,12 +15,12 @@ package com.jdt.fedlearn.worker.dao;
 import ch.qos.logback.core.joran.spi.JoranException;
 import com.jdt.fedlearn.client.dao.ModelDao;
 import com.jdt.fedlearn.client.util.ConfigUtil;
-import com.jdt.fedlearn.common.util.FileUtil;
 import com.jdt.fedlearn.core.model.DistributedRandomForestModel;
 import com.jdt.fedlearn.core.model.Model;
 
 import com.jdt.fedlearn.core.model.common.CommonModel;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.tools.FileUtil;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;

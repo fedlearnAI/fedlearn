@@ -6,11 +6,11 @@
 //import com.jdt.fedlearn.client.util.ConfigUtil;
 //import com.jdt.fedlearn.client.util.HttpUtil;
 //import com.jdt.fedlearn.client.util.JsonUtil;
-//import com.jdt.fedlearn.core.entity.Message;
+//import com.jdt.fedlearn.common.entity.core.Message;
 //import com.jdt.fedlearn.core.entity.boost.*;
 //import com.jdt.fedlearn.core.entity.common.InferenceInit;
 //import com.jdt.fedlearn.core.entity.mixGB.BoostEvalQueryReqBody;
-//import com.jdt.fedlearn.core.type.AlgorithmType;
+//import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 //import com.jdt.fedlearn.core.util.SerializeUtil;
 //import com.jdt.fedlearn.core.util.TokenUtil;
 //import org.slf4j.Logger;

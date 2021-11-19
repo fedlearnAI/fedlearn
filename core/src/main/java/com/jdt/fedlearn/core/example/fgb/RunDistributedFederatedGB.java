@@ -1,9 +1,10 @@
 package com.jdt.fedlearn.core.example.fgb;
 
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.dispatch.FederatedGB;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.example.CommonRun;
 import com.jdt.fedlearn.core.model.DistributedFederatedGBModel;
 import com.jdt.fedlearn.core.model.Model;

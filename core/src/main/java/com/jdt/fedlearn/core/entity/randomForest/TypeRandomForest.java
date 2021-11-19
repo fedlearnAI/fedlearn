@@ -34,12 +34,12 @@ public class TypeRandomForest implements Serializable {
     private int numTrees;
     private int maxDepth;
     private int numPercentiles;
-    private ArrayList<TreeNodeRF> roots = new ArrayList<>();
-    private ArrayList<Boolean> isFinished = new ArrayList<>();
+    private Map<Integer, TreeNodeRF> roots = new HashMap<>();
+    private Map<Integer, Boolean> isFinished = new HashMap<>();
     private int numNodesAll = 0;
 
     /** 目前所有需要分裂的点的队列 */
-    private ArrayList<Queue<TreeNodeRF>> aliveNodes = new ArrayList<>();
+    private Map<Integer, Queue<TreeNodeRF>> aliveNodes = new HashMap<>();
     public Map<Integer, TreeNodeRF> treeNodeMap = Maps.newLinkedHashMap();
 
     // inference part
@@ -65,11 +65,11 @@ public class TypeRandomForest implements Serializable {
             }
             Collections.sort(sampleId);
             //logger.info(String.format("Tree id: %s, sample size: %s, sample ids: %s", i, sampleId.size(), sampleId.toString()));
-            roots.add(new TreeNodeRF(sampleId, 0, i));
-            isFinished.add(false);
+            roots.put(i, new TreeNodeRF(sampleId, 0, i));
+            isFinished.put(i, false);
             Queue<TreeNodeRF> aliveNode = new LinkedList<>();
             aliveNode.offer(roots.get(i));
-            aliveNodes.add(aliveNode);
+            aliveNodes.put(i, aliveNode);
         }
 
     }
@@ -87,11 +87,11 @@ public class TypeRandomForest implements Serializable {
             List<Integer> sampleId;
             sampleId = DataUtils.stringToSampleId(String.valueOf(sampleIds.get(i)));
             //logger.info(String.format("Tree id: %s, sample size: %s, sample ids: %s", i, sampleId.size(), sampleId.toString()));
-            roots.add(new TreeNodeRF(sampleId, 0, i));
-            isFinished.add(false);
+            roots.put(i, new TreeNodeRF(sampleId, 0, i));
+            isFinished.put(i, false);
             Queue<TreeNodeRF> aliveNode = new LinkedList<>();
             aliveNode.offer(roots.get(i));
-            aliveNodes.add(aliveNode);
+            aliveNodes.put(i, aliveNode);
         }
 
     }
@@ -108,7 +108,7 @@ public class TypeRandomForest implements Serializable {
                 if (!isFinished.get(i)) {
                     TreeNodeRF node = getActiveNode(roots.get(i), i);
                     if (node == null) {
-                        isFinished.set(i, true);
+                        isFinished.put(i, true);
                     } else {
                         treeNodeMap.put(i, node);
                     }
@@ -213,19 +213,19 @@ public class TypeRandomForest implements Serializable {
         this.numPercentiles = numPercentiles;
     }
 
-    public ArrayList<TreeNodeRF> getRoots() {
+    public Map<Integer, TreeNodeRF> getRoots() {
         return roots;
     }
 
-    public void setRoots(ArrayList<TreeNodeRF> roots) {
+    public void setRoots(Map<Integer, TreeNodeRF> roots) {
         this.roots = roots;
     }
 
-    public ArrayList<Boolean> getIsFinished() {
+    public Map<Integer, Boolean> getIsFinished() {
         return isFinished;
     }
 
-    public void setIsFinished(ArrayList<Boolean> isFinished) {
+    public void setIsFinished(Map<Integer, Boolean> isFinished) {
         this.isFinished = isFinished;
     }
 
@@ -237,11 +237,11 @@ public class TypeRandomForest implements Serializable {
         this.numNodesAll = numNodesAll;
     }
 
-    public ArrayList<Queue<TreeNodeRF>> getAliveNodes() {
+    public Map<Integer, Queue<TreeNodeRF>> getAliveNodes() {
         return aliveNodes;
     }
 
-    public void setAliveNodes(ArrayList<Queue<TreeNodeRF>> aliveNodes) {
+    public void setAliveNodes(Map<Integer, Queue<TreeNodeRF>> aliveNodes) {
         this.aliveNodes = aliveNodes;
     }
 

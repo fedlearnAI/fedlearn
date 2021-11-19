@@ -1,10 +1,12 @@
 package com.jdt.fedlearn.core.example.fgb;
 
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.example.CommonRun;
 import com.jdt.fedlearn.core.dispatch.FederatedGB;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
+import com.jdt.fedlearn.core.model.RandomForestModel;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.*;
 import com.jdt.fedlearn.core.type.data.Tuple2;
@@ -73,9 +75,9 @@ public class RunFederatedGB {
         // 设置哪方那个特征是label
         featuresMap.get(clientInfos[labelIndex]).setLabel(labelName);
         ////---------------id match and feature extract end---------------------////
-
+        Map<String, Object> other = new HashMap<>();
         // initial and train
-        List<CommonRequest> initRequests = boost.initControl(Arrays.asList(clientInfos.clone()), matchResult, featuresMap, new HashMap<>());
+        List<CommonRequest> initRequests = boost.initControl(Arrays.asList(clientInfos.clone()), matchResult, featuresMap, other);
         Map<ClientInfo, Model> modelMap = CommonRun.trainNew(boost, clientInfos, initRequests, mappingReport._2(), rawDataMap);
 
         //model save

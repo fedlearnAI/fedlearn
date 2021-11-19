@@ -26,13 +26,12 @@ import com.jdt.fedlearn.coordinator.service.CommonService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.exception.NotMatchException;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**

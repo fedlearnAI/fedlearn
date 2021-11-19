@@ -1,7 +1,7 @@
 //package com.jdt.fedlearn.core.mpc;
 //
-//import com.jdt.fedlearn.core.entity.ClientInfo;
-//import com.jdt.fedlearn.core.entity.feature.Features;
+//import com.jdt.fedlearn.common.entity.core.ClientInfo;
+//import com.jdt.fedlearn.common.entity.core.feature.Features;
 //import com.jdt.fedlearn.core.example.CommonMatch;
 //import com.jdt.fedlearn.core.util.DataLoad;
 //import com.jdt.fedlearn.core.fake.DataSplit;

@@ -13,13 +13,17 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.entity.boost;
 
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 
 public class BoostP5Res implements Message {
     private boolean isStop;
     private int depth;
     private MetricValue trainMetric;
+    private SubModel subModel;
+
+    public BoostP5Res() {
+    }
 
     public BoostP5Res(boolean isStop, int depth, MetricValue trainMetric) {
         this.isStop = isStop;
@@ -46,5 +50,13 @@ public class BoostP5Res implements Message {
 
     public void setTrainMetric(MetricValue trainMetric) {
         this.trainMetric = trainMetric;
+    }
+
+    public SubModel getSubModel() {
+        return subModel;
+    }
+
+    public void setSubModel(SubModel subModel) {
+        this.subModel = subModel;
     }
 }

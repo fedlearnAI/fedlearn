@@ -14,7 +14,7 @@ limitations under the License.
 package com.jdt.fedlearn.client.entity.source;
 
 import com.jdt.fedlearn.client.type.SourceType;
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 
 import java.util.HashMap;
 import java.util.Map;

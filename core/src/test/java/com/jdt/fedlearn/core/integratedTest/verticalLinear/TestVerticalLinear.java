@@ -1,13 +1,13 @@
 package com.jdt.fedlearn.core.integratedTest.verticalLinear;
 
 import com.jdt.fedlearn.core.dispatch.VerticalLinearRegression;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.example.CommonRun;
 import com.jdt.fedlearn.core.psi.MatchResult;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.DataParseUtil;
 import com.jdt.fedlearn.core.util.FileUtil;
@@ -39,7 +39,7 @@ public class TestVerticalLinear {
     private static Map<ClientInfo, String[][]> rawDataMap = new HashMap<>();
 //    private Map<ClientInfo, Features> featuresMap = new HashMap<>();
     //此处为需要手动配置的四个选项，分别是数据文件夹目录，参与方个数，有label的参与方id，label的名字。
-    private final String baseDir="./src/test/resources/regressionA/";;
+    private final String baseDir="/home/wanghaihe/fl/11/fedlearn/core/src/test/resources/regressionA/";;
     private static final int partnerSize = 3;
     private static final int labelIndex = 0;
     private static final String labelName = "y";

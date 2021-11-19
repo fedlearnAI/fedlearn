@@ -17,7 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.tool.internel.ResponseInternal;
+import com.jdt.fedlearn.tools.internel.ResponseInternal;
 import com.jdt.fedlearn.coordinator.entity.system.FeatureMapDTO;
 import com.jdt.fedlearn.coordinator.entity.system.FeatureReq;
 import com.jdt.fedlearn.coordinator.exception.UnauthorizedException;

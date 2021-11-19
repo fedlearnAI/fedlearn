@@ -22,25 +22,25 @@ public class TypeRandomForestTest {
         typeRandomForest.releaseTreeNodeAllTrees();
         typeRandomForest = new TypeRandomForest();
 
-       typeRandomForest.setRoots(new ArrayList<>());
+       typeRandomForest.setRoots(new HashMap<>());
        typeRandomForest.setTreeNodeMap(Maps.newLinkedHashMap());
-       typeRandomForest.setIsFinished(new ArrayList<>());
+       typeRandomForest.setIsFinished(new HashMap<>());
        typeRandomForest.setMaxDepth(0);
        typeRandomForest.setNumPercentiles(0);
        typeRandomForest.setNumTrees(0);
        typeRandomForest.setNumNodesAll(0);
        typeRandomForest.setNode_count(null);
-       typeRandomForest.setAliveNodes(new ArrayList<>());
+       typeRandomForest.setAliveNodes(new HashMap<>());
 
-        assertEquals(typeRandomForest.getRoots(), new ArrayList<>());
+        assertEquals(typeRandomForest.getRoots(), new HashMap<>());
         assertEquals(typeRandomForest.getTreeNodeMap(), Maps.newLinkedHashMap());
-        assertEquals(typeRandomForest.getIsFinished(), new ArrayList<>());
+        assertEquals(typeRandomForest.getIsFinished(), new HashMap<>());
         assertEquals(typeRandomForest.getMaxDepth(), 0);
         assertEquals(typeRandomForest.getNumPercentiles(), 0);
         assertEquals(typeRandomForest.getNumTrees(), 0);
         assertEquals(typeRandomForest.getNumNodesAll(), 0);
         assertEquals(typeRandomForest.getNode_count(), null);
-        assertEquals(typeRandomForest.getAliveNodes(), new ArrayList<>());
+        assertEquals(typeRandomForest.getAliveNodes(), new HashMap<>());
 
 
 

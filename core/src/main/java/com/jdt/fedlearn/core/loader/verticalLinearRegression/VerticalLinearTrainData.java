@@ -16,8 +16,10 @@ package com.jdt.fedlearn.core.loader.verticalLinearRegression;
 import com.jdt.fedlearn.core.loader.common.AbstractTrainData;
 import com.jdt.fedlearn.core.preprocess.MissingValueFilling;
 import com.jdt.fedlearn.core.preprocess.Scaling;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.loader.common.TrainData;
+
+import java.util.List;
 
 
 public class VerticalLinearTrainData extends AbstractTrainData implements TrainData {
@@ -26,6 +28,9 @@ public class VerticalLinearTrainData extends AbstractTrainData implements TrainD
 
     public VerticalLinearTrainData(String[][] rawTable, String[] idMap, Features features, boolean useDp) {
         super.scan(rawTable, idMap, features);
+        if (expressions != null && expressions.size() != 0) {
+            super.featureProcessing(expressions);
+        }
         this.feature = super.sample;
 
         // 1.add feature transformation

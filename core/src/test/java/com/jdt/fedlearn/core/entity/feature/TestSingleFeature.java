@@ -1,9 +1,10 @@
 package com.jdt.fedlearn.core.entity.feature;
 
-import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
+import com.jdt.fedlearn.common.entity.core.Message;
+import com.jdt.fedlearn.common.entity.core.feature.SingleFeature;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import com.jdt.fedlearn.core.entity.serialize.JsonSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -16,13 +17,13 @@ public class TestSingleFeature {
         Serializer serializer = new JsonSerializer();
         String json = serializer.serialize(req);
 
-        String res = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.feature.SingleFeature\",\"DATA\":{\"name\":\"uid\",\"type\":\"int\",\"frequency\":1,\"id\":0}}";
+        String res = "{\"CLASS\":\"com.jdt.fedlearn.common.entity.core.feature.SingleFeature\",\"DATA\":{\"name\":\"uid\",\"type\":\"int\",\"frequency\":1,\"id\":0}}";
         Assert.assertEquals(json, res);
     }
 
     @Test
     public void jsonDeserialize(){
-        String jsonStr = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.feature.SingleFeature\",\"DATA\":{\"name\":\"uid\",\"type\":\"int\",\"frequency\":1,\"id\":0}}";
+        String jsonStr = "{\"CLASS\":\"com.jdt.fedlearn.common.entity.core.feature.SingleFeature\",\"DATA\":{\"name\":\"uid\",\"type\":\"int\",\"frequency\":1,\"id\":0}}";
 
         Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(jsonStr);

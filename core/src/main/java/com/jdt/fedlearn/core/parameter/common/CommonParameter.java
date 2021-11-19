@@ -16,7 +16,7 @@ package com.jdt.fedlearn.core.parameter.common;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.core.parameter.*;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 
 import java.util.List;
 import java.util.Map;

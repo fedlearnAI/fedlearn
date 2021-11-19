@@ -19,12 +19,12 @@ import com.jdt.fedlearn.client.entity.source.DataSourceConfig;
 import com.jdt.fedlearn.client.type.SourceType;
 import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.client.dao.*;
-import com.jdt.fedlearn.common.util.CacheUtil;
-import com.jdt.fedlearn.common.util.FileUtil;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
 import com.jdt.fedlearn.core.loader.common.CommonLoad;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.tools.CacheUtil;
+import com.jdt.fedlearn.tools.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,11 +94,11 @@ public class InferenceDataCache {
     public static List<Integer> checkAndCache(String inferenceId, AlgorithmType algorithm, InferenceInit init) {
         String[][] sample = loadInferenceData(init.getUid());
         List<Integer> filterIndexList = InferenceDataCache.checkUid(inferenceId, init.getUid(), sample);
-        cacheInferenceData(inferenceId, algorithm, sample);
+        cacheInferenceData(inferenceId, algorithm, sample, null);
         return filterIndexList;
     }
 
-    public static String[][] loadAndCache(String inferenceId, AlgorithmType algorithm, String[] uid, String dataset) {
+    public static String[][] loadAndCache(String inferenceId, AlgorithmType algorithm, String[] uid, String dataset, List<String> expressions) {
         String[][] sample;
         if (FileUtil.isFile(dataset)) {
             CsvReader csvReader = new CsvReader();
@@ -106,15 +106,15 @@ public class InferenceDataCache {
         } else {
             sample = loadInferenceData(uid);
         }
-        cacheInferenceData(inferenceId, algorithm, sample);
+        cacheInferenceData(inferenceId, algorithm, sample, expressions);
         return sample;
     }
 
-    public static String[][] loadAndCachValidate(String inferenceId, AlgorithmType algorithm, String[] uid, String labelName) {
+    public static String[][] loadAndCacheValidate(String inferenceId, AlgorithmType algorithm, String[] uid, String labelName, List<String> expressions) {
         String[][] sample = loadValidationData(uid);
         Map<String, String> labelMap = getLabel(sample, labelName);
         String[][] removeLabelData = removeLabel(sample, labelName);
-        cacheValidateData(inferenceId, algorithm, removeLabelData, labelMap);
+        cacheValidateData(inferenceId, algorithm, removeLabelData, labelMap, expressions);
         return removeLabelData;
     }
 
@@ -126,7 +126,7 @@ public class InferenceDataCache {
         INFERENCE_CACHE.putValue(inferenceId, inferenceData);
     }
 
-    private static void cacheInferenceData(String inferenceId, AlgorithmType algorithm, String[][] sample) {
+    private static void cacheInferenceData(String inferenceId, AlgorithmType algorithm, String[][] sample, List<String> expressions) {
         if (null == sample) {
             throw new UnsupportedOperationException("sample is null");
         }
@@ -136,11 +136,11 @@ public class InferenceDataCache {
 //            logger.info("inferenceid : " + inferenceId + " need to  predict line:" + Arrays.deepToString(sample));
             logger.info("inferenceid : " + inferenceId + "need to predict sample size:" + sample.length);
         }
-        InferenceData inferenceData = CommonLoad.constructInference(algorithm, sample);
+        InferenceData inferenceData = CommonLoad.constructInference(algorithm, sample, expressions);
         INFERENCE_CACHE.putValue(inferenceId, inferenceData);
     }
 
-    private static void cacheValidateData(String inferenceId, AlgorithmType algorithm, String[][] sample, Map<String, String> labelMap) {
+    private static void cacheValidateData(String inferenceId, AlgorithmType algorithm, String[][] sample, Map<String, String> labelMap, List<String> expressions) {
         if (null == sample) {
             throw new UnsupportedOperationException("sample is null");
         }
@@ -150,7 +150,7 @@ public class InferenceDataCache {
 //            logger.info("inferenceid : " + inferenceId + " need to  predict line:" + Arrays.deepToString(sample));
             logger.info("inferenceid : " + inferenceId + "need to predict sample size:" + sample.length);
         }
-        InferenceData inferenceData = CommonLoad.constructInference(algorithm, sample);
+        InferenceData inferenceData = CommonLoad.constructInference(algorithm, sample, expressions);
         INFERENCE_CACHE.putValue(inferenceId, inferenceData);
         if (labelMap != null) {
             INFERENCE_CACHE.putValue("labelMap", labelMap);

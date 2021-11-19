@@ -8,12 +8,9 @@
         <artifactId>all</artifactId>
         <groupId>com.jdt.fedlearn</groupId>
         <version>0.9.6</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>coordinator</artifactId>
-    <name>fedlearn-coordinator</name>
-    <url>http://maven.apache.org</url>
 
     <properties>
         <servlet-api.version>2.5</servlet-api.version>  <!-- java web -->
@@ -31,69 +28,7 @@
     </properties>
 
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
-            </dependency>
-
-
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-core</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-protobuf</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-stub</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-cli</groupId>
-                <artifactId>commons-cli</artifactId>
-                <version>${commons-cli.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java-util</artifactId>
-                <version>${protobuf-java.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.errorprone</groupId>
-                <artifactId>error_prone_annotations</artifactId>
-                <version>${errorprone.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>animal-sniffer-annotations</artifactId>
-                <version>${animal-sniffer-annotations.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
-
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>${gson.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>${logback.version}</version>
-        </dependency>
-
         <!-- https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
         <dependency>
             <groupId>org.xerial</groupId>
@@ -133,19 +68,28 @@
             <version>${mockito-all.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.jdt.fedlearn</groupId>
+            <artifactId>tools</artifactId>
+        </dependency>
 
-        <!-- jdchain 相关依赖 end-->
 
         <dependency>
             <groupId>com.jdt.fedlearn</groupId>
-            <artifactId>common</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
+            <artifactId>core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>error_prone_annotations</artifactId>
+                    <groupId>com.google.errorprone</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>logback-classic</artifactId>
+                    <groupId>ch.qos.logback</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
+
     <build>
         <finalName>${project.name}</finalName>
         <resources>

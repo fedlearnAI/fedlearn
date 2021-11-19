@@ -12,7 +12,7 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.util;
 
-import com.jdt.fedlearn.common.network.INetWorkService;
+import com.jdt.fedlearn.tools.network.INetWorkService;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.mockserver.MockServer;
 import org.testng.Assert;

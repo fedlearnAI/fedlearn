@@ -1,7 +1,7 @@
 package com.jdt.fedlearn.client.dao;
 
 import com.jdt.fedlearn.client.util.ConfigUtil;
-import com.jdt.fedlearn.common.util.FileUtil;
+import com.jdt.fedlearn.tools.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

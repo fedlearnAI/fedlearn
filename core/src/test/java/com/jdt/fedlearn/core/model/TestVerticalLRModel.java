@@ -1,16 +1,16 @@
 package com.jdt.fedlearn.core.model;
 
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.DoubleArray;
 import com.jdt.fedlearn.core.entity.base.StringArray;
 import com.jdt.fedlearn.core.entity.common.InferenceInitRes;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.loader.verticalLinearRegression.VerticalLinearTrainData;
 import com.jdt.fedlearn.core.parameter.VerticalLRParameter;
 import com.jdt.fedlearn.core.preprocess.Scaling;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.data.Tuple3;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;

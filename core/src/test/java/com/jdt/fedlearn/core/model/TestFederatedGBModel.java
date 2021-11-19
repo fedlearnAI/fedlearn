@@ -1,18 +1,18 @@
 package com.jdt.fedlearn.core.model;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.fake.FakeTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.StringArray;
 import com.jdt.fedlearn.core.entity.boost.*;
 import com.jdt.fedlearn.core.entity.common.InferenceInitRes;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.loader.boost.BoostTrainData;
@@ -996,7 +996,7 @@ public class TestFederatedGBModel {
         String s = model.serialize();
         Assert.assertEquals(s.split("\n").length, 7);
         Assert.assertEquals(s.split("\n")[6], "tree[end]");
-        Assert.assertEquals(s.split("\n")[0], "first_round_predict=0.0");
+        Assert.assertEquals(s.split("\n")[0], "##splitSymbol##first_round_predict=0.0");
         model.deserialize(s);
     }
 

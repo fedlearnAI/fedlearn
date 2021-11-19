@@ -13,22 +13,23 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.model;
 
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.DifferentialPrivacyFactory;
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.IDifferentialPrivacy;
 import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillier;
 import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierNative;
 import com.jdt.fedlearn.core.encryption.distributedPaillier.HomoEncryptionUtil;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.DataUtils;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.InferenceReqAndRes;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainReq;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainRes;
 import com.jdt.fedlearn.core.entity.mixedLinearRegression.CypherMessage2D;
 import com.jdt.fedlearn.core.entity.mixedLinearRegression.CypherMessage2DList;
-import com.jdt.fedlearn.core.exception.DeserializeException;
+import com.jdt.fedlearn.common.exception.DeserializeException;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
@@ -57,7 +58,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-
+/**
+ * 联邦核算法model端，包括训练、验证、推理，模型的存储和读取等
+ *  @author fanmingjie, Liu bo
+ */
 public class FederatedKernelModel implements Model {
     private static final Logger logger = LoggerFactory.getLogger(FederatedKernelModel.class);
     //算法参数
@@ -117,7 +121,7 @@ public class FederatedKernelModel implements Model {
 
     //差分隐私
     private IDifferentialPrivacy differentialPrivacy;
-
+    private List<String> expressions = new ArrayList<>();
 
 
     public FederatedKernelModel() {
@@ -137,6 +141,7 @@ public class FederatedKernelModel implements Model {
         numClass = parameter.getNumClass();
         Tuple2<String[], String[]> trainTestUId = Tool.splitUid(uids, testIndex);
         KernelLinearRegressionTrainData trainData = new KernelLinearRegressionTrainData(rawData, trainTestUId._1(), features);
+        this.expressions = trainData.getExpressions();
         extractedValidationData(rawData, testIndex, trainTestUId);
         normalization(trainData);
         kernelType = parameter.getKernelType();
@@ -403,7 +408,7 @@ public class FederatedKernelModel implements Model {
                 return validInit(testId, validationData);
             case VALIDATE_NORMALIZATION:
                 String[][] validationClone = validationData.clone();
-                CommonInferenceData validationTest = new CommonInferenceData(validationClone, "uid", null);
+                CommonInferenceData validationTest = new CommonInferenceData(validationClone, "uid", null, expressions);
                 return inference1(phase, (InferenceInit) jsonData, validationTest);
             case VALIDATE_TRANS_DATA:
                 inference2(xsTest.numRows(), xsTest.numRows(), 1);
@@ -1192,8 +1197,11 @@ public class FederatedKernelModel implements Model {
     }
 
     public void deserialize(String content) {
+        String[] contents = Tool.splitExpressionsAndModel(content);
+        this.expressions = Tool.splitExpressions(contents[0]);
+
         KernelJavaSerializer kernelJavaSerializer = new KernelJavaSerializer();
-        kernelJavaSerializer.parseJson(content);
+        kernelJavaSerializer.parseJson(contents[1]);
         this.modelToken = kernelJavaSerializer.getModelToken();
         this.numClass = kernelJavaSerializer.getNumClass();
         this.mapdim = kernelJavaSerializer.getMapdim();
@@ -1235,7 +1243,7 @@ public class FederatedKernelModel implements Model {
             this.differentialPrivacy.addNoises(weight, weight, 0);
         }
         KernelJavaSerializer kernelJavaSerializer = new KernelJavaSerializer(modelToken, numClass, mapdim, weight, DataUtils.smpmatrixToArray(transMat), DataUtils.vectorToArray(bias), normalizationType, normParams1, normParams2, isActive, multiClassUniqueLabelList);
-        return kernelJavaSerializer.toJson();
+        return Tool.addExpressions(kernelJavaSerializer.toJson(), this.expressions);
     }
 
 
@@ -1304,4 +1312,7 @@ public class FederatedKernelModel implements Model {
         return this.differentialPrivacy;
     }
 
+    public List<String> getExpressions() {
+        return expressions;
+    }
 }

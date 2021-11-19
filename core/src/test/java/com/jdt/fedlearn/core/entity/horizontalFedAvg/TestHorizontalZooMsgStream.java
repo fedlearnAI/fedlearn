@@ -1,11 +1,11 @@
 package com.jdt.fedlearn.core.entity.horizontalFedAvg;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.horizontalZoo.HorizontalZooMsgStream;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import com.jdt.fedlearn.core.entity.serialize.JsonSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
 import com.jdt.fedlearn.core.parameter.HorizontalFedAvgPara;
 import com.jdt.fedlearn.core.type.HorizontalZooMsgType;
 import org.testng.Assert;

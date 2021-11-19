@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 public class VFDNNInferenceData extends AbstractInferenceData {
 
-    private static final Logger logger = Logger.getLogger(com.jdt.fedlearn.core.loader.randomForest.RFInferenceData.class.getName());
+    private static final Logger logger = Logger.getLogger(VFDNNInferenceData.class.getName());
 
     private String[] uid;
     private ArrayList<String> headers = new ArrayList<>();

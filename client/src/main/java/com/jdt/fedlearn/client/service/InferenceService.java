@@ -20,16 +20,16 @@ import com.jdt.fedlearn.client.constant.Constant;
 import com.jdt.fedlearn.client.entity.inference.*;
 import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.util.FileUtil;
-import com.jdt.fedlearn.common.util.GZIPCompressUtil;
-import com.jdt.fedlearn.common.util.LogUtil;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.metrics.Metric;
 import com.jdt.fedlearn.core.model.Model;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.MetricType;
+import com.jdt.fedlearn.tools.FileUtil;
+import com.jdt.fedlearn.tools.GZIPCompressUtil;
+import com.jdt.fedlearn.tools.LogUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +93,8 @@ public class InferenceService {
             //1.检测uid 在不在训练集, 2.检测uid在不在推理数据集中
             String[] uid = init.getUid();
             logger.info("client get dataset : " + req.getDataset());
-            String[][] rawData = InferenceDataCache.loadAndCache(inferenceId, algorithm, uid, req.getDataset());
+            List<String> expressions = model.getExpressions();
+            String[][] rawData = InferenceDataCache.loadAndCache(inferenceId, algorithm, uid, req.getDataset(), expressions);
             Map<String, Object> others = init.getOthers();
             if (others != null && others.containsKey("secureMode") && (boolean) others.get("secureMode")) {
                 String keyPath = ConfigUtil.getClientConfig().getModelDir();
@@ -121,15 +122,6 @@ public class InferenceService {
         }
         long s4 = System.currentTimeMillis();
         logger.info("fetchInferenceData cost: " + (s4 - s3));
-        // logger.info("phase=【{}】,data=【{}】,infer_data=【{}】", phase, data, JsonUtil.INSTANCE.toJson(infer_data));
-        // 对第一个阶段特殊处理 过滤inferenceData，重新缓存inferenceData, 给phase == -2时候使使用
-        // TODO 改成通用的 uid 预过滤，需要各个算法配合，将推理过程改为通用的结构
-//        if (phase == -1) {
-//            InferenceInit init = (InferenceInit)messageData;
-//            logger.info("init.getUid(): " + Arrays.toString(init.getUid()));
-//            inferData.filterOtherUid(init.getUid());
-//            InferenceDataCache.updateInferenceData(inferenceId, inferData);
-//        }
         long s5 = System.currentTimeMillis();
         logger.info("updateInferenceData cost: " + (s5 - s4));
 //        logger.info("phase : "+ phase + " messageData: " + SerializeUtil.serializeToString(messageData) + " + inferData : " + inferData.getDatasetSize());
@@ -166,7 +158,7 @@ public class InferenceService {
             InferenceInit init = (InferenceInit) messageData;
             //1.检测uid 在不在训练集, 2.检测uid在不在推理数据集中
             String[] uid = init.getUid();
-            String[][] rawData = InferenceDataCache.loadAndCachValidate(inferenceId, algorithm, uid, labelName);
+            String[][] rawData = InferenceDataCache.loadAndCacheValidate(inferenceId, algorithm, uid, labelName, model.getExpressions());
             Message message = model.inferenceInit(uid, rawData, init.getOthers());
 //            int[] filterIndexArray = filterIndexList.stream().mapToInt(i->i).toArray();
             //uid预处理结果返回
@@ -183,15 +175,6 @@ public class InferenceService {
         }
         long s4 = System.currentTimeMillis();
         logger.info("fetchInferenceData cost: " + (s4 - s3));
-        // logger.info("phase=【{}】,data=【{}】,infer_data=【{}】", phase, data, JsonUtil.INSTANCE.toJson(infer_data));
-        // 对第一个阶段特殊处理 过滤inferenceData，重新缓存inferenceData, 给phase == -2时候使使用
-        // TODO 改成通用的 uid 预过滤，需要各个算法配合，将推理过程改为通用的结构
-//        if (phase == -1) {
-//            InferenceInit init = (InferenceInit)messageData;
-//            logger.info("init.getUid(): " + Arrays.toString(init.getUid()));
-//            inferData.filterOtherUid(init.getUid());
-//            InferenceDataCache.updateInferenceData(inferenceId, inferData);
-//        }
         long s5 = System.currentTimeMillis();
         logger.info("updateInferenceData cost: " + (s5 - s4));
 //        logger.info("phase : "+ phase + " messageData: " + SerializeUtil.serializeToString(messageData) + " + inferData : " + inferData.getDatasetSize());

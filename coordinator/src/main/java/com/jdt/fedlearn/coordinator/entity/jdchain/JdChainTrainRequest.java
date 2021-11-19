@@ -1,6 +1,6 @@
 package com.jdt.fedlearn.coordinator.entity.jdchain;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 
 import java.io.Serializable;
 

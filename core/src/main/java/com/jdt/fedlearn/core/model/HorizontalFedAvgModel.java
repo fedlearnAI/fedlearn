@@ -14,17 +14,17 @@ limitations under the License.
 package com.jdt.fedlearn.core.model;
 
 import com.google.protobuf.ByteString;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.entity.horizontalZoo.HorizontalZooMsgStream;
 import com.jdt.fedlearn.core.type.HorizontalZooMsgType;
 import com.jdt.fedlearn.core.entity.horizontalZoo.HorizontalZooDataUtils;
 
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.grpc.federatedlearning.*;
 import com.jdt.fedlearn.grpc.federatedlearning.Vector;
 import com.jdt.fedlearn.core.loader.randomForest.RFInferenceData;

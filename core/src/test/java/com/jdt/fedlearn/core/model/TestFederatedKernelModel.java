@@ -1,9 +1,9 @@
 package com.jdt.fedlearn.core.model;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.DataUtils;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.InferenceReqAndRes;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainReq;
@@ -17,6 +17,7 @@ import com.jdt.fedlearn.core.parameter.FederatedKernelParameter;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.NormalizationType;
 import com.jdt.fedlearn.core.type.data.Tuple3;
+import com.jdt.fedlearn.core.util.Tool;
 import com.jdt.fedlearn.grpc.federatedlearning.Vector;
 import org.ejml.simple.SimpleMatrix;
 import org.testng.Assert;
@@ -308,7 +309,7 @@ public class TestFederatedKernelModel {
         multiClassUniqueLabelList.add(1D);
         NormalizationType normalizationType = NormalizationType.STANDARD;
         KernelJavaSerializer kernelJavaSerializer = new KernelJavaSerializer(modelToken, numClass,  mapdim, modelParas, matweight, bias, normalizationType, normParams1, normParams2,  isActive, multiClassUniqueLabelList);
-        String str = kernelJavaSerializer.toJson();
+        String str = Tool.addExpressions(kernelJavaSerializer.toJson(), null);
         System.out.println(str);
         model.deserialize(str);
         String modelStr = model.serialize();

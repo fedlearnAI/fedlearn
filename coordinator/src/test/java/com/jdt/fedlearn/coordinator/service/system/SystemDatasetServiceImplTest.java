@@ -1,7 +1,7 @@
 package com.jdt.fedlearn.coordinator.service.system;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.jdt.fedlearn.common.tool.internel.ResponseInternal;
+import com.jdt.fedlearn.tools.internel.ResponseInternal;
 import com.jdt.fedlearn.coordinator.entity.system.FeatureMapDTO;
 import com.jdt.fedlearn.coordinator.entity.system.FeatureReq;
 
@@ -12,8 +12,6 @@ import mockit.MockUp;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import java.util.Map;
 
 public class SystemDatasetServiceImplTest {
 

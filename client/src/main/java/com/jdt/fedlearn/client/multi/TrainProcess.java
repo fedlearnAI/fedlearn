@@ -16,7 +16,8 @@ package com.jdt.fedlearn.client.multi;
 import com.jdt.fedlearn.client.cache.ModelCache;
 import com.jdt.fedlearn.client.constant.Constant;
 import com.jdt.fedlearn.client.service.TrainService;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.tools.serializer.KryoUtil;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.model.Model;
 import org.slf4j.Logger;
@@ -46,7 +47,7 @@ public class TrainProcess implements Runnable {
     public void run() {
         try {
             logger.info("enter TrainProcess run!!!");
-            Message restoreMessage = Constant.serializer.deserialize(parameterData);
+            Message restoreMessage = KryoUtil.readFromString(parameterData);
             Message trainResult = model.train(phase, restoreMessage, trainData);
             String strMessage =  Constant.serializer.serialize(trainResult);
             ModelCache modelCache = ModelCache.getInstance();

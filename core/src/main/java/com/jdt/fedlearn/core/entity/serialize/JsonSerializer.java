@@ -15,7 +15,8 @@ package com.jdt.fedlearn.core.entity.serialize;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import com.jdt.fedlearn.core.parameter.HyperParameter;
 
 import java.lang.reflect.ParameterizedType;
@@ -24,7 +25,7 @@ import java.lang.reflect.Type;
 /**
  * 使用gson序列化
  */
-public class JsonSerializer implements Serializer{
+public class JsonSerializer implements Serializer {
     final Gson gson = new GsonBuilder()
             .registerTypeAdapter(Message.class, new MessageAdapter())
             .registerTypeAdapter(HyperParameter.class, new HyperParameterAdapter())

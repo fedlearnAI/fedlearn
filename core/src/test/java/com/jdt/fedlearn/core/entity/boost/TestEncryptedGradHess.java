@@ -1,19 +1,19 @@
 package com.jdt.fedlearn.core.entity.boost;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import com.jdt.fedlearn.core.entity.serialize.JsonSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
 import com.jdt.fedlearn.core.type.data.StringTuple2;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestEncryptedGradHess {
-    @Test
-    public void jsonDeserialize(){
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.EncryptedGradHess\",\"DATA\":{\"client\":{ip='127.0.0.1', port=8000, protocol='http', uniqueId=1},\"instanceSpace\":[1,2,3],\"gh\":[],\"pubKey\":\"123a\" ,\"newTree\":true}}";
-        Serializer serializer = new JsonSerializer();
+            @Test
+            public void jsonDeserialize(){
+                String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.EncryptedGradHess\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"instanceSpace\":[1,2,3],\"gh\":[],\"pubKey\":\"123a\",\"newTree\":true,\"workerNum\":0,\"modelId\":0,\"instanceMin\":0,\"instanceMax\":0}}";
+                Serializer serializer = new JsonSerializer();
         Message message = serializer.deserialize(content);
 
         EncryptedGradHess gh = (EncryptedGradHess) message;
@@ -32,7 +32,7 @@ public class TestEncryptedGradHess {
         String str = serializer.serialize(boostP5Res);
         System.out.println(str);
 
-        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.EncryptedGradHess\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"instanceSpace\":[1,2,3],\"gh\":[],\"pubKey\":\"123a\",\"newTree\":true,\"workerNum\":0}}";
+        String content = "{\"CLASS\":\"com.jdt.fedlearn.core.entity.boost.EncryptedGradHess\",\"DATA\":{\"client\":{\"ip\":\"127.0.0.1\",\"port\":8000,\"protocol\":\"http\",\"uniqueId\":\"1\"},\"instanceSpace\":[1,2,3],\"gh\":[],\"pubKey\":\"123a\",\"newTree\":true,\"workerNum\":0,\"modelId\":0,\"instanceMin\":0,\"instanceMax\":0}}";
         Assert.assertEquals(str, content);
     }
 

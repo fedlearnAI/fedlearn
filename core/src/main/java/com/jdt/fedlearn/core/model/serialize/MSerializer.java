@@ -2,7 +2,7 @@ package com.jdt.fedlearn.core.model.serialize;
 
 import com.jdt.fedlearn.core.model.Model;
 import com.jdt.fedlearn.core.model.common.CommonModel;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 
 import java.nio.charset.StandardCharsets;
 

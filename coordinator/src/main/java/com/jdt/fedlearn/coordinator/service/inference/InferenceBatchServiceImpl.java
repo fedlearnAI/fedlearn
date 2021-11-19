@@ -13,9 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.service.inference;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
-import com.jdt.fedlearn.common.util.LogUtil;
 import com.jdt.fedlearn.coordinator.entity.inference.InferenceRequest;
 import com.jdt.fedlearn.coordinator.entity.inference.InferenceRes;
 import com.jdt.fedlearn.coordinator.entity.inference.SingleInferenceRes;

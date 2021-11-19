@@ -13,9 +13,9 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.util;
 
-import com.jdt.fedlearn.common.util.GZIPCompressUtil;
-import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.common.network.INetWorkService;
+import com.jdt.fedlearn.tools.GZIPCompressUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
+import com.jdt.fedlearn.tools.network.INetWorkService;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import org.slf4j.Logger;
@@ -44,7 +44,7 @@ public class PacketUtil {
      * 若data>压缩阈值时（包含大于分包阈值）且GZIP=true，采用压缩传输；
      * 其余不做任何操作，正常返回
      */
-    public static List<Tuple2<String, Boolean>> splitPacketNew(String data) throws IOException {
+    private static List<Tuple2<String, Boolean>> splitPacketNew(String data) throws IOException {
         int dataLen = data.length();
         logger.info("dealContext dataLen:" + dataLen);
         List<Tuple2<String, Boolean>> resNew = new ArrayList<>();
@@ -105,7 +105,7 @@ public class PacketUtil {
         }
     }
 
-    public static List<String> getStrList(String inputString, int length, int size) {
+    private static List<String> getStrList(String inputString, int length, int size) {
         List<String> list = new ArrayList<>();
         for (int index = 0; index < size; index++) {
             logger.info("is spilt " + index + " ing");
@@ -119,7 +119,7 @@ public class PacketUtil {
     }
 
 
-    public static String substring(String str, int start, int end) {
+    private static String substring(String str, int start, int end) {
         int len = str.length();
         int validStart = start < 0 ? 0 : (start > len ? len : start);
         int validEnd = end < 0 ? 0 : (end > len ? len : end);

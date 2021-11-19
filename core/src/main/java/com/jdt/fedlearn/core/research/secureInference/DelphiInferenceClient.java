@@ -2,19 +2,18 @@ package com.jdt.fedlearn.core.research.secureInference;
 
 import com.jdt.fedlearn.core.dispatch.FederatedGB;
 import com.jdt.fedlearn.core.dispatch.common.Control;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.entity.common.PredictRes;
 import com.jdt.fedlearn.core.entity.delphiInference.DelphiMsg;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.exception.NotMatchException;
 import com.jdt.fedlearn.core.psi.MatchResult;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

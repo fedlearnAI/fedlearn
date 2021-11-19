@@ -13,6 +13,8 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.loader.common;
 
+import java.util.List;
+
 public class CommonInferenceData extends AbstractInferenceData {
 
     @Deprecated
@@ -27,5 +29,13 @@ public class CommonInferenceData extends AbstractInferenceData {
      */
     public CommonInferenceData(String[][] rawData, String idColumnName, String[] featureInTrain) {
         super.scan(rawData, idColumnName, featureInTrain);
+    }
+
+    public CommonInferenceData(String[][] rawData, String idColumnName, String[] featureInTrain, List<String> expressions) {
+        super.scan(rawData, idColumnName, featureInTrain);
+        if (expressions!=null && expressions.size()!=0){
+            super.featureProcessing(expressions);
+        }
+
     }
 }

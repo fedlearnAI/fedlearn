@@ -14,8 +14,8 @@ limitations under the License.
 package com.jdt.fedlearn.core.entity.boost;
 
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 
 
@@ -26,6 +26,7 @@ public class BoostP3Res implements Message {
     private double gain ;
     private MetricValue trainMetric;
     private int workerNum;
+    private SubModel subModel;
 
     public BoostP3Res() {
     }
@@ -73,5 +74,13 @@ public class BoostP3Res implements Message {
 
     public void setWorkerNum(int workerNum) {
         this.workerNum = workerNum;
+    }
+
+    public SubModel getSubModel() {
+        return subModel;
+    }
+
+    public void setSubModel(SubModel subModel) {
+        this.subModel = subModel;
     }
 }

@@ -12,11 +12,9 @@ limitations under the License.
 */
 package com.jdt.fedlearn.common.entity;
 
+import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.enums.RunStatusEnum;
 import com.jdt.fedlearn.common.enums.TaskTypeEnum;
-import com.jdt.fedlearn.common.util.NameUtil;
-import com.jdt.fedlearn.common.util.TimeUtil;
-import com.jdt.fedlearn.common.util.ToString;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
@@ -25,7 +23,7 @@ import java.util.*;
 /**
  * @Description: 任务执行
  */
-public class Task extends ToString implements Comparable<Task>, Serializable {
+public class Task implements Comparable<Task>, Serializable {
     //前置依赖任务
     private List<Task> preTaskList = new ArrayList<>();
     //job
@@ -43,7 +41,7 @@ public class Task extends ToString implements Comparable<Task>, Serializable {
     private Map<String, Object> params=new HashMap<>();
 
     //获取最新的时间
-    private String dateTime = TimeUtil.getNowTime();
+    private String dateTime;
 
     //任务执行状态
     private RunStatusEnum runStatusEnum;
@@ -68,7 +66,7 @@ public class Task extends ToString implements Comparable<Task>, Serializable {
         this.runStatusEnum = runStatusEnum;
         this.taskTypeEnum = taskTypeEnum;
         this.priority = priority;
-        this.taskId = NameUtil.generateTaskID(job, taskTypeEnum, priority);
+        this.taskId = this.generateTaskID(job, taskTypeEnum, priority);
 
     }
 
@@ -206,5 +204,13 @@ public class Task extends ToString implements Comparable<Task>, Serializable {
 
     public void setDateTime(String dateTime) {
         this.dateTime = dateTime;
+    }
+
+
+    public static String generateTaskID(Job job, TaskTypeEnum taskTypeEnum, int priority) {
+        return job.getJobReq().getJobId() + AppConstant.AT_SPLIT
+                + taskTypeEnum.getCode() + AppConstant.AT_SPLIT
+                + priority + AppConstant.AT_SPLIT
+                + System.nanoTime();
     }
 }

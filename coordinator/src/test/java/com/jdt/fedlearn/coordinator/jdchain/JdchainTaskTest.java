@@ -2,7 +2,7 @@ package com.jdt.fedlearn.coordinator.jdchain;
 
 import com.jdt.fedlearn.common.entity.jdchain.ClientInfoFeatures;
 import com.jdt.fedlearn.common.entity.jdchain.JdchainTask;
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;

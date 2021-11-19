@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierNative.signedByteArray;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.exception.DeserializeException;
-import com.jdt.fedlearn.core.exception.SerializeException;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.exception.DeserializeException;
+import com.jdt.fedlearn.common.exception.SerializeException;
 import org.ujmp.core.Matrix;
 
 import java.io.IOException;

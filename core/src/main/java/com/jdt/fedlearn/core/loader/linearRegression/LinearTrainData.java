@@ -13,7 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.loader.linearRegression;
 
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.loader.common.AbstractTrainData;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.preprocess.Scaling;

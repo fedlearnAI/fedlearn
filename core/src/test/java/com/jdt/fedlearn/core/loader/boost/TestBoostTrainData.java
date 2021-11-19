@@ -1,6 +1,6 @@
 package com.jdt.fedlearn.core.loader.boost;
 
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.model.common.tree.sampling.ColSampler;
 import com.jdt.fedlearn.core.type.data.Tuple3;

@@ -1,9 +1,10 @@
 package com.jdt.fedlearn.core.integratedTest.randomForest;
 
+import com.jdt.fedlearn.common.entity.core.feature.SingleFeature;
 import com.jdt.fedlearn.core.dispatch.RandomForest;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.EncryptionType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
@@ -77,9 +78,20 @@ public class TestRandomForestBinary {
         Tuple2<MatchResult, String[]> mappingOutput = CommonRun.match(MappingType.MD5, Arrays.asList(clientInfos.clone()), rawDataMap);
         MatchResult matchResult = mappingOutput._1();
         Map<ClientInfo, Features> featuresMap = new HashMap<>();
+        List<String> expressions = new ArrayList<>();
+        expressions.add("Pregnancies + Glucose");
+        expressions.add("Glucose * Pregnancies");
+        int index = 0;
         for (Map.Entry<ClientInfo, String[][]> entry : rawDataMap.entrySet()) {
-            Features features1 = DataParseUtil.fetchFeatureFromData(entry.getValue());
+            Features features1;
+            if (index == 0) {
+                features1 = fetchFeatureFromData(entry.getValue(), expressions);
+            }else {
+                features1 = DataParseUtil.fetchFeatureFromData(entry.getValue());
+            }
+
             featuresMap.put(entry.getKey(), features1);
+            index ++;
         }
         //设置哪方那个特征是label
         featuresMap.get(clientInfos[labelIndex]).setLabel(labelName);
@@ -92,15 +104,22 @@ public class TestRandomForestBinary {
         }
         Map<String, Object> other = new HashMap<>();
         other.put("splitRatio", 1.0);
+
+//        Map<ClientInfo, List<String>> allExpressions = new HashMap<>();
+//        List<String> expressions = new ArrayList<>();
+//        expressions.add("Pregnancies + Glucose");
+//        expressions.add("Glucose * Pregnancies");
+//        allExpressions.put(clientInfos[0], expressions);
+//        other.put("allExpressions", allExpressions);
         // initial and train
         List<CommonRequest> initRequests = algo.initControl(Arrays.asList(clientInfos.clone()), matchResult, featuresMap, other);
         CommonRun.train(algo, initRequests, modelMap, rawDataMap, mappingOutput._2());
 
         //model save
         for (Map.Entry<ClientInfo, Model> x : modelMap.entrySet()) {
-            RandomForestModel boostModel = (RandomForestModel) x.getValue();
+            RandomForestModel model = (RandomForestModel) x.getValue();
             String key = x.getKey().getPort() + "";
-            String content = boostModel.serialize();
+            String content = model.serialize();
             FileUtil.saveModel(content, "./" + token + "_" + key + ".model");
         }
     }
@@ -141,5 +160,21 @@ public class TestRandomForestBinary {
         testRandomForest.setUp();
         testRandomForest.testTrainAndTest();
         testRandomForest.testInference();
+    }
+
+    public static Features fetchFeatureFromData(String[][] data, List<String> expressions) {
+        List<SingleFeature> r = new ArrayList<>();
+        String[] header = data[0];
+        for (int i = 0; i < header.length; i++) {
+            if (i == 0) {
+                r.add(new SingleFeature(header[i], "int"));
+            } else {
+                r.add(new SingleFeature(header[i], "float"));
+            }
+        }
+        for (int i = 0; i < expressions.size(); i++) {
+            r.add(new SingleFeature("new" + i , expressions.get(i)));
+        }
+        return new Features(r);
     }
 }

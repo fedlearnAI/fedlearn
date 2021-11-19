@@ -84,4 +84,9 @@ public interface RequestConstant {
     String ENCODING = "encoding";
     String UTF_8 = "UTF-8";
     String APPLICATION_JSON_CHARSET_UTF_8 = "application/json; charset=utf-8";
+
+    /**
+     * 发送拆分的训练massage
+     */
+    String TRAIN_SPLIT_DATA = "/api/train/splitData";
 }

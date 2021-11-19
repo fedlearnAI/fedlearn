@@ -17,23 +17,29 @@ import com.google.common.collect.Maps;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.project.PartnerInfoNew;
+import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
 import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.common.util.GZIPCompressUtil;
-import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.common.network.INetWorkService;
+import com.jdt.fedlearn.common.enums.UrlType;
+import com.jdt.fedlearn.tools.GZIPCompressUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
+import com.jdt.fedlearn.tools.network.INetWorkService;
+import com.jdt.fedlearn.tools.serializer.KryoUtil;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.coordinator.util.PacketUtil;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import com.jdt.fedlearn.core.exception.NotImplementedException;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.core.model.DistributedFederatedGBModel;
+import com.jdt.fedlearn.core.model.Model;
+import com.jdt.fedlearn.core.model.common.CommonModel;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.coordinator.constant.RequestConstant;
-import com.jdt.fedlearn.common.tool.internel.ResponseInternal;
+import com.jdt.fedlearn.tools.internel.ResponseInternal;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,11 +59,12 @@ public class SendAndRecv {
     private static final int RETRY = 3;
     private static final Serializer serializer = new JavaSerializer();
 
-    private static INetWorkService getNetWorkService(){
+    private static INetWorkService getNetWorkService() {
         String networkType = ConfigUtil.getNetworkType();
         INetWorkService netWorkService = INetWorkService.getNetWorkService(networkType);
         return netWorkService;
     }
+
     /**
      * @param client     客户端信息
      * @param modelToken 模型id
@@ -95,7 +102,8 @@ public class SendAndRecv {
         context.put("algorithm", algorithm);
         context.put("phase", phase);
         context.put("status", status);
-        String strData = serializer.serialize(data);
+//        String strData = serializer.serialize(data);
+        String strData = KryoUtil.writeToString(data);
         if (isSync) {
             //返回分包传输最后的结果，
             context.put("data", strData);
@@ -170,10 +178,9 @@ public class SendAndRecv {
         context.put("phase", phase);
         context.put("status", status);
         context.put("dataset", dataset);
-        String strData = serializer.serialize(data);
         if (isSync) {
+            String strData = KryoUtil.writeToString(data);
             //返回分包传输最后的结果，
-
             context.put("data", strData);
             context.put("isGzip", false);
             context.put("dataIndex", 0);
@@ -188,6 +195,7 @@ public class SendAndRecv {
 //            Message message = SerializeUtil.deserializeToObject();
             return SendAndRecv.sendWithRetry(url, context);
         } else {
+            String strData = splitMessage(client, modelToken, algorithm, data);
             //返回分包传输最后的结果，
             String retStatus = PacketUtil.splitPacket(url, context, strData);
             assert retStatus != null;
@@ -212,9 +220,43 @@ public class SendAndRecv {
                 logger.error("receive packet error:", e);
             }
             logger.info("client is:" + client.toString() + " modelToken:" + modelToken + " phase" + phase + "is end " + "cost time :" + (System.currentTimeMillis() - start) + "ms");
-//            Message message = SerializeUtil.deserializeToObject(finalRet);
             return finalRet;
         }
+    }
+
+    /**
+     * @param client
+     * @param modelToken
+     * @param algorithm
+     * @param data
+     * @description: 拆分message
+     * @return: java.lang.String
+     * @author: geyan29
+     * @date: 2021/11/5 4:20 下午
+     */
+    private static String splitMessage(ClientInfo client, String modelToken, AlgorithmType algorithm, Message data) {
+        String strData;
+        Model model = CommonModel.constructModel(algorithm);
+        if (!(model instanceof DistributedFederatedGBModel)) {
+            return KryoUtil.writeToString(data);
+        }
+        Map<String, Object> map = model.messageSplit(data);
+        Message message = (Message) map.get("trainRequest");
+        List<Message> subMessageList = (List<Message>) map.get("messageList");
+        if (subMessageList != null && subMessageList.size() > 0) {
+            subMessageList.forEach(subMessage -> {
+                Map<String, Object> paramMap = new HashMap<>();
+                paramMap.put("modelToken", modelToken);
+                paramMap.put("message", subMessage);
+                String param = KryoUtil.writeToString(paramMap);
+//                logger.info("将拆分的message发送给manager，序列化后长度:{}，大小:{}", param.length(), RamUsageEstimator.humanSizeOf(param));
+                getNetWorkService().sendAndRecv(client.url() + AppConstant.SLASH + ManagerCommandEnum.TRAIN_SPLIT_DATA.getCode(), param);
+            });
+            strData = KryoUtil.writeToString(message);
+        } else {
+            strData = KryoUtil.writeToString(data);
+        }
+        return strData;
     }
 
     /**
@@ -413,16 +455,16 @@ public class SendAndRecv {
         String response = "";
         int i = 0;
         do {
+            if (i > 0 && i < 30) {
+                Thread.sleep(1000L * i);
+            }
             logger.info("client is:" + client.toString() + " stamp:" + stamp);
             String url = client.url() + RequestConstant.TRAIN_PROGRESS_QUERY;
             Map<String, Object> context = new HashMap<>();
             context.put("stamp", stamp);
             String result = getNetWorkService().sendAndRecv(url, context);
             response = GZIPCompressUtil.unCompress(result);
-            Thread.sleep(1000L * i);
-            if (i < 30) {
-                i = i + 1;
-            }
+            i = i + 1;
         } while (response.contains(ResponseConstant.DOING));
         Map resJson = JsonUtil.json2Object(response, Map.class);
         return (String) resJson.get(ResponseConstant.DATA);

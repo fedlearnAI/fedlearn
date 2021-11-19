@@ -14,12 +14,12 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.service.inference;
 
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.tool.ResponseHandler;
-import com.jdt.fedlearn.common.tool.internel.ResponseConstruct;
-import com.jdt.fedlearn.common.util.TokenUtil;
+import com.jdt.fedlearn.tools.TokenUtil;
+import com.jdt.fedlearn.tools.internel.ResponseConstruct;
 import com.jdt.fedlearn.coordinator.allocation.ResourceManager;
 import com.jdt.fedlearn.coordinator.entity.inference.*;
 import com.jdt.fedlearn.coordinator.service.InferenceService;
+import com.jdt.fedlearn.tools.internel.ResponseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

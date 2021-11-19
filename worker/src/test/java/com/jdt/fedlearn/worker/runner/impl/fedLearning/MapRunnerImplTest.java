@@ -13,11 +13,11 @@ limitations under the License.
 package com.jdt.fedlearn.worker.runner.impl.fedLearning;
 
 import com.jdt.fedlearn.client.util.ConfigUtil;
-import com.jdt.fedlearn.common.util.ManagerCommandUtil;
+import com.jdt.fedlearn.tools.ManagerCommandUtil;
 import com.jdt.fedlearn.worker.spring.SpringBean;
 import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.*;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;

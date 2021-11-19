@@ -3,7 +3,7 @@ package com.jdt.fedlearn.core.psi.freedman;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.fake.FakeTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
@@ -13,12 +13,9 @@ import com.jdt.fedlearn.core.entity.psi.FreedmanPassiveResult;
 import com.jdt.fedlearn.core.entity.psi.MatchInitRes;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import org.testng.Assert;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.*;
-
-import static org.testng.Assert.*;
 
 public class FreedmanMatchTest {
     List<ClientInfo> clientInfos = StructureGenerate.twoClients();

@@ -1,7 +1,7 @@
 package com.jdt.fedlearn.coordinator.entity;
 
-import com.jdt.fedlearn.common.tool.internel.ResponseInternal;
-import com.jdt.fedlearn.common.util.GZIPCompressUtil;
+import com.jdt.fedlearn.tools.GZIPCompressUtil;
+import com.jdt.fedlearn.tools.internel.ResponseInternal;
 import org.testng.annotations.Test;
 
 public class ResponseInternalTest {

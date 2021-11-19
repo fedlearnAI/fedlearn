@@ -15,20 +15,20 @@ package com.jdt.fedlearn.core.dispatch;
 
 import com.google.protobuf.ByteString;
 import com.jdt.fedlearn.core.dispatch.common.Control;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.common.*;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import com.jdt.fedlearn.core.type.*;
 import com.jdt.fedlearn.grpc.federatedlearning.*;
 
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 
 import com.jdt.fedlearn.core.entity.horizontalZoo.HorizontalZooDataUtils;
 import com.jdt.fedlearn.core.entity.horizontalZoo.HorizontalZooMsgStream;
 import com.jdt.fedlearn.core.type.HorizontalZooMsgType;
 import com.jdt.fedlearn.core.parameter.HorizontalFedAvgPara;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.MetricType;
 
 import com.jdt.fedlearn.core.type.data.Pair;

@@ -19,11 +19,11 @@ import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.DifferentialPrivacyFactory;
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.IDifferentialPrivacy;
 import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.DoubleArray;
 import com.jdt.fedlearn.core.entity.base.StringArray;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.verticalLinearRegression.VerticalLinearTrainData;
@@ -36,7 +36,7 @@ import com.jdt.fedlearn.core.entity.verticalLinearRegression.*;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
 import com.jdt.fedlearn.core.preprocess.Scaling;
 import com.jdt.fedlearn.core.model.serialize.LinearModelSerializer;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.DifferentialPrivacyType;
 import com.jdt.fedlearn.core.type.VerLinModelPhaseType;
 import com.jdt.fedlearn.core.util.Tool;
@@ -61,6 +61,7 @@ public class VerticalLinearModel implements Model {
     private double[] random;
     private IDifferentialPrivacy differentialPrivacy;
     private EncryptionTool encryptionTool = new PaillierTool();// new FakeTool();//new PaillierTool();//new JavallierTool();
+    private List<String> expressions = new ArrayList<>();
 
     public VerticalLinearModel() {
 
@@ -117,7 +118,9 @@ public class VerticalLinearModel implements Model {
     @Override
     public VerticalLinearTrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, HyperParameter hyperParameter, Features features, Map<String, Object> others) {
         parameter = (VerticalLinearParameter) hyperParameter;
+
         VerticalLinearTrainData trainData = new VerticalLinearTrainData(rawData, uids, features, parameter.isUseDP());
+        this.expressions = trainData.getExpressions();
         //初始化预测值和gradient hessian
         logger.info("actual received features:" + features.getFeatureList().toString());
         logger.info("client data dim:" + trainData.getDatasetSize() + "," + trainData.getFeatureDim());
@@ -396,12 +399,15 @@ public class VerticalLinearModel implements Model {
         if (this.parameter != null && this.parameter.isUseDP() && DifferentialPrivacyType.OUTPUT_PERTURB.equals(this.parameter.getDpType())) {
             this.differentialPrivacy.addNoises(this.weight, this.weight);
         }
-        return LinearModelSerializer.saveModelVrticalLinear(modelToken, weight, scaling);
+//        return LinearModelSerializer.saveModelVrticalLinear(modelToken, weight, scaling);
+        return Tool.addExpressions(LinearModelSerializer.saveModelVrticalLinear(modelToken, weight, scaling), this.expressions);
     }
 
 
     public void deserialize(String content) {
-        VerticalLinearModel model = LinearModelSerializer.loadVerticalLinearModel(content);
+        String[] contents = Tool.splitExpressionsAndModel(content);
+        this.expressions = Tool.splitExpressions(contents[0]);
+        VerticalLinearModel model = LinearModelSerializer.loadVerticalLinearModel(contents[1]);
         this.modelToken = model.modelToken;
         this.weight = model.weight;
         this.scaling = model.scaling;
@@ -413,6 +419,10 @@ public class VerticalLinearModel implements Model {
 
     public IDifferentialPrivacy getDifferentialPrivacy(){
         return this.differentialPrivacy;
+    }
+
+    public List<String> getExpressions() {
+        return expressions;
     }
 
 }

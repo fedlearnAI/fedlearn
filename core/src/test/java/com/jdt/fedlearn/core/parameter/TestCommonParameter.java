@@ -9,7 +9,7 @@ import com.jdt.fedlearn.core.parameter.common.ParameterField;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.ObjectiveType;
 import com.jdt.fedlearn.core.type.ParameterType;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;

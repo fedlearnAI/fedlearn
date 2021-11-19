@@ -2,7 +2,7 @@ package com.jdt.fedlearn.core.integratedTest;
 
 import com.jdt.fedlearn.core.dispatch.DistributedKeyGeneCoordinator;
 import com.jdt.fedlearn.core.encryption.nativeLibLoader;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.example.CommonRunKeyGene;
 import com.jdt.fedlearn.core.integratedTest.linearRegression.TestMixedLinearRegression;
 import org.slf4j.Logger;

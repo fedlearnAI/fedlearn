@@ -11,7 +11,8 @@ public enum UrlType {
     MODEL_DELETE("/api/system/model/delete", "发起训练"),
     FETCH("/api/system/metadata/fetch", "准备完成"),
     RUNNING2("/api/inference", "运行中"),
-    FAIL("FAIL", "失败");
+    FAIL("FAIL", "失败"),
+    TRAIN_SPLIT_DATA("/api/train/splitData","分布式训练拆分训练数据");
 
     private final String path;
     private final String desc;

@@ -3,7 +3,7 @@ package com.jdt.fedlearn.core.entity.serialize;
 
 import com.google.gson.*;
 import com.google.gson.JsonSerializer;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;

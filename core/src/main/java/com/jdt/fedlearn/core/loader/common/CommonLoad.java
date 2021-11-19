@@ -20,7 +20,9 @@ import com.jdt.fedlearn.core.loader.mixGBoost.MixGBInferenceData;
 import com.jdt.fedlearn.core.loader.randomForest.RFInferenceData;
 import com.jdt.fedlearn.core.loader.secureInference.DelphiInferenceData;
 import com.jdt.fedlearn.core.loader.secureInference.TreeInferenceData;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+
+import java.util.List;
 
 public class CommonLoad {
 
@@ -33,15 +35,52 @@ public class CommonLoad {
             case FederatedGB:
             case DistributedFederatedGB:
             case HorizontalFedAvg:
+            case RandomForest:
+            case DistributedRandomForest:
                 inferenceData = new CommonInferenceData(rawData, "uid", null);
                 break;
             case LinearRegression: {
                 inferenceData = new LinearInferenceData(rawData, null);
                 break;
             }
+            case MixGBoost: {
+                inferenceData = new MixGBInferenceData(rawData);
+                break;
+            }
+            case VerticalFDNN: {
+                inferenceData = new VFDNNInferenceData(rawData);
+                break;
+            }
+            case TreeInference: {
+                inferenceData = new TreeInferenceData(rawData);
+                break;
+            }
+            case DelphiInference: {
+                inferenceData = new DelphiInferenceData(rawData);
+                break;
+            }
+            default: {
+                throw new NotImplementedException("not implemented algorithm in inference");
+            }
+        }
+        return inferenceData;
+    }
+
+    public static InferenceData constructInference(AlgorithmType algorithm, String[][] rawData, List<String> expressions) {
+        InferenceData inferenceData;
+        switch (algorithm) {
+            case VerticalLinearRegression:
+            case VerticalLR:
+            case FederatedKernel:
+            case FederatedGB:
+            case DistributedFederatedGB:
+            case HorizontalFedAvg:
             case RandomForest:
-            case DistributedRandomForest: {
-                inferenceData = new RFInferenceData(rawData);
+            case DistributedRandomForest:
+                inferenceData = new CommonInferenceData(rawData, "uid", null, expressions);
+                break;
+            case LinearRegression: {
+                inferenceData = new LinearInferenceData(rawData, null);
                 break;
             }
             case MixGBoost: {

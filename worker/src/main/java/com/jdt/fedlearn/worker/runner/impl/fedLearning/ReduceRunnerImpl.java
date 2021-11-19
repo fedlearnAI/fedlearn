@@ -14,7 +14,8 @@ package com.jdt.fedlearn.worker.runner.impl.fedLearning;
 
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.intf.IAlgorithm;
-import com.jdt.fedlearn.common.util.TimeUtil;
+import com.jdt.fedlearn.tools.TimeUtil;
+import com.jdt.fedlearn.tools.WorkerCommandUtil;
 import com.jdt.fedlearn.worker.cache.WorkerResultCache;
 import com.jdt.fedlearn.worker.runner.Runner;
 import com.jdt.fedlearn.worker.service.AlgorithmService;
@@ -23,7 +24,6 @@ import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.Task;
 import com.jdt.fedlearn.common.entity.TaskResultData;
 import com.jdt.fedlearn.common.enums.*;
-import com.jdt.fedlearn.common.util.WorkerCommandUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

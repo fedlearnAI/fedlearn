@@ -18,7 +18,7 @@ import com.google.common.collect.Maps;
 import com.jdt.fedlearn.client.entity.HttpResp;
 import com.jdt.fedlearn.client.entity.source.DataSourceConfig;
 import com.jdt.fedlearn.client.entity.source.HttpSourceConfig;
-import com.jdt.fedlearn.common.network.INetWorkService;
+import com.jdt.fedlearn.tools.network.INetWorkService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

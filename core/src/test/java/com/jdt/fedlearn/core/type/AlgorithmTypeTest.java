@@ -1,5 +1,6 @@
 package com.jdt.fedlearn.core.type;
 
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;

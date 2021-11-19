@@ -16,8 +16,8 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.JobResult;
-import com.jdt.fedlearn.common.util.ManagerCommandUtil;
 
+import com.jdt.fedlearn.tools.ManagerCommandUtil;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;

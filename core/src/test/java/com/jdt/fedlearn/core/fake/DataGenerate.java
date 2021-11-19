@@ -1,6 +1,5 @@
 package com.jdt.fedlearn.core.fake;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
 import com.jdt.fedlearn.core.math.MathExt;
 
 import java.util.*;

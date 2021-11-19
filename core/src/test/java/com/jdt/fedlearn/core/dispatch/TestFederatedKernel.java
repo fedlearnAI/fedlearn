@@ -1,17 +1,17 @@
 package com.jdt.fedlearn.core.dispatch;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
 import com.jdt.fedlearn.core.entity.common.*;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.InferenceReqAndRes;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainReq;
 import com.jdt.fedlearn.core.entity.kernelLinearRegression.TrainRes;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
 import com.jdt.fedlearn.core.parameter.FederatedKernelParameter;
 import com.jdt.fedlearn.core.psi.MatchResult;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.KernelDispatchPhaseType;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.data.Pair;

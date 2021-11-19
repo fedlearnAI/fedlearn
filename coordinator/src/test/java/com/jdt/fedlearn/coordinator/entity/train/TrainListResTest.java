@@ -1,7 +1,7 @@
 package com.jdt.fedlearn.coordinator.entity.train;
 
 import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

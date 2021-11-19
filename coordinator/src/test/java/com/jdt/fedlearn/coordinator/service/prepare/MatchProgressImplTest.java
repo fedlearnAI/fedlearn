@@ -1,16 +1,14 @@
 package com.jdt.fedlearn.coordinator.service.prepare;
 
-import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import com.jdt.fedlearn.coordinator.dao.db.MatchMapper;
 import com.jdt.fedlearn.coordinator.entity.prepare.MatchQueryReq;
-import com.jdt.fedlearn.coordinator.entity.table.MatchEntity;
 import com.jdt.fedlearn.coordinator.entity.table.PartnerProperty;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
-import com.jdt.fedlearn.common.entity.uniqueId.MappingId;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
+import com.jdt.fedlearn.coordinator.entity.uniqueId.MappingId;
 import com.jdt.fedlearn.core.type.MappingType;
 import mockit.Mock;
 import mockit.MockUp;
@@ -20,10 +18,8 @@ import org.testng.annotations.Test;
 
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class MatchProgressImplTest {
     private static PartnerProperty C1;

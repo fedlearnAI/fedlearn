@@ -15,7 +15,7 @@ package com.jdt.fedlearn.worker.util;
 import com.google.common.collect.Lists;
 import com.jdt.fedlearn.common.entity.Task;
 import com.jdt.fedlearn.common.enums.TaskTypeEnum;
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

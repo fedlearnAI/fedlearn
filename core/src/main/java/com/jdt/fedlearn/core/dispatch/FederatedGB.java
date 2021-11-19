@@ -14,14 +14,14 @@ limitations under the License.
 package com.jdt.fedlearn.core.dispatch;
 
 import com.jdt.fedlearn.core.dispatch.common.Control;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.base.Int2dArray;
 import com.jdt.fedlearn.core.entity.base.StringArray;
 import com.jdt.fedlearn.core.entity.boost.*;
 import com.jdt.fedlearn.core.entity.common.*;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.exception.NotMatchException;
 import com.jdt.fedlearn.core.model.common.loss.LogisticLoss;
@@ -32,7 +32,7 @@ import com.jdt.fedlearn.core.model.common.tree.Tree;
 import com.jdt.fedlearn.core.model.common.tree.TreeNode;
 import com.jdt.fedlearn.core.parameter.FgbParameter;
 import com.jdt.fedlearn.core.psi.MatchResult;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.FGBDispatchPhaseType;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.ObjectiveType;
@@ -180,6 +180,7 @@ public class FederatedGB implements Control {
             //找到每个client拥有的feature
             Features localFeature = featuresMap.get(clientInfo);
             other.put("newTree", true);
+            other.put("matchSize", idMap.getLength());
             TrainInit req = new TrainInit(parameter, localFeature, idMap.getMatchId(), other);
             CommonRequest request = CommonRequest.buildTrainInitial(clientInfo, req);
             res.add(request);

@@ -19,7 +19,6 @@ import com.jdt.fedlearn.common.enums.RunStatusEnum;
 import com.jdt.fedlearn.common.enums.TaskTypeEnum;
 import com.jdt.fedlearn.common.exception.BusinessException;
 import com.jdt.fedlearn.manager.service.JobManager;
-import com.jdt.fedlearn.manager.service.WorkerManager;
 import com.jdt.fedlearn.manager.service.TaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +38,6 @@ public class ManagerLocalApp {
 
     @Resource
     private TaskManager taskManager;
-    @Resource
-    private WorkerManager workerManager;
     @Resource
     private JobManager jobManager;
     /**
@@ -94,9 +91,6 @@ public class ManagerLocalApp {
         return taskManager;
     }
 
-    public WorkerManager getWorkerManager() {
-        return workerManager;
-    }
 
     public JobManager getJobManager() {
         return jobManager;

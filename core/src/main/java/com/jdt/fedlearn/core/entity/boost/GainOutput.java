@@ -13,7 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.entity.boost;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 
 public class GainOutput {
     private final ClientInfo client;

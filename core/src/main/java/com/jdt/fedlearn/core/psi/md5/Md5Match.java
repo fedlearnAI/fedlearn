@@ -13,7 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.psi.md5;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.psi.MatchInit;

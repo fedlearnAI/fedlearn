@@ -13,14 +13,16 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.loader.common;
 
-import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.entity.feature.SingleFeature;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.SingleFeature;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.util.Tool;
+import com.jdt.fedlearn.tools.ExprAnalysis;
 
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * 输入数据解析
@@ -40,6 +42,8 @@ public abstract class AbstractTrainData implements TrainData, Serializable {
     protected int datasetSize;
     public int[] fullInstance;
     public boolean hasLabel;
+    protected List<String> expressions;
+    protected List<String> newFeatureName;
 
     public AbstractTrainData() {
     }
@@ -61,9 +65,21 @@ public abstract class AbstractTrainData implements TrainData, Serializable {
         if (hasLabel) {
             label = loadLabel(rawTable3, features.getLabel());
         }
-
         sample = loadFeature(rawTable3, features);
+        loadExpressions(features);
         return rawTable3;
+    }
+
+    private void loadExpressions(Features features) {
+        List<SingleFeature> featureList = features.getFeatureList();
+        expressions = new ArrayList<>();
+        newFeatureName = new ArrayList<>();
+        for (SingleFeature singleFeature : featureList) {
+            if (!"int".equals(singleFeature.getType()) && !"float".equals(singleFeature.getType()) && !"String".equals(singleFeature.getType())) {
+                expressions.add(singleFeature.getType());
+                newFeatureName.add(singleFeature.getName());
+            }
+        }
     }
 
     //TODO 以lib svm格式存储的稀疏数据解析
@@ -81,8 +97,6 @@ public abstract class AbstractTrainData implements TrainData, Serializable {
         }
 
         //TODO 根据features 内容对categoryFeatures 进行赋值
-//        categoryFeatures = new ArrayList<>();
-
         //加载特征名，不包含uid和label
         featureName = loadFeatureNames(rawTable, features);
         //根据输入的特征名加载特征
@@ -92,59 +106,6 @@ public abstract class AbstractTrainData implements TrainData, Serializable {
             label = loadLabel(rawTable2, features.getLabel());
         }
         sample = loadFeature(rawTable2, features);
-    }
-
-    //ransposition data
-    public String[][] missingValueProcess(String[][] data) {
-        String[][] dataResult = new String[data.length][data[0].length];
-        String[] missings = new String[]{"null", "unknown", null, ""};
-        for (int i = 0; i < data.length; i++) {
-//            List<String> colList = Arrays.asList(Arrays.copyOfRange(data[i],1,data[i].length));
-            List<String> colList = Arrays.asList(data[i]);
-            for (String missing : missings) {
-                Collections.replaceAll(colList, missing, String.valueOf(MathExt.average(data[i])));
-            }
-            String[] colRes = colList.toArray(new String[colList.size()]);
-            dataResult[i] = colRes;
-        }
-        return dataResult;
-    }
-
-    //ransposition data
-    public String[][] categreyFeature(String[][] data, String[] categreyFeas) {
-        String[][] dataRes = data;
-        for (int i = 0; i < data.length; i++) {
-            if (Arrays.asList(categreyFeas).contains(data[i][0])) {
-                Set<String> aa = Arrays.stream(Arrays.copyOfRange(data[i], 1, data[i].length)).collect(Collectors.toSet());
-                List<String> aaa = new ArrayList<>(aa);
-                List<String> colList = Arrays.asList(data[i]);
-                for (int j = 0; j < aaa.size(); j++) {
-                    String aaaa = aaa.get(j);
-                    Collections.replaceAll(colList, aaaa, String.valueOf(j));
-                }
-                String[] colRes = colList.toArray(new String[colList.size()]);
-                dataRes[i] = colRes;
-            }
-        }
-        return dataRes;
-    }
-
-    public String[][] categreyFeature(String[][] data) {
-        String[][] dataRes = data;
-        for (int i = 0; i < data.length; i++) {
-            if (!MathExt.isNumeric(data[i][1])) {
-                Set<String> aa = Arrays.stream(Arrays.copyOfRange(data[i], 1, data[i].length)).collect(Collectors.toSet());
-                List<String> aaa = new ArrayList<>(aa);
-                List<String> colList = Arrays.asList(data[i]);
-                for (int j = 0; j < aaa.size(); j++) {
-                    String aaaa = aaa.get(j);
-                    Collections.replaceAll(colList, aaaa, String.valueOf(j));
-                }
-                String[] colRes = colList.toArray(new String[colList.size()]);
-                dataRes[i] = colRes;
-            }
-        }
-        return dataRes;
     }
 
     //根据用户输入的特征列表加载特征，包含index列和label列
@@ -323,6 +284,40 @@ public abstract class AbstractTrainData implements TrainData, Serializable {
         return res.toArray(new String[0]);
     }
 
+    public void featureProcessing(List<String> expressions) {
+        ExprAnalysis exprAnalysis = new ExprAnalysis();
+        List<String> featuresName = Arrays.asList(featureName);
+        int featureDim = this.featureDim;
+        double[][] res = new double[sample.length][featureDim + expressions.size()];
+        IntStream.range(0, expressions.size()).parallel().forEach(i -> {
+            String token = null;
+            String expr = expressions.get(i);
+            try {
+                token = exprAnalysis.init(expr, featuresName);
+            } catch (NoSuchElementException e) {
+                throw new RuntimeException("antlr init error:" + e.getMessage());
+            }
+
+            String finalToken = token;
+            IntStream.range(0, sample.length).parallel().forEach(row -> {
+                if (featureDim >= 0) System.arraycopy(sample[row], 0, res[row], 0, featureDim);
+                try {
+                    res[row][featureDim + i] = exprAnalysis.expression(finalToken, sample[row], featuresName);
+                } catch (Exception e) {
+                    throw new RuntimeException("antlr calculate error:" + e.getMessage());
+                }
+            });
+            exprAnalysis.close(token);
+        });
+        List<String> featureNameList = new ArrayList(Arrays.asList(this.featureName));
+        for (int i = 0; i < expressions.size(); i++) {
+            featureNameList.add(newFeatureName.get(i));
+        }
+        this.featureName = featureNameList.toArray(new String[0]);
+        this.featureDim = this.featureName.length;
+        this.sample = res;
+    }
+
 
     public double[][] getSample() {
         return this.sample;
@@ -387,5 +382,21 @@ public abstract class AbstractTrainData implements TrainData, Serializable {
 
     public void setHasLabel(boolean hasLabel) {
         this.hasLabel = hasLabel;
+    }
+
+    public List<String> getExpressions() {
+        return expressions;
+    }
+
+    public void setExpressions(List<String> expressions) {
+        this.expressions = expressions;
+    }
+
+    public List<String> getNewFeatureName() {
+        return newFeatureName;
+    }
+
+    public void setNewFeatureName(List<String> newFeatureName) {
+        this.newFeatureName = newFeatureName;
     }
 }

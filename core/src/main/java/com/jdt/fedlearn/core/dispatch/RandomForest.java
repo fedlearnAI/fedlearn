@@ -13,11 +13,12 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.dispatch;
 
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.dispatch.common.Control;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
 import com.jdt.fedlearn.core.entity.common.*;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.entity.randomForest.DataUtils;
 import com.jdt.fedlearn.core.entity.randomForest.RandomForestInferMessage;
 import com.jdt.fedlearn.core.entity.randomForest.RandomForestTrainReq;
@@ -26,7 +27,6 @@ import com.jdt.fedlearn.core.exception.NotMatchException;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
 import com.jdt.fedlearn.core.preprocess.TrainTestSplit;
 import com.jdt.fedlearn.core.psi.MatchResult;
-import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.RFDispatchPhaseType;
 import com.jdt.fedlearn.core.type.data.Pair;
@@ -237,6 +237,7 @@ public class RandomForest implements Control {
                 RandomForestTrainRes rfRes = (RandomForestTrainRes) response.getBody();
                 updateMetrics(rfRes);
             }
+            req.setNumTrees(parameter.getNumTrees());
         }
         logger.info("control phase 1 end{}", splitLine);
         return commonRequests;
@@ -309,6 +310,7 @@ public class RandomForest implements Control {
             } else {
                 req = new RandomForestTrainReq(response.getClient(), treeIdToSampleId);
             }
+            req.setNumTrees(parameter.getNumTrees());
             CommonRequest commonReq = new CommonRequest(response.getClient(), req, 2);
             commonRequests.add(commonReq);
         }
@@ -384,6 +386,7 @@ public class RandomForest implements Control {
             CommonRequest req;
             String clientStr = response.getClient().toString();
             RandomForestTrainReq rfReq = new RandomForestTrainReq(response.getClient(), splitMessage.get(clientStr), tidToSampleIds.get(clientStr));
+            rfReq.setNumTrees(parameter.getNumTrees());
             req = new CommonRequest(response.getClient(), rfReq, 4);
             commonRequests.add(req);
         }
@@ -424,6 +427,7 @@ public class RandomForest implements Control {
             } else {
                 req = new RandomForestTrainReq(response.getClient());
             }
+            req.setNumTrees(res.getNumTrees());
             commonRequests.add(new CommonRequest(response.getClient(), req, 5));
 
         }
@@ -461,7 +465,7 @@ public class RandomForest implements Control {
                 }
             }
             for (CommonResponse responsei : response) {
-                commonRequests.add(new CommonRequest(responsei.getClient(), new RandomForestTrainReq(responsei.getClient(), jsonForest.get(responsei.getClient().toString())), 99));
+                commonRequests.add(new CommonRequest(responsei.getClient(), new RandomForestTrainReq(responsei.getClient(), jsonForest.get(responsei.getClient().toString()), parameter.getNumTrees()), 99));
             }
             return commonRequests;
         } else {
@@ -470,7 +474,7 @@ public class RandomForest implements Control {
                 if (res.isActive()) {
                     updateMetrics(res);
                 }
-                commonRequests.add(new CommonRequest(responsei.getClient(), new RandomForestTrainReq(responsei.getClient(), "init"), 99));
+                commonRequests.add(new CommonRequest(responsei.getClient(), new RandomForestTrainReq(responsei.getClient(), "init", parameter.getNumTrees()), 99));
             }
             return commonRequests;
         }
@@ -674,7 +678,9 @@ public class RandomForest implements Control {
     private List<CommonRequest> createNullRequest(List<CommonResponse> responses, int phase) {
         List<CommonRequest> req = new ArrayList<>();
         for (CommonResponse res : responses) {
-            CommonRequest reqi = new CommonRequest(res.getClient(), null, phase);
+            RandomForestTrainReq randomForestTrainReq = new RandomForestTrainReq();
+            randomForestTrainReq.setNumTrees(parameter.getNumTrees());
+            CommonRequest reqi = new CommonRequest(res.getClient(), randomForestTrainReq, phase);
             req.add(reqi);
         }
         return req;

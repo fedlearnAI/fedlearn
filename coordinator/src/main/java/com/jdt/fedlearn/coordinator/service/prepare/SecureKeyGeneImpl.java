@@ -1,8 +1,7 @@
 package com.jdt.fedlearn.coordinator.service.prepare;
 
-import com.jdt.fedlearn.common.entity.project.MatchPartnerInfo;
-import com.jdt.fedlearn.common.util.LogUtil;
-import com.jdt.fedlearn.common.tool.internel.ResponseConstruct;
+import com.jdt.fedlearn.tools.LogUtil;
+import com.jdt.fedlearn.tools.internel.ResponseConstruct;
 import com.jdt.fedlearn.coordinator.constant.Constant;
 import com.jdt.fedlearn.coordinator.constant.RequestConstant;
 import com.jdt.fedlearn.coordinator.entity.prepare.KeyGenerateReq;
@@ -11,16 +10,15 @@ import com.jdt.fedlearn.coordinator.service.CommonService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
 import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.core.dispatch.DistributedKeyGeneCoordinator;
-import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillier;
 import com.jdt.fedlearn.core.encryption.nativeLibLoader;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

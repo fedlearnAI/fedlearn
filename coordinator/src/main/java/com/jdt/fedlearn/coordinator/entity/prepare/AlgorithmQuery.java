@@ -14,10 +14,9 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.entity.prepare;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jdt.fedlearn.core.exception.DeserializeException;
+import com.jdt.fedlearn.common.exception.DeserializeException;
 
 import java.io.Serializable;
-import java.util.List;
 
 /**
  * 算法类型查询实体

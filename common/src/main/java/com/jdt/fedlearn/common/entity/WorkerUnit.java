@@ -12,14 +12,15 @@ limitations under the License.
 */
 package com.jdt.fedlearn.common.entity;
 
-import com.jdt.fedlearn.common.util.ToString;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+
+import java.io.Serializable;
 
 /**
  * @Description: worker 机器配置
  */
-public class WorkerUnit extends ToString {
+public class WorkerUnit implements Serializable {
     //ip地址
     private String ip;
     //name信息

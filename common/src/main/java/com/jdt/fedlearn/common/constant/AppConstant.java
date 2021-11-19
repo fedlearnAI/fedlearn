@@ -56,7 +56,13 @@ public class AppConstant {
 
     public static final String MANAGER_CACHE_VALUE = "cacheValue";
 
+    public static final String MANAGER_CACHE_MODEL_TOKEN = "cacheModelToken";
+
     public static final String MODEL_ADDRESS_CACHE = "modelAddressCache";
+
+    public static final String MODEL_MESSAGE_CACHE = "modelMessageCache";
+
+    public static final String SUB_MESSAGE_CACHE = "subMessageCache";
 
     public static final String MODEL_COUNT_CACHE = "modelCount";
 
@@ -72,9 +78,13 @@ public class AppConstant {
 
     public static final String MODEL_UPDATE_VALUE = "modelUpdateValue";
 
+    public static final String MODEL_SAVE_KEY = "modelSaveKey";
+
+    public static final String MODEL_SAVE_VALUE = "modelSaveValue";
+
     public static final String DATA_UPDATE_KEY = "dataUpdateKey";
 
-    public static final String DATA_UPDATE_Value = "dataUpdateValue";
+    public static final String DATA_UPDATE_VALUE = "dataUpdateValue";
 
     public static final String NETTY_CONNECT = "connect";
 

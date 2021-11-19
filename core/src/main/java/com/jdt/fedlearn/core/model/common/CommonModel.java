@@ -21,7 +21,7 @@ import com.jdt.fedlearn.core.model.serialize.MixGBSerializer;
 import com.jdt.fedlearn.core.model.serialize.ModelSerializer;
 import com.jdt.fedlearn.core.research.secureInference.DelphiInferenceServer;
 import com.jdt.fedlearn.core.research.secureInference.TreeInferenceServer;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 
 public class CommonModel {
 

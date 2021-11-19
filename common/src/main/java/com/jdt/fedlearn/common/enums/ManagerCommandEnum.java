@@ -40,7 +40,8 @@ public enum ManagerCommandEnum {
     PUT_CACHE("putCache", "保存worker的cache"),
     GET_CACHE("getCache", "获取manager保存的cache"),
     DEL_CACHE("delCache", "删除manager保存的cache"),
-    ;
+    GET_CACHE_BY_MODEL_TOKEN("getCacheByModelToken", "通过modelToken获取缓存"),
+    TRAIN_SPLIT_DATA("api/train/splitData","分布式训练拆分训练数据");
 
     private final String code;
     private final String desc;

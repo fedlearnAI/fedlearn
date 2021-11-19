@@ -14,7 +14,7 @@ limitations under the License.
 package com.jdt.fedlearn.common.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SingleParameter implements Message {

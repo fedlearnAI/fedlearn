@@ -4,7 +4,7 @@ import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.common.enums.RunningType;
 import com.jdt.fedlearn.coordinator.service.prepare.AlgorithmParameterImpl;
 import com.jdt.fedlearn.core.dispatch.common.Control;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 

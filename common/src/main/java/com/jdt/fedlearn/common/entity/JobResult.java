@@ -13,9 +13,8 @@ limitations under the License.
 package com.jdt.fedlearn.common.entity;
 
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
-import com.jdt.fedlearn.common.util.ToString;
-import org.joda.time.DateTime;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -23,7 +22,7 @@ import java.util.Objects;
 /**
  * @Description: job结果
  */
-public class JobResult extends ToString {
+public class JobResult implements Serializable {
 
     //执行结果状态
     private ResultTypeEnum resultTypeEnum;

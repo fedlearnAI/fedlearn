@@ -12,15 +12,13 @@ limitations under the License.
 */
 package com.jdt.fedlearn.manager.service;
 
-import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.entity.CommonResultStatus;
-import com.jdt.fedlearn.common.entity.WorkerUnit;
-import com.jdt.fedlearn.common.entity.Task;
+import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.TaskTypeEnum;
 import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
-import com.jdt.fedlearn.common.util.WorkerCommandUtil;
-
+import com.jdt.fedlearn.tools.WorkerCommandUtil;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.manager.worker.WorkerManager;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.modules.testng.PowerMockTestCase;
 import org.testng.annotations.Test;
@@ -76,7 +74,15 @@ public class WorkerManagerTest extends PowerMockTestCase {
     @Test
     public void getFirstReadyWorkerUnit() throws IOException {
         mockRequest();
-        WorkerUnit firstReadySalveUnit = workerManager.getFirstReadyWorkerUnit(TaskTypeEnum.MAP);
+        Task task = new Task();
+        TrainRequest trainRequest = new TrainRequest();
+        trainRequest.setAlgorithm(AlgorithmType.DistributedFederatedGB);
+        trainRequest.setModelToken("testToken");
+        trainRequest.setDataset("test.csv");
+        trainRequest.setPhase(0);
+        task.setSubRequest(trainRequest);
+        task.setTaskTypeEnum(TaskTypeEnum.MAP);
+        WorkerUnit firstReadySalveUnit = workerManager.getFirstReadyWorkerUnit(task);
         Assert.assertEquals(firstReadySalveUnit, workerUnit);
     }
 

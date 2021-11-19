@@ -16,6 +16,7 @@ package com.jdt.fedlearn.coordinator.type;
 import com.jdt.fedlearn.coordinator.service.IDispatchService;
 import com.jdt.fedlearn.coordinator.service.match.MatchDeleteImpl;
 import com.jdt.fedlearn.coordinator.service.match.MatchDetailImpl;
+import com.jdt.fedlearn.coordinator.service.system.CheckFeatureServiceImpl;
 import com.jdt.fedlearn.coordinator.service.system.ModelDeleteServiceImpl;
 import com.jdt.fedlearn.coordinator.service.system.SystemDatasetServiceImpl;
 import com.jdt.fedlearn.coordinator.service.train.inner.TrainProgressInnerServiceImpl;
@@ -47,6 +48,7 @@ public enum APIEnum {
     API_COMMON_PARAMETER("/api/system/parameter", "查询训练算法支持的通用参数", new CommonParameterImpl()),
     API_INFERENCE_DELETE("/api/system/model/delete", "模型删除", new ModelDeleteServiceImpl()),
     API_SYSTEM_DATASET("/api/system/dataset", "查询数据源", new SystemDatasetServiceImpl()),
+    API_SYSTEM_CHECK_FEATURE("/api/system/check/feature", "特征表达式校验", new CheckFeatureServiceImpl()),
 
     /**
      * 预处理相关接口

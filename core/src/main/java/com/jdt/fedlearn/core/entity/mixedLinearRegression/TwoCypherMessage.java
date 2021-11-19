@@ -1,6 +1,6 @@
 package com.jdt.fedlearn.core.entity.mixedLinearRegression;
 
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 
 public class TwoCypherMessage implements Message {
 

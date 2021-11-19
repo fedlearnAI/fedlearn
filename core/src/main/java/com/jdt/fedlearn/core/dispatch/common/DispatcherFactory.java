@@ -19,7 +19,7 @@ import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.parameter.*;
 import com.jdt.fedlearn.core.research.secureInference.DelphiInferenceClient;
 import com.jdt.fedlearn.core.research.secureInference.TreeInferenceClient;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 
 public class DispatcherFactory {
 

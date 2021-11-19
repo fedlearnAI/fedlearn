@@ -3,13 +3,13 @@ package com.jdt.fedlearn.core.example;
 import com.jdt.fedlearn.core.dispatch.DistributedKeyGeneCoordinator;
 import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillier;
 import com.jdt.fedlearn.core.encryption.distributedPaillier.DistributedPaillierKeyGenerator;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.SingleElement;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

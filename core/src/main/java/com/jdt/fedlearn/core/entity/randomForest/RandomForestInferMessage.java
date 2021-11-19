@@ -13,7 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.entity.randomForest;
 
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 
 import java.util.List;
 import java.util.Map;

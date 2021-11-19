@@ -1,6 +1,6 @@
 //package com.jdt.fedlearn.core.loader.mixGBoost;
 //
-//import com.jdt.fedlearn.core.entity.feature.Features;
+//import com.jdt.fedlearn.common.entity.core.feature.Features;
 //import com.jdt.fedlearn.core.fake.StructureGenerate;
 //import com.jdt.fedlearn.core.type.data.Tuple2;
 //import com.jdt.fedlearn.core.type.data.Tuple3;

@@ -13,15 +13,15 @@ limitations under the License.
 package com.jdt.fedlearn.common.entity;
 
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
-import com.jdt.fedlearn.common.util.ToString;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * @Description: 任务结果状态， 调用任务执行结果时，返回任务结果信息,
  */
-public class CommonResultStatus extends ToString {
+public class CommonResultStatus implements Serializable {
     //开始执行时间
     private String startTime;
     //结束执行时间

@@ -13,11 +13,11 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.loader.common;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import com.jdt.fedlearn.tools.ExprAnalysis;
+
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * 推理数据解析抽象类,
@@ -96,6 +96,41 @@ public abstract class AbstractInferenceData implements InferenceData {
         }
         uid = newUid.toArray(new String[0]);
         sample = newSample.toArray(new double[0][]);
+    }
+
+    public void featureProcessing(List<String> expressions) {
+        ExprAnalysis exprAnalysis = new ExprAnalysis();
+        List<String> featuresName = Arrays.asList(featureName);
+        int featureDim = this.featureDim;
+
+        double[][] res = new double[sample.length][featureDim + expressions.size()];
+        IntStream.range(0, expressions.size()).parallel().forEach(i -> {
+            String token = null;
+            String expr = expressions.get(i);
+            try {
+                token = exprAnalysis.init(expr, featuresName);
+            } catch (NoSuchElementException e) {
+                throw new RuntimeException("antlr init error:"+e.getMessage());
+            }
+
+            String finalToken = token;
+            IntStream.range(0, sample.length).parallel().forEach(row -> {
+                if (featureDim >= 0) System.arraycopy(sample[row], 0, res[row], 0, featureDim);
+                try {
+                    res[row][featureDim + i] = exprAnalysis.expression(finalToken, sample[row], featuresName);
+                } catch (Exception e) {
+                    throw new RuntimeException("antlr calculate error:"+e.getMessage());
+                }
+            });
+            exprAnalysis.close(token);
+        });
+        List<String> featureNameList = new ArrayList(Arrays.asList(this.featureName));
+        for (int i = 0; i < expressions.size(); i++) {
+            featureNameList.add("newFeature" + i);
+        }
+        this.featureName = featureNameList.toArray(new String[0]);
+        this.featureDim = this.featureName.length;
+        this.sample = res;
     }
 
     public double[][] getSample() {

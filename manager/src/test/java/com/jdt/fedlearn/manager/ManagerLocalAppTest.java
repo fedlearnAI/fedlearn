@@ -12,7 +12,6 @@ limitations under the License.
 */
 package com.jdt.fedlearn.manager;
 
-import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.BusinessTypeEnum;
@@ -20,9 +19,9 @@ import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
 import com.jdt.fedlearn.manager.service.JobManager;
 import com.jdt.fedlearn.manager.spring.SpringBean;
-import com.jdt.fedlearn.common.util.WorkerCommandUtil;
 import com.jdt.fedlearn.manager.util.ConfigUtil;
 
+import com.jdt.fedlearn.tools.WorkerCommandUtil;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockTestCase;

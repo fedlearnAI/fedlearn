@@ -12,23 +12,32 @@ limitations under the License.
 */
 package com.jdt.fedlearn.manager.task.local.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.common.constant.AppConstant;
+import com.jdt.fedlearn.common.constant.CacheConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.*;
 import com.jdt.fedlearn.common.exception.BusinessException;
-import com.jdt.fedlearn.common.util.TimeUtil;
+import com.jdt.fedlearn.common.intf.IAlgorithm;
+import com.jdt.fedlearn.tools.TimeUtil;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.manager.ManagerLocalApp;
 import com.jdt.fedlearn.manager.service.TaskManager;
 import com.jdt.fedlearn.manager.task.Executor;
-import com.jdt.fedlearn.common.util.WorkerCommandUtil;
+import com.jdt.fedlearn.tools.WorkerCommandUtil;
+import com.jdt.fedlearn.manager.util.ConfigUtil;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Description: 1. 确认上次执行task，
@@ -69,7 +78,6 @@ public class FinishExecutorImpl implements Executor {
         }
 
         if (finishTask != null) {
-
             try {
                 if (CollectionUtils.isEmpty(finishTask.getPreTaskList())) {
                     BusinessException exception =
@@ -77,7 +85,6 @@ public class FinishExecutorImpl implements Executor {
                     logger.error("无效的任务", exception);
                     throw exception;
                 }
-
                 logger.info("检查前置任务是否执行完毕，判断是否为异常任务终端");
                 for (Task preTask : finishTask.getPreTaskList()) {
                     if (preTask.getRunStatusEnum() != RunStatusEnum.SUCCESS) {
@@ -92,13 +99,16 @@ public class FinishExecutorImpl implements Executor {
                 Task lastTask = finishTask.getPreTaskList().get(0);
                 TaskResultData preData = WorkerCommandUtil.processTaskRequestData(
                         lastTask, WorkerCommandEnum.GET_TASK_RESULT, TaskResultData.class);
-
-                if(preData == null){
+                TrainRequest trainRequest = lastTask.getSubRequest();
+                String workerProperties = ConfigUtil.getWorkerProperties();
+                String[] workers = StringUtils.split(workerProperties, AppConstant.SPLIT);
+                queryUpdateTrainResult(lastTask, preData, trainRequest, workers);
+                deleteMessage(trainRequest, workers);
+                if (preData == null) {
                     throw new RuntimeException("WorkerCommandUtil.processTaskRequestData error");
                 }
                 commonResultStatus.setResultTypeEnum(ResultTypeEnum.SUCCESS);
                 finishTask.setRunStatusEnum(RunStatusEnum.SUCCESS);
-
                 buildJobResult(finishTask, preData);
 
             } catch (Exception e) {
@@ -123,6 +133,76 @@ public class FinishExecutorImpl implements Executor {
 
     }
 
+
+    /**
+     * 处理reduce结果的模型部分，更新模型和重新保存response
+     *
+     * 查询reduce的结果为本次训练最终结果response
+     * 根据查询到的response更新各model
+     * 更新缓存中的trainResult
+     *
+     * @param lastTask 最后一个任务
+     * @param preData 任务结果
+     * @param trainRequest 任务请求
+     * @param workers workers信息
+     * @throws JsonProcessingException
+     */
+    private void queryUpdateTrainResult(Task lastTask, TaskResultData preData, TrainRequest trainRequest, String[] workers) throws JsonProcessingException {
+        if (trainRequest != null && trainRequest.getPhase() != 0 && !RunningType.COMPLETE.equals(trainRequest.getStatus())) {
+            logger.info("phase :{}", trainRequest.getPhase());
+            logger.info("enter update subModel");
+            String stempData = ((Map<String, String>) preData.getModelMap().get(IAlgorithm.DATA)).get(IAlgorithm.DATA);
+            String url = WorkerCommandUtil.buildUrl(lastTask.getWorkerUnit());
+            long s1 = System.currentTimeMillis();
+            CommonResultStatus commonResultStatus1 = WorkerCommandUtil.request(url + AppConstant.SLASH, WorkerCommandEnum.API_TRAIN_RESULT_QUERY, stempData);
+            long e1 = System.currentTimeMillis();
+            logger.info("finish API_TRAIN_RESULT_QUERY cost：{}", (e1 - s1));
+            String modelResult = (String) commonResultStatus1.getData().get(ResponseConstant.DATA);
+            // 取出最后一个reduce的结果，发送给全部worker更新model
+            CommonResultStatus ResponseStatus = null;
+            if (modelResult != null && !"".equals(modelResult)) {
+                for (String worker : workers) {
+                    logger.info("正在更新的worker：{}", worker);
+                    Map<String, Object> objectMap = new HashMap<>();
+                    objectMap.put("modelToken", trainRequest.getModelToken());
+                    objectMap.put("subModel", modelResult);
+                    long s2 = System.currentTimeMillis();
+                    ResponseStatus = WorkerCommandUtil.request(AppConstant.HTTP_PREFIX + worker + AppConstant.SLASH, WorkerCommandEnum.API_SUB_MODEL_UPDATE, objectMap);
+                    long e2 = System.currentTimeMillis();
+                    logger.info("finish API_SUB_MODEL_UPDATE cost：{}", (e2 - s2));
+                }
+                String lastRes = (String) ResponseStatus.getData().get(ResponseConstant.DATA);
+                ObjectMapper mapper = new ObjectMapper();
+                Map json = mapper.readValue(stempData, Map.class);
+                String stamp = (String) json.get("stamp");
+                Map<String, Object> objectMap = new HashMap<>();
+                objectMap.put("stamp", stamp);
+                objectMap.put("strMessage", lastRes);
+                long s3 = System.currentTimeMillis();
+                WorkerCommandUtil.request(url + AppConstant.SLASH, WorkerCommandEnum.API_TRAIN_RESULT_UPDATE, objectMap);
+                long e3 = System.currentTimeMillis();
+                logger.info("finish API_TRAIN_RESULT_UPDATE cost：{}", (e3 - s3));
+            }
+        }
+    }
+
+    /**
+     * 删除缓存的message
+     *
+     * @param trainRequest 训练请求
+     * @param workers worker信息
+     */
+    private void deleteMessage(TrainRequest trainRequest, String[] workers) {
+        if (trainRequest != null && trainRequest.getAlgorithm().equals(AlgorithmType.DistributedFederatedGB) && trainRequest.getModelToken() != null && trainRequest.getPhase() != 0) {
+            String modelMessageDataKey = CacheConstant.getModelAddressKey(trainRequest.getModelToken(), String.valueOf(trainRequest.getPhase()));
+            for (String worker : workers) {
+                long s4 = System.currentTimeMillis();
+                WorkerCommandUtil.request(AppConstant.HTTP_PREFIX + worker + AppConstant.SLASH, WorkerCommandEnum.API_MESSAGE_DATA_DELETE, modelMessageDataKey);
+                long e4 = System.currentTimeMillis();
+                logger.info("finish API_MESSAGE_DATA_DELETE cost：{}", (e4 - s4));
+            }
+        }
+    }
 
     /**
      * 任务结束 清除相关信息
@@ -159,7 +239,7 @@ public class FinishExecutorImpl implements Executor {
     public JobResult buildJobResult(Task task, TaskResultData preData) {
         JobResult jobResult = task.getJob().getJobResult();
         if (task.getRunStatusEnum() == RunStatusEnum.SUCCESS) {
-            logger.info("封装返回data from ", preData.getTaskId());
+            logger.info("封装返回data from {}", preData.getTaskId());
             jobResult.getData().putAll(preData.getModelMap());
 
             jobResult.setResultTypeEnum(ResultTypeEnum.SUCCESS);

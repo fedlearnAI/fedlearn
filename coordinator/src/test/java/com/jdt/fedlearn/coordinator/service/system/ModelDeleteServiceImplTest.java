@@ -4,7 +4,7 @@ import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import com.jdt.fedlearn.coordinator.entity.system.DeleteModelReq;
 import com.jdt.fedlearn.coordinator.entity.table.PartnerProperty;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import mockit.Mock;
 import mockit.MockUp;
 import org.testng.Assert;

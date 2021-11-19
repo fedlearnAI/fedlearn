@@ -13,8 +13,8 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.entity.boost;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.type.data.StringTuple2;
 
@@ -27,6 +27,10 @@ public class EncryptedGradHess implements Message {
     private boolean newTree;
     private MetricValue trainMetric;
     private int workerNum;
+    private SubModel subModel;
+    private int modelId;
+    private int instanceMin;
+    private int instanceMax;
 
     public EncryptedGradHess() {
     }
@@ -66,6 +70,10 @@ public class EncryptedGradHess implements Message {
         return gh;
     }
 
+    public void setGh(StringTuple2[] gh) {
+        this.gh = gh;
+    }
+
     public boolean getNewTree() {
         return newTree;
     }
@@ -85,4 +93,37 @@ public class EncryptedGradHess implements Message {
     public void setWorkerNum(int workerNum) {
         this.workerNum = workerNum;
     }
+
+    public SubModel getSubModel() {
+        return subModel;
+    }
+
+    public void setSubModel(SubModel subModel) {
+        this.subModel = subModel;
+    }
+
+    public int getModelId() {
+        return modelId;
+    }
+
+    public void setModelId(int modelId) {
+        this.modelId = modelId;
+    }
+
+    public int getInstanceMin() {
+        return instanceMin;
+    }
+
+    public void setInstanceMin(int instanceMin) {
+        this.instanceMin = instanceMin;
+    }
+
+    public int getInstanceMax() {
+        return instanceMax;
+    }
+
+    public void setInstanceMax(int instanceMax) {
+        this.instanceMax = instanceMax;
+    }
+
 }

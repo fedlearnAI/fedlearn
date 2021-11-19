@@ -14,15 +14,15 @@ package com.jdt.fedlearn.common.entity;
 
 import com.jdt.fedlearn.common.enums.BusinessTypeEnum;
 import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
-import com.jdt.fedlearn.common.util.ToString;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 
 /**
  * @Description: job请求参数
  */
-public class JobReq extends ToString {
+public class JobReq implements Serializable {
 
     //用户名称
     private String username;

@@ -13,7 +13,7 @@ limitations under the License.
 package com.jdt.fedlearn.worker.util;
 
 import com.jdt.fedlearn.common.entity.TrainRequest;
-import com.jdt.fedlearn.common.util.PacketUtil;
+import com.jdt.fedlearn.tools.PacketUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

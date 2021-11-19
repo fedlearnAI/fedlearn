@@ -2,9 +2,9 @@ package com.jdt.fedlearn.core.model.serialize;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.boost.QueryEntry;
-import com.jdt.fedlearn.core.exception.SerializeException;
+import com.jdt.fedlearn.common.exception.SerializeException;
 import com.jdt.fedlearn.core.model.common.loss.LogisticLoss;
 import com.jdt.fedlearn.core.model.common.loss.Loss;
 import com.jdt.fedlearn.core.model.common.loss.SquareLoss;

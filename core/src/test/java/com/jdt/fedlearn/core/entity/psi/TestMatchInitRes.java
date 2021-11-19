@@ -1,16 +1,12 @@
 package com.jdt.fedlearn.core.entity.psi;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import com.jdt.fedlearn.core.entity.serialize.JsonSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
-import com.jdt.fedlearn.core.type.MappingType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class TestMatchInitRes {
     @Test

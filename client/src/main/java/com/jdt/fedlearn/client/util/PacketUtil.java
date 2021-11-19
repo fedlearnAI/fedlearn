@@ -17,8 +17,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.client.entity.train.TrainRequest;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.util.GZIPCompressUtil;
-import com.jdt.fedlearn.common.util.LogUtil;
+import com.jdt.fedlearn.tools.GZIPCompressUtil;
+import com.jdt.fedlearn.tools.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

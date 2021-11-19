@@ -13,9 +13,8 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.entity.train;
 
-
-import com.jdt.fedlearn.common.util.TimeUtil;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.tools.TimeUtil;
 
 import java.util.List;
 import java.util.Map;

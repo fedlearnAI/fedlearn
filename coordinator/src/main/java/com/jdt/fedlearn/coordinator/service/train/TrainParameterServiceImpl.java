@@ -15,17 +15,17 @@ package com.jdt.fedlearn.coordinator.service.train;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jdt.fedlearn.common.entity.SingleParameter;
-import com.jdt.fedlearn.common.tool.ResponseHandler;
-import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.dao.UniversalMapper;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.*;
 import com.jdt.fedlearn.coordinator.exception.NotExistException;
 import com.jdt.fedlearn.coordinator.service.TrainService;
 import com.jdt.fedlearn.core.parameter.common.*;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.MappingType;
 import com.jdt.fedlearn.core.type.ParameterType;
+import com.jdt.fedlearn.tools.TokenUtil;
+import com.jdt.fedlearn.tools.internel.ResponseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

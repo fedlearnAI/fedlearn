@@ -14,23 +14,25 @@ limitations under the License.
 package com.jdt.fedlearn.core.model;
 
 
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.Int2dArray;
 import com.jdt.fedlearn.core.entity.base.StringArray;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.entity.distributed.SplitResult;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
+import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.model.common.loss.Loss;
 import com.jdt.fedlearn.core.model.common.loss.SquareLoss;
 import com.jdt.fedlearn.core.model.common.loss.crossEntropy;
 import com.jdt.fedlearn.core.model.common.tree.Tree;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.model.serialize.FgbModelSerializer;
 import com.jdt.fedlearn.core.parameter.HyperParameter;
@@ -117,6 +119,8 @@ public class FederatedGBModel implements Model {
 
     private boolean gotNumFeature = false;
 
+    private List<String> expressions = new ArrayList<>();
+
     public FederatedGBModel() {
     }
 
@@ -159,7 +163,8 @@ public class FederatedGBModel implements Model {
         String[] trainUids = trainTestUId._1();
         testId = trainTestUId._2();
         BoostTrainData trainData = new BoostTrainData(rawData, trainUids, features, new ArrayList<>());
-//        newTreeNodes = new LinkedList<>();
+        this.expressions = trainData.getExpressions();
+        newTreeNodes = new LinkedList<>();
         //TODO 修改指针
         parameter = (FgbParameter) hyperParameter;
         //初始化预测值和gradient hessian
@@ -1118,7 +1123,6 @@ public class FederatedGBModel implements Model {
         if (reqBody == null || reqBody.length == 0) {
             return new Int2dArray();
         }
-
         double[][] featuresList = inferenceData.getSample();
 //        int[] fakeIdIndex = inferenceData.getFakeIdIndex();
 
@@ -1143,11 +1147,13 @@ public class FederatedGBModel implements Model {
 
     public String serialize() {
         FgbModelSerializer fgbModelSerializer = new FgbModelSerializer(trees, loss, firstRoundPred, eta, passiveQueryTable, multiClassUniqueLabelList);
-        return fgbModelSerializer.saveModel();
+        return Tool.addExpressions(fgbModelSerializer.saveModel(), this.expressions);
     }
 
     public void deserialize(String content) {
-        FgbModelSerializer fgbModel = new FgbModelSerializer(content);
+        String[] contents = Tool.splitExpressionsAndModel(content);
+        this.expressions = Tool.splitExpressions(contents[0]);
+        FgbModelSerializer fgbModel = new FgbModelSerializer(contents[1]);
         this.trees = fgbModel.getTrees();
         this.loss = fgbModel.getLoss();
         this.firstRoundPred = fgbModel.getFirstRoundPred();
@@ -1160,4 +1166,11 @@ public class FederatedGBModel implements Model {
         return AlgorithmType.FederatedGB;
     }
 
+    public List<String> getExpressions() {
+        return expressions;
+    }
+
+    public void setExpressions(List<String> expressions) {
+        this.expressions = expressions;
+    }
 }

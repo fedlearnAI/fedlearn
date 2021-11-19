@@ -13,13 +13,13 @@ limitations under the License.
 package com.jdt.fedlearn.worker.runner.impl.fedLearning;
 
 import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.util.TimeUtil;
+import com.jdt.fedlearn.tools.TimeUtil;
 import com.jdt.fedlearn.worker.cache.WorkerResultCache;
 import com.jdt.fedlearn.worker.runner.Runner;
 import com.jdt.fedlearn.worker.service.AlgorithmService;
+import com.jdt.fedlearn.worker.service.RuntimeStatusService;
 import com.jdt.fedlearn.worker.service.WorkerRunner;
 import com.jdt.fedlearn.common.entity.CommonResultStatus;
-import com.jdt.fedlearn.common.entity.Job;
 import com.jdt.fedlearn.common.entity.Task;
 import com.jdt.fedlearn.common.entity.TaskResultData;
 import com.jdt.fedlearn.common.enums.BusinessTypeEnum;
@@ -65,6 +65,13 @@ public class MapRunnerImpl implements Runner {
      */
     @Override
     public CommonResultStatus run(Task task) {
+        String modelToken = task.getSubRequest().getModelToken();
+        int phase = task.getSubRequest().getPhase();
+        String key = modelToken + "-" + phase;
+        Integer integer = RuntimeStatusService.mapTaskMap.get(key);
+        if(integer == null){
+            RuntimeStatusService.mapTaskMap.put(key,1);
+        }
         CommonResultStatus commonResultStatus = new CommonResultStatus();
         commonResultStatus.setStartTime(TimeUtil.getNowTime());
 

@@ -1,8 +1,8 @@
 package com.jdt.fedlearn.core.entity.mixedLinearRegression;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.entity.feature.SingleFeature;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
+import com.jdt.fedlearn.common.entity.core.feature.SingleFeature;
 
 import java.util.Map;
 

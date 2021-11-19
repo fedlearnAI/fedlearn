@@ -12,8 +12,7 @@ limitations under the License.
 */
 package com.jdt.fedlearn.common.entity;
 
-import com.jdt.fedlearn.common.util.ToString;
-
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,7 +22,7 @@ import java.util.Map;
  * 2. 其他worker 或者master 调用时，返回计算结果
  * 3. master 清除计算结果
  */
-public class TaskResultData extends ToString {
+public class TaskResultData implements Serializable {
     //任务id
     private String taskId;
     // 任务结果状态

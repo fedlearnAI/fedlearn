@@ -13,27 +13,22 @@ limitations under the License.
 package com.jdt.fedlearn.manager.service;
 
 
-import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.*;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
 import com.jdt.fedlearn.common.enums.RunStatusEnum;
 import com.jdt.fedlearn.common.enums.TaskTypeEnum;
 import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
-import com.jdt.fedlearn.common.network.impl.HttpClientImpl;
-import com.jdt.fedlearn.common.tool.internel.ResponseInternal;
-import com.jdt.fedlearn.common.util.GZIPCompressUtil;
-import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.core.entity.boost.BoostN1Res;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
+import com.jdt.fedlearn.tools.GZIPCompressUtil;
+import com.jdt.fedlearn.tools.WorkerCommandUtil;
+import com.jdt.fedlearn.tools.network.impl.HttpClientImpl;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
 import com.jdt.fedlearn.manager.util.ConfigUtil;
 import com.jdt.fedlearn.manager.spring.SpringBean;
-import com.jdt.fedlearn.common.util.WorkerCommandUtil;
 
 import mockit.Mock;
 import mockit.MockUp;
-import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 
@@ -44,7 +39,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 @PowerMockIgnore("javax.net.ssl.*")
 @PrepareForTest({SpringBean.class, WorkerCommandUtil.class})

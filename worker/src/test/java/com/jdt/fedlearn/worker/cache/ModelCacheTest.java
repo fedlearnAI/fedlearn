@@ -17,7 +17,7 @@ import com.jdt.fedlearn.client.cache.ModelCache;
 import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.core.model.DistributedRandomForestModel;
 import com.jdt.fedlearn.core.model.Model;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -45,5 +45,17 @@ public class ModelCacheTest {
         ModelCache modelCache = ModelCache.getInstance();
         Model model = modelCache.get(modelToken);
         Assert.assertEquals(model.getModelType(), AlgorithmType.DistributedRandomForest);
+    }
+
+    @Test
+    public void test() throws InterruptedException {
+        for (int i = 0; i < 10; i++) {
+            Thread thread = new Thread(()->{
+                ModelCache modelCache = ModelCache.getInstance();
+                System.out.println(modelCache);
+            });
+            thread.start();
+        }
+        Thread.sleep(10000000l);
     }
 }

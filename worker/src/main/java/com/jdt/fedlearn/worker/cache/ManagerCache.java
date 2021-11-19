@@ -16,7 +16,7 @@ import com.jdt.fedlearn.client.util.ConfigUtil;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.JobResult;
 import com.jdt.fedlearn.common.enums.ManagerCommandEnum;
-import com.jdt.fedlearn.common.util.ManagerCommandUtil;
+import com.jdt.fedlearn.tools.ManagerCommandUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -77,5 +77,14 @@ public class ManagerCache {
         map.put(AppConstant.MANAGER_CACHE_TYPE,type);
         map.put(AppConstant.MANAGER_CACHE_KEY,key);
         ManagerCommandUtil.request(managerAddress, ManagerCommandEnum.DEL_CACHE, map);
+    }
+
+    public static Map<String, String> getCacheByModelToken(String type , String modelToken){
+        Map map = new HashMap();
+        map.put(AppConstant.MANAGER_CACHE_TYPE,type);
+        map.put(AppConstant.MANAGER_CACHE_MODEL_TOKEN,modelToken);
+        JobResult result =  ManagerCommandUtil.request(managerAddress, ManagerCommandEnum.GET_CACHE_BY_MODEL_TOKEN, map);
+        Map<String,String> resultMap = (Map<String, String>) result.getData().get(AppConstant.MANAGER_CACHE_VALUE);
+        return resultMap;
     }
 }

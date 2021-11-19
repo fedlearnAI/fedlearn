@@ -13,7 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.entity.table;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 
 import java.util.Map;
 import java.util.Random;

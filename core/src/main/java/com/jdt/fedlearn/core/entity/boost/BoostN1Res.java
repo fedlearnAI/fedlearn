@@ -14,7 +14,7 @@ limitations under the License.
 package com.jdt.fedlearn.core.entity.boost;
 
 import com.jdt.fedlearn.core.model.common.tree.Tree;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 
 import java.util.List;
 

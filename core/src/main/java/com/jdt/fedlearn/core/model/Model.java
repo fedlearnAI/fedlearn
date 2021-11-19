@@ -13,20 +13,19 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.model;
 
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.TrainInit;
 import com.jdt.fedlearn.core.entity.distributed.InitResult;
 import com.jdt.fedlearn.core.entity.distributed.SplitResult;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.parameter.HyperParameter;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 /**
  * @author wangpeiqi
  * 客户端模型训练和推理以及序列化等
@@ -36,12 +35,12 @@ public interface Model {
     /**
      * client init 完成文件加载和初始化等 初始化完成TrainData类的完整初始化 以及 超参数的解析和赋值等
      *
-     * @param rawData    原始数据
-     * @param uids       用户全量训练和验证id信息
-     * @param testIndex  验证集的id索引值
-     * @param parameter  从master传入的超参数
-     * @param features   特征
-     * @param others     其他参数
+     * @param rawData   原始数据
+     * @param uids      用户全量训练和验证id信息
+     * @param testIndex 验证集的id索引值
+     * @param parameter 从master传入的超参数
+     * @param features  特征
+     * @param others    其他参数
      * @return 解析完成的训练数据
      */
     TrainData trainInit(String[][] rawData, String[] uids, int[] testIndex, HyperParameter parameter, Features features, Map<String, Object> others);
@@ -91,37 +90,90 @@ public interface Model {
 
 
     /**
-     *
      * @return 算法类型
      */
     AlgorithmType getModelType();
 
     /**
-     *
      * @param models 模型列表
-     * @return  合并后的模型列表
+     * @return 合并后的模型列表
      */
     default List<Model> mergeModel(List<Model> models) {
         return null;
     }
 
     /**
-     *
+     * @param message 需要更新的model信息
+     */
+    default Message updateSubModel(Message message) {
+        return null;
+    }
+
+
+
+    /**
      * @param requestId 请求ID
      * @param trainInit 训练请求
      * @param IndexList 索引列表
-     * @return  需要读取数据的索引列表
+     * @return 需要读取数据的索引列表
      */
     default ArrayList<Integer> dataIdList(String requestId, TrainInit trainInit, List<Integer> IndexList) {
         return null;
     }
 
     /**
+     * @param message
+     * @return
+     */
+    default Map<String, Object> messageSplit(Message message) {
+        return null;
+    }
+
+    /**
+     * 更新部分请求，用于分布式系统
+     *
+     * @param subMessage 部分请求
+     */
+    default void updateSubMessage(List<Message> subMessage) {
+    }
+
+    /**
+     * 获取待计算uid列表
+     *
+     * @param message 训练response
+     * @return 待计算uid列表
+     */
+    default Map<String, List<int[]>> getInstanceLists(Message message) {
+        return null;
+    }
+
+    /**
+     * 部分计算
+     *
+     * @param listMap 待计算请求
+     * @return 计算结果
+     */
+    default Message subCalculation(Map<String, List<int[]>> listMap) {
+        return null;
+    }
+
+    /**
+     * 合并部分结果
+     *
+     * @param message    部分response
+     * @param subResults 部分结果
+     * @return 最终response
+     */
+    default Message mergeSubResult(Message message, List<Message> subResults) {
+        return null;
+    }
+
+    /**
      * 分布式调用，初始化模型和数据
      *
-     * @param requestId 请求id
-     * @param rawData   原始数据集
-     * @param trainInit 初始化训练请求
+     * @param requestId   请求id
+     * @param rawData     原始数据集
+     * @param trainInit   初始化训练请求
      * @param matchResult
      * @return
      */
@@ -134,7 +186,7 @@ public interface Model {
      *
      * @param phase 训练阶段
      * @param req   训练请求
-     * @return  拆分后内容
+     * @return 拆分后内容
      */
     default SplitResult split(int phase, Message req) {
         return null;
@@ -143,12 +195,23 @@ public interface Model {
     /**
      * 分布式调用，reduce合并结果
      *
-     * @param phase 训练阶段
-     * @param result  响应列表
-     * @return  merge后的响应
+     * @param phase  训练阶段
+     * @param result 响应列表
+     * @return merge后的响应
      */
     default Message merge(int phase, List<Message> result) {
         return null;
     }
 
+
+    /**
+     * 获取特征计算表达式
+     *
+     * @return  merge后的响应
+     */
+    default List<String> getExpressions() {
+        return null;
+    }
+
 }
+

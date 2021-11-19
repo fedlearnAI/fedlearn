@@ -1,8 +1,8 @@
 package com.jdt.fedlearn.core.fake;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.entity.feature.SingleFeature;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.SingleFeature;
 import com.jdt.fedlearn.core.loader.boost.BoostTrainData;
 import com.jdt.fedlearn.core.loader.common.CommonTrainData;
 import com.jdt.fedlearn.core.loader.verticalLinearRegression.VerticalLinearTrainData;

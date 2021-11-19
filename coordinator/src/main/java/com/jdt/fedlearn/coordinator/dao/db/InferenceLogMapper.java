@@ -13,10 +13,10 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.dao.db;
 
-import com.jdt.fedlearn.common.util.TimeUtil;
 import com.jdt.fedlearn.coordinator.entity.inference.InferenceDto;
 import com.jdt.fedlearn.coordinator.entity.table.InferenceEntity;
 import com.jdt.fedlearn.coordinator.util.DbUtil;
+import com.jdt.fedlearn.tools.TimeUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

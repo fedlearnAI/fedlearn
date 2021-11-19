@@ -15,7 +15,6 @@ package com.jdt.fedlearn.coordinator.entity.train;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jdt.fedlearn.core.exception.DeserializeException;
 
 /**
  * 训练不同阶段参数请求实体，包含modelToken和请求阶段类型

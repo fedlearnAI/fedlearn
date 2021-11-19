@@ -14,13 +14,10 @@ limitations under the License.
 package com.jdt.fedlearn.client.entity.source;
 
 import com.jdt.fedlearn.client.type.SourceType;
-import com.jdt.fedlearn.common.util.FileUtil;
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 
-import java.io.BufferedReader;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 public class DbSourceConfig extends DataSourceConfig {
     private static final String desc = "sourceType=数据源类型,driver=驱动,username=用户名,url=链接,table=表名,dataset=数据集唯一名称";

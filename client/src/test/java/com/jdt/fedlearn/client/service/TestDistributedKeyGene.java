@@ -2,7 +2,7 @@ package com.jdt.fedlearn.client.service;
 
 import com.jdt.fedlearn.core.dispatch.DistributedKeyGeneCoordinator;
 import com.jdt.fedlearn.core.encryption.nativeLibLoader;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.example.CommonRunKeyGene;
 
 import java.io.IOException;

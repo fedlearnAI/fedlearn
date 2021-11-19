@@ -1,5 +1,6 @@
 package com.jdt.fedlearn.core.exception;
 
+import com.jdt.fedlearn.common.exception.SerializeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

@@ -1,14 +1,14 @@
 package com.jdt.fedlearn.coordinator.allocation;
 
 import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.common.util.CacheUtil;
 import com.jdt.fedlearn.coordinator.entity.inference.RemotePredict;
 import com.jdt.fedlearn.coordinator.entity.prepare.MatchStartReq;
 import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.entity.train.TrainStatus;
 import com.jdt.fedlearn.coordinator.service.train.TrainCommonServiceImpl;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
+import com.jdt.fedlearn.tools.CacheUtil;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

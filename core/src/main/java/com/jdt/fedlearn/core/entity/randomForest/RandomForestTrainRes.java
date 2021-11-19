@@ -14,8 +14,8 @@ limitations under the License.
 package com.jdt.fedlearn.core.entity.randomForest;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.RFDispatchPhaseType;
 import com.jdt.fedlearn.core.type.data.Pair;
@@ -51,6 +51,7 @@ public class RandomForestTrainRes implements Message {
     private Map<Integer, double[]> maskLeft;
     private String[] splitMess;
     private String[] treeIds;
+    private SubModel subModel;
 
     public RandomForestTrainRes() {
     }
@@ -303,6 +304,14 @@ public class RandomForestTrainRes implements Message {
 
     public void setTreeIds(String[] treeIds) {
         this.treeIds = treeIds;
+    }
+
+    public SubModel getSubModel() {
+        return subModel;
+    }
+
+    public void setSubModel(SubModel subModel) {
+        this.subModel = subModel;
     }
 }
 

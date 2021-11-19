@@ -16,14 +16,15 @@ package com.jdt.fedlearn.core.util;
 
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.paillier.PaillierCiphertext;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.boost.Bucket;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.type.MetricType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
+import com.jdt.fedlearn.tools.ExprAnalysis;
 
 import java.text.DecimalFormat;
 import java.util.*;
@@ -534,4 +535,46 @@ public class Tool {
         return new Tuple2<>(trainUid, testUid);
     }
 
+    //
+    public static String addExpressions(String modelString, List<String> expressions) {
+        String expressionsString;
+        if (expressions != null) {
+            expressionsString = String.join("##expressions##", expressions);
+        } else {
+            expressionsString = "";
+        }
+        return expressionsString + "##splitSymbol##" + modelString;
+    }
+
+    public static String[] splitExpressionsAndModel(String content) {
+        return content.split("##splitSymbol##");
+    }
+
+    public static List<String> splitExpressions(String expressionsString) {
+        if (!expressionsString.equals("")) {
+            return Arrays.asList(expressionsString.split("##expressions##"));
+        } else {
+            return null;
+        }
+    }
+    public static String checkExpression(String expression, List<String> featuresName) {
+        ExprAnalysis exprAnalysis = new ExprAnalysis();
+        String token = null;
+        String res = "success";
+        try {
+            token = exprAnalysis.init(expression, featuresName);
+        } catch (Exception e) {
+            System.out.println("antlr init error" + e.getMessage());
+            throw e;
+        }
+        double[] arr = new double[featuresName.size()];
+        Arrays.fill(arr, 1.0);
+        try {
+            exprAnalysis.expression(token, arr, featuresName);
+        } catch (Exception e) {
+            System.out.println("antlr init error:" + e.getMessage());
+            throw e;
+        }
+        return "";
+    }
 }

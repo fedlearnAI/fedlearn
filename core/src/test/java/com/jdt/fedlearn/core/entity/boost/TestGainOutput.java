@@ -1,6 +1,6 @@
 package com.jdt.fedlearn.core.entity.boost;
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

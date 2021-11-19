@@ -23,7 +23,7 @@ import com.jdt.fedlearn.coordinator.entity.inference.*;
 import com.jdt.fedlearn.coordinator.exception.NotAcceptableException;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
 import com.jdt.fedlearn.coordinator.service.inference.InferenceCommonService;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

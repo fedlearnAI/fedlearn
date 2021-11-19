@@ -15,7 +15,7 @@ package com.jdt.fedlearn.core.loader.boost;
 
 import com.jdt.fedlearn.core.model.common.tree.sampling.ColSampler;
 import com.jdt.fedlearn.core.model.common.tree.sampling.RowSampler;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.loader.common.AbstractTrainData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 
@@ -37,10 +37,14 @@ public class BoostTrainData extends AbstractTrainData implements TrainData, Seri
     private ColSampler colSampler;
 
     public BoostTrainData(){}
+
     public BoostTrainData(String[][] rawTable, String[] idMap, Features features, List<String> categoricalFeatures) {
         this.catFeaturesNames = categoricalFeatures;
 
         super.scan(rawTable, idMap, features);
+        if (expressions != null && expressions.size() != 0) {
+            super.featureProcessing(expressions);
+        }
         //特征维度
         column_sample = columnTrans(sample);
         rowSampler = new RowSampler(0,0);

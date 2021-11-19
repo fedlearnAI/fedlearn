@@ -18,32 +18,34 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.ReduceType;
 import com.jdt.fedlearn.core.encryption.IterativeAffineNew.IterativeAffineToolNew;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
 import com.jdt.fedlearn.core.entity.common.TrainInit;
 import com.jdt.fedlearn.core.entity.distributed.InitResult;
 import com.jdt.fedlearn.core.entity.distributed.SplitResult;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.entity.localModel.LocalLinearModel;
 import com.jdt.fedlearn.core.entity.localModel.LocalModel;
 import com.jdt.fedlearn.core.entity.localModel.LocalNullModel;
 import com.jdt.fedlearn.core.entity.randomForest.*;
 import com.jdt.fedlearn.core.exception.NotMatchException;
+import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.loader.randomForest.RFInferenceData;
 import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.metrics.Metric;
-import com.jdt.fedlearn.core.model.serialize.SerializerUtils;
 import com.jdt.fedlearn.core.parameter.RandomForestParameter;
 import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
@@ -97,7 +99,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
     private double[] yLabel;
     private double[][] yPredValues;
     private String[][] encryptDataString;
-    private SimpleMatrix XTest;
+    private double[][] XTest;
 
     // 采样特征id
     private List<Integer>[] featureIds;
@@ -106,7 +108,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
     private Map<Integer, Map<Integer, Integer>> sampleMap;
     private RandomForestLoss loss;
     private double lossType = -1;
-    private Map<String, Double> localTree = new HashMap<>();
+    private Map<String, Double> localTree = new ConcurrentHashMap<>();
     private TypeRandomForest forest;
     private int round = 0;
     private String[] activePhase2body;
@@ -117,8 +119,9 @@ public class DistributedRandomForestModel implements Model, Serializable {
     private Map<Integer, double[]> maskLeft = new HashMap<>();
     private String[] mess;
     private int treeID;
-    private Map<Integer, TreeNodeRF> currentNodeMap = new HashMap<>();
+    private Map<Integer, TreeNodeRF> currentNodeMap = new ConcurrentHashMap<>();
     private Map<Integer, Map<Integer, List<String>>> treeInfo = new HashMap<>();
+    private List<String> expressions = new ArrayList<>();
 
     // 构造函数
     public DistributedRandomForestModel() {
@@ -142,15 +145,14 @@ public class DistributedRandomForestModel implements Model, Serializable {
         }
         Tuple2<String[], String[]> trainTestUid = Tool.splitUid(uids, testIndex);
         RFTrainData trainData = new RFTrainData(rawData, trainTestUid._1(), features, false);
-        trainData.fillna(0);
+        this.expressions = trainData.getExpressions();
+//        RFTrainData trainData = new RFTrainData(rawData, trainTestUid._1(), features, false);
         String labelName = features.getLabel();
         this.parameter = (RandomForestParameter) parameter;
         // 随机种子
         Random randgauss = new Random(666);
         Random rand = new Random(this.parameter.getRandomSeed());
         // 初始化 train data
-        List<String> headers = trainData.getHeaders();
-        logger.info(String.format("header: %s", String.join(" ", headers)));
         logger.info(String.format("HasLabel: %s, label name: %s", trainData.hasLabel, labelName));
         logger.info(String.format("Dataframe: %s rows, %s columns", trainData.numRows(), trainData.numCols()));
 
@@ -179,7 +181,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
             }
             logger.info(String.format("Train matrix%d, %s rows, %s columns", i, XsTrain[i].numRows(), XsTrain[i].numCols()));
         }
-        EncryptionTool encryptionTool = getEncryptionTool();
+        EncryptionTool encryptionTool = getEncryptionTool(this.parameter);
         // 如果有label，加载Y，作为active方
 
         if (trainData.hasLabel) {
@@ -189,7 +191,6 @@ public class DistributedRandomForestModel implements Model, Serializable {
         trainData.setXsTrain(XsTrain);
         trainData.setRawTable(null);
         trainData.setUid(null);
-        trainData.setContent(null);
         logger.info("Init train end{}", splitLine);
         return trainData;
     }
@@ -247,8 +248,8 @@ public class DistributedRandomForestModel implements Model, Serializable {
 
         // fill mean
         Set<Integer> setSampleIds = new HashSet<>();
-        for (TreeNodeRF treei : forest.getRoots()) {
-            List<Integer> sampleIdi = treei.sampleIds;
+        for (Map.Entry<Integer, TreeNodeRF> entry : forest.getRoots().entrySet()) {
+            List<Integer> sampleIdi = entry.getValue().sampleIds;
             setSampleIds.addAll(sampleIdi);
         }
         if (isDistributed) {
@@ -263,23 +264,27 @@ public class DistributedRandomForestModel implements Model, Serializable {
             double filled_mean = sum / (count + Double.MIN_VALUE);
             sampleId.forEach(idx -> yPredBagging[idx] = filled_mean);
         }
-        // 生成密钥
-        switch (this.parameter.getEncryptionType()) {
-            case Paillier:
-                privateKeyString = encryptionTool.keyGenerate(1024, 0).serialize();
-                break;
-            case IterativeAffine:
-                privateKeyString = encryptionTool.keyGenerate(1024, 2).serialize();
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported encryption type!");
+        if (isDistributed) {
+            privateKeyString = (String) others.get("privateKeyString");
+        } else {
+            // 生成密钥
+            switch (this.parameter.getEncryptionType()) {
+                case Paillier:
+                    privateKeyString = encryptionTool.keyGenerate(1024, 0).serialize();
+                    break;
+                case IterativeAffine:
+                    privateKeyString = encryptionTool.keyGenerate(1024, 2).serialize();
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported encryption type!");
+            }
         }
         return yTrain;
     }
 
-    private EncryptionTool getEncryptionTool() {
+    private EncryptionTool getEncryptionTool(RandomForestParameter parameter) {
         EncryptionTool encryptionTool;
-        switch (this.parameter.getEncryptionType()) {
+        switch (parameter.getEncryptionType()) {
             case Paillier:
                 encryptionTool = new JavallierTool();
                 break;
@@ -377,6 +382,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
                     logger.info("Finish Train");
                     RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), "", true);
                     res.setMessageType(RFDispatchPhaseType.SEND_FINAL_MODEL);
+                    res.setSubModel(mapSubModel());
                     return res;
                 }
                 // 获取当前节点对应的sampleIds
@@ -389,6 +395,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
             } else {
                 RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), false, "");
                 res.setMessageType(RFDispatchPhaseType.CALCULATE_METRIC);
+                res.setSubModel(mapSubModel());
                 return res;
             }
         }
@@ -407,7 +414,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         String publicKey = null;
         Map<Integer, List<Integer>> treeSampleIDs = new HashMap<>();
         if (isActive) {
-            EncryptionTool encryptionTool = getEncryptionTool();
+            EncryptionTool encryptionTool = getEncryptionTool(this.parameter);
             // active 端回传加密的Y 和 publickey
             PrivateKey privateKey = encryptionTool.restorePrivateKey(privateKeyString);
             Ciphertext[] encryptData = new Ciphertext[yLabel.length];
@@ -450,6 +457,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         if (isDistributed) {
             res.setBody("distributed");
         }
+        res.setSubModel(mapSubModel());
         return res;
 
     }
@@ -538,7 +546,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), isInit, "", metricMap, metricArrMap, featureImportance, treeSampleIDs);
         res.setActive(true);
         res.setMessageType(RFDispatchPhaseType.CALCULATE_METRIC);
-
+        res.setSubModel(mapSubModel());
         return res;
     }
 
@@ -570,6 +578,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
             RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), "active", isActive, parameter.getNumTrees());
             res.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
             setMetrics(res);
+            res.setSubModel(mapSubModel());
             return res;
         }
 
@@ -595,6 +604,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
             res.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
             res.setActive(isActive);
             setMetrics(res);
+            res.setSubModel(mapSubModel());
             return res;
         }
         String[] treeIdsStr = new String[treeIds.length];
@@ -676,6 +686,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         res.setTreeIds(treeIdsStr);
         res.setMessageType(RFDispatchPhaseType.COMBINATION_MESSAGE);
         setMetrics(res);
+        res.setSubModel(mapSubModel());
         return res;
     }
 
@@ -700,9 +711,10 @@ public class DistributedRandomForestModel implements Model, Serializable {
         if (req.isSkip()) {
             RandomForestTrainRes res = new RandomForestTrainRes(req.getClient());
             res.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
+            res.setSubModel(mapSubModel());
             return res;
         }
-        EncryptionTool encryptionTool = getEncryptionTool();
+        EncryptionTool encryptionTool = getEncryptionTool(this.parameter);
         Map<Integer, List<Integer>> tidToSampleId = req.getTidToSampleID();
         int numTrees = tidToSampleId.size();
         String[] treeIdsStr = new String[numTrees];
@@ -829,6 +841,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         RandomForestTrainRes res = new RandomForestTrainRes(req.getClient(), body, isActive, bodyArr.length);
         res.setTreeIds(treeIdsStr);
         res.setMessageType(RFDispatchPhaseType.COMBINATION_MESSAGE);
+        res.setSubModel(mapSubModel());
         return res;
     }
 
@@ -842,6 +855,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         RandomForestTrainRes res = new RandomForestTrainRes();
         res.setActive(isActive);
         res.setMessageType(RFDispatchPhaseType.SPLIT_NODE);
+        res.setSubModel(mapSubModel());
         return res;
     }
 
@@ -884,7 +898,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         }
         Integer[] treeIds = treeIDs.toArray(new Integer[0]);
         Arrays.sort(treeIds);
-        EncryptionTool encryptionTool = getEncryptionTool();
+        EncryptionTool encryptionTool = getEncryptionTool(this.parameter);
         PrivateKey privateKey = encryptionTool.restorePrivateKey(privateKeyString);
         ClientInfo client = null;
         String[] jsonStr = req.getBodyAll();
@@ -920,9 +934,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
                             sampleIdNew[j][k] = sampleMap.get(treeIds[j]).get(sampleId[j][k]);
                         }
                     } else {
-                        for (int k = 0; k < sampleId[j].length; k++) {
-                            sampleIdNew[j][k] = sampleId[j][k];
-                        }
+                        System.arraycopy(sampleId[j], 0, sampleIdNew[j], 0, sampleId[j].length);
                     }
                 }
 
@@ -1073,6 +1085,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
         res.setTidToSampleIds(tidToSampleIds);
         res.setMessageType(RFDispatchPhaseType.SPLIT_NODE);
         setMetrics(res);
+        res.setSubModel(mapSubModel());
         return res;
     }
 
@@ -1189,7 +1202,9 @@ public class DistributedRandomForestModel implements Model, Serializable {
             }
         }
         res.setMessageType(RFDispatchPhaseType.CREATE_CHILD_NODE);
+        res.setNumTrees(parameter.getNumTrees());
         setMetrics(res);
+        res.setSubModel(mapSubModel());
         return res;
 
     }
@@ -1273,11 +1288,12 @@ public class DistributedRandomForestModel implements Model, Serializable {
                 }
             }
         }
-        RandomForestTrainRes randomForestRes = new RandomForestTrainRes(req.getClient());
-        randomForestRes.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
-        randomForestRes.setActive(isActive);
-        setMetrics(randomForestRes);
-        return randomForestRes;
+        RandomForestTrainRes res = new RandomForestTrainRes(req.getClient());
+        res.setMessageType(RFDispatchPhaseType.SEND_SAMPLE_ID);
+        res.setActive(isActive);
+        setMetrics(res);
+        res.setSubModel(mapSubModel());
+        return res;
     }
 
     /**
@@ -1386,31 +1402,15 @@ public class DistributedRandomForestModel implements Model, Serializable {
     public Message inference(int phase, Message jsonData, InferenceData data) {
         logger.info(String.format("Inference process, phase %s start", phase) + splitLine);
         if (phase == -1) {
-            RFInferenceData inferenceData = (RFInferenceData) data;
-            String[] subUid = inferencePhase1(inferenceData, jsonData);
+            CommonInferenceData inferenceData = (CommonInferenceData) data;
+            String[] subUid = ((InferenceInit) jsonData).getUid();
             if (subUid.length == 0) {
                 return null;
             }
-            XTest = inferenceData.selectToSmpMatrix(subUid);
+            XTest = inferenceData.getSample();
             inferenceUid = subUid;
         }
         return inferenceOneShot(phase, jsonData);
-    }
-
-    /**
-     * 推理初始化，处理推理数据集
-     *
-     * @param inferenceData 推理数据集
-     * @param request       服务端请求
-     */
-    public String[] inferencePhase1(RFInferenceData inferenceData, Message request) {
-//        String[][] rawTable = inferenceData.getUidFeature();
-        // TODO 确定 inference 到底带不带 header
-        inferenceData.init();
-        inferenceData.fillna(0);
-        // 接受 jsonData 里的 InferenceInit 中的 uid
-        InferenceInit init = (InferenceInit) request;
-        return init.getUid();
     }
 
     /**
@@ -1434,8 +1434,8 @@ public class DistributedRandomForestModel implements Model, Serializable {
                         // split
                         int feature = Integer.parseInt(s[0]);
                         double threshold = Double.parseDouble(s[1]);
-                        for (int i = 0; i < XTest.numRows(); i++) {
-                            if (XTest.get(i, feature) < threshold) {
+                        for (int i = 0; i < XTest.length; i++) {
+                            if (XTest[i][feature] < threshold) {
                                 vals.add("L");
                             } else {
                                 vals.add("R");
@@ -1443,7 +1443,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
                         }
                     } else {
                         // prediction
-                        for (int i = 0; i < XTest.numRows(); i++) {
+                        for (int i = 0; i < XTest.length; i++) {
                             vals.add(s[0]);
                         }
                     }
@@ -1455,7 +1455,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
             // check if is active
             if (modelString.contains("localModel")) {
                 // do local prediction
-                double[] localPredict = localModel.batchPredict(XTest);
+                double[] localPredict = null;
                 return new RandomForestInferMessage(inferenceUid, localPredict, "active", new HashMap<>());
             } else {
                 return new RandomForestInferMessage(inferenceUid, null, "", res);
@@ -1583,9 +1583,11 @@ public class DistributedRandomForestModel implements Model, Serializable {
      * @param input 序列化的模型，
      */
     public void deserialize(String input) {
+        String[] contents = Tool.splitExpressionsAndModel(input);
+        this.expressions = Tool.splitExpressions(contents[0]);
         Map<String, String> strTrees;
         logger.info("Model deserialize...");
-        modelString = input;
+        modelString = contents[1];
         // check if model string is start with {
         if ("{".equals(modelString.substring(0, 1))) {
             // deserialize string
@@ -1638,7 +1640,7 @@ public class DistributedRandomForestModel implements Model, Serializable {
             return "";
         }
         modelString = getModel().toString();
-        return modelString;
+        return Tool.addExpressions(modelString, this.expressions);
     }
 
     /**
@@ -1657,15 +1659,14 @@ public class DistributedRandomForestModel implements Model, Serializable {
 
     private Map<String, String> getModelAll(String client) {
         Map<String, String> strTrees = new HashMap<>();
-        List<TreeNodeRF> roots = forest.getRoots();
         int numTrees = 0;
 
-        for (TreeNodeRF root : roots) {
+        for (Map.Entry<Integer, TreeNodeRF> entry : forest.getRoots().entrySet()) {
             logger.info("Tree to json...");
-            if (null != root) { /* check is null tree */
-                if (!root.isLeaf) {
+            if (null != entry.getValue()) { /* check is null tree */
+                if (!entry.getValue().isLeaf) {
                     /* is non-null tree */
-                    strTrees.put(String.format("Tree%s", numTrees), forest.tree2json(root, client));
+                    strTrees.put(String.format("Tree%s", numTrees), forest.tree2json(entry.getValue(), client));
                     numTrees += 1;
                 }
             }
@@ -1718,21 +1719,24 @@ public class DistributedRandomForestModel implements Model, Serializable {
                 return reducePhase3(result);
             } else if (phase == 4) {
                 return reducePhase4(result);
+            } else {
+                return reducePhaseDefault(result);
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
             throw new NotMatchException(e);
         }
-        return result.get(0);
     }
 
     private static Message reducePhase1(List<Message> result) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         RandomForestTrainRes res0 = (RandomForestTrainRes) (result.get(0));
-        RandomForestTrainRes reqTree = (RandomForestTrainRes) BeanUtils.cloneBean(res0);
+        RandomForestTrainRes resResult = (RandomForestTrainRes) BeanUtils.cloneBean(res0);
+        List<SubModel> subModels = new ArrayList<>();
         if (res0.getDisEncryptionLabel() != null) {
             String[][] encryptionLabel = new String[res0.getDisEncryptionLabel().length][];
             for (Object o : result) {
                 RandomForestTrainRes res = (RandomForestTrainRes) o;
+                subModels.add(res.getSubModel());
                 if (res.isActive()) {
                     for (int j = 0; j < res0.getDisEncryptionLabel().length; j++) {
                         if (res.getDisEncryptionLabel()[j] != null) {
@@ -1740,51 +1744,54 @@ public class DistributedRandomForestModel implements Model, Serializable {
                         }
                     }
                 } else {
-                    reqTree = res;
+                    resResult = res;
                     break;
                 }
             }
-            reqTree.setDisEncryptionLabel(encryptionLabel);
+            resResult.setDisEncryptionLabel(encryptionLabel);
 
         } else {
             Map<Integer, List<Integer>> treeSampleIDs = new HashMap<>();
             Map<String, Double> featureImportance = new HashMap<>();
             for (Object o : result) {
                 RandomForestTrainRes res = (RandomForestTrainRes) o;
+                subModels.add(res.getSubModel());
                 if (res.isActive()) {
-                    reqTree = (RandomForestTrainRes) BeanUtils.cloneBean(res);
+                    resResult = (RandomForestTrainRes) BeanUtils.cloneBean(res);
                     treeSampleIDs.putAll(res.getTidToSampleId());
                     featureImportance.putAll(res.getFeatureImportance());
                 } else {
-                    reqTree = res;
+                    resResult = res;
                     break;
                 }
             }
-            reqTree.setTidToSampleId(treeSampleIDs);
-            reqTree.setFeatureImportance(featureImportance);
+            resResult.setTidToSampleId(treeSampleIDs);
+            resResult.setFeatureImportance(featureImportance);
         }
-
-        return reqTree;
+        resResult.setSubModel(reduceSubModel(subModels));
+        return resResult;
     }
 
     private static Message reducePhase2(List<Message> result) throws InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         String[] body;
         List<String> bodyList = new ArrayList<>();
         Map<Integer, String> treeBodyMap = new HashMap<>();
-        RandomForestTrainRes reqTree = new RandomForestTrainRes();
+        RandomForestTrainRes resResult = new RandomForestTrainRes();
+        List<SubModel> subModels = new ArrayList<>();
         boolean flag = false;
         for (Object o : result) {
             RandomForestTrainRes res = (RandomForestTrainRes) o;
+            subModels.add(res.getSubModel());
             if (res.getMessageType() != RFDispatchPhaseType.SEND_SAMPLE_ID) {
                 flag = true;
                 for (int j = 0; j < res.getTreeIds().length; j++) {
                     treeBodyMap.put(Integer.valueOf(res.getTreeIds()[j]), res.getBody().split(":::")[j]);
                 }
             }
-            reqTree = (RandomForestTrainRes) BeanUtils.cloneBean(res);
+            resResult = (RandomForestTrainRes) BeanUtils.cloneBean(res);
         }
         if (flag) {
-            reqTree.setMessageType(RFDispatchPhaseType.COMBINATION_MESSAGE);
+            resResult.setMessageType(RFDispatchPhaseType.COMBINATION_MESSAGE);
             Set<Integer> keySet = treeBodyMap.keySet();
             Integer[] keySetArr = keySet.toArray(new Integer[0]);
             String[] treeIds = new String[keySetArr.length];
@@ -1795,26 +1802,28 @@ public class DistributedRandomForestModel implements Model, Serializable {
             }
             body = bodyList.toArray(new String[0]);
             String res = String.join(":::", body);
-            reqTree.setBody(res);
-            reqTree.setTreeIds(treeIds);
-            reqTree.setNumTrees(treeIds.length);
+            resResult.setBody(res);
+            resResult.setTreeIds(treeIds);
+            resResult.setNumTrees(treeIds.length);
         }
-        return reqTree;
+        resResult.setSubModel(reduceSubModel(subModels));
+        return resResult;
 
     }
 
     private static Message reducePhase3(List<Message> result) throws InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
-        RandomForestTrainRes reqTree = new RandomForestTrainRes();
+        RandomForestTrainRes resResult = new RandomForestTrainRes();
         Map<String, String> splitMessages = new HashMap<>();
         Map<String, Map<Integer, List<Integer>>> tidToSampleIds = new HashMap<>();
-
+        List<SubModel> subModels = new ArrayList<>();
         for (Object o : result) {
             RandomForestTrainRes randomForestRes = (RandomForestTrainRes) o;
-            reqTree = (RandomForestTrainRes) BeanUtils.cloneBean(randomForestRes);
+            subModels.add(randomForestRes.getSubModel());
+            resResult = (RandomForestTrainRes) BeanUtils.cloneBean(randomForestRes);
             Map<String, String> splitMessage = randomForestRes.getSplitMessageMap();
             Map<String, Map<Integer, List<Integer>>> tidToSampleId = randomForestRes.getTidToSampleIds();
             if (randomForestRes.getTidToSampleIds() == null) {
-                return reqTree;
+                return resResult;
             }
             for (Map.Entry<String, Map<Integer, List<Integer>>> tidToSampleIdi : tidToSampleId.entrySet()) {
                 String clientInfo = tidToSampleIdi.getKey();
@@ -1842,9 +1851,10 @@ public class DistributedRandomForestModel implements Model, Serializable {
             }
 
         }
-        reqTree.setSplitMessageMap(splitMessages);
-        reqTree.setTidToSampleIds(tidToSampleIds);
-        return reqTree;
+        resResult.setSplitMessageMap(splitMessages);
+        resResult.setTidToSampleIds(tidToSampleIds);
+        resResult.setSubModel(reduceSubModel(subModels));
+        return resResult;
     }
 
     private static Message reducePhase4(List<Message> result) throws InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
@@ -1854,10 +1864,11 @@ public class DistributedRandomForestModel implements Model, Serializable {
         List<String> treeIdsList = new ArrayList<>();
         List<String> splitMessList = new ArrayList<>();
         List<double[]> maskLeftList = new ArrayList<>();
-
-        RandomForestTrainRes reqTree = new RandomForestTrainRes();
+        List<SubModel> subModels = new ArrayList<>();
+        RandomForestTrainRes resResult = new RandomForestTrainRes();
         for (Object o : result) {
             RandomForestTrainRes randomForestRes = (RandomForestTrainRes) o;
+            subModels.add(randomForestRes.getSubModel());
             if (randomForestRes.getMaskLeft() != null && randomForestRes.getMaskLeft().size() != 0) {
                 for (int j = 0; j < randomForestRes.getMaskLeft().size(); j++) {
                     maskLeftList.add(randomForestRes.getMaskLeft().get(j));
@@ -1869,18 +1880,32 @@ public class DistributedRandomForestModel implements Model, Serializable {
                     treeIdsList.addAll(Arrays.asList(randomForestRes.getTreeIds()));
                 }
             }
-            reqTree = (RandomForestTrainRes) BeanUtils.cloneBean(randomForestRes);
+            resResult = (RandomForestTrainRes) BeanUtils.cloneBean(randomForestRes);
         }
         treeIds = treeIdsList.toArray(new String[0]);
         splitMess = splitMessList.toArray(new String[0]);
         for (int i = 0; i < maskLeftList.size(); i++) {
             maskLeft.put(i, maskLeftList.get(i));
         }
-        reqTree.setTreeIds(treeIds);
-        reqTree.setMaskLeft(maskLeft);
-        reqTree.setSplitMess(splitMess);
-        return reqTree;
+        resResult.setTreeIds(treeIds);
+        resResult.setMaskLeft(maskLeft);
+        resResult.setSplitMess(splitMess);
+        resResult.setSubModel(reduceSubModel(subModels));
+        return resResult;
     }
+
+    private static Message reducePhaseDefault(List<Message> result) throws InvocationTargetException, IllegalAccessException, InstantiationException, NoSuchMethodException {
+        List<SubModel> subModels = new ArrayList<>();
+        RandomForestTrainRes resResult = new RandomForestTrainRes();
+        for (Object o : result) {
+            RandomForestTrainRes randomForestRes = (RandomForestTrainRes) o;
+            subModels.add(randomForestRes.getSubModel());
+            resResult = (RandomForestTrainRes) BeanUtils.cloneBean(randomForestRes);
+        }
+        resResult.setSubModel(reduceSubModel(subModels));
+        return resResult;
+    }
+
 
     public ArrayList<Integer> dataIdList(String requestId, TrainInit trainInit, List<Integer> sortedIndexList) {
         Map<Integer, ArrayList<Integer>> sampleIdsMap = (Map<Integer, ArrayList<Integer>>) trainInit.getOthers().get("listSampleIds");
@@ -1928,21 +1953,20 @@ public class DistributedRandomForestModel implements Model, Serializable {
             if (phase == 0) {
                 return mapPhase0(req);
             } else if (phase == 1) {
-                return mapPhase1();
+                return mapPhase1(req);
             } else if (phase == 2) {
                 return mapPhase2(req);
             } else if (phase == 3) {
                 return mapPhase3(req);
             } else if (phase == 4) {
                 return mapPhase4(req);
+            } else {
+                return mapPhaseDefault(req);
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
             throw new NotMatchException(e);
         }
-        SplitResult splitResult = new SplitResult();
-        splitResult.setReduceType(ReduceType.needMerge);
-        return splitResult;
     }
 
     private SplitResult mapPhase0(Message req) throws IOException, ClassNotFoundException {
@@ -1956,9 +1980,22 @@ public class DistributedRandomForestModel implements Model, Serializable {
         List<String> modelIDs = new ArrayList<>();
         List<Message> messageBodys = new ArrayList<>();
         RandomForestParameter parameter = (RandomForestParameter) request.getParameter();
+        // 生成密钥
+        EncryptionTool encryptionTool = getEncryptionTool(parameter);
+        switch (parameter.getEncryptionType()) {
+            case Paillier:
+                privateKeyString = encryptionTool.keyGenerate(1024, 0).serialize();
+                break;
+            case IterativeAffine:
+                privateKeyString = encryptionTool.keyGenerate(1024, 2).serialize();
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported encryption type!");
+        }
         for (int i = 0; i < parameter.getNumTrees(); i++) {
-            String res = SerializerUtils.serialize(request);
-            TrainInit reqTree = (TrainInit) SerializerUtils.deserialize(res);
+            Map<String, Object> others = request.getOthers();
+            others.put("privateKeyString", privateKeyString);
+            TrainInit reqTree = new TrainInit(request.getParameter(), request.getFeatureList(), request.getTestIndex(), request.getMatchId(), others);
             messageBodys.add(reqTree);
             modelIDs.add(String.valueOf(i));
         }
@@ -1969,9 +2006,29 @@ public class DistributedRandomForestModel implements Model, Serializable {
         return splitResult;
     }
 
-    private SplitResult mapPhase1() {
+    private SplitResult mapPhase1(Message req) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         SplitResult splitResult = new SplitResult();
-        splitResult.setReduceType(ReduceType.needMerge);
+        List<String> modelIDs = new ArrayList<>();
+        List<Message> messageBodys = new ArrayList<>();
+        if (req == null) {
+            splitResult.setReduceType(ReduceType.noMerge);
+        } else {
+            RandomForestTrainReq request;
+            if (req instanceof RandomForestTrainReq) {
+                request = (RandomForestTrainReq) req;
+            } else {
+                throw new NotMatchException("Message to RandomForestTrainReq error in map phase5");
+            }
+            //此部分为map步骤:拆分为n个Request请求
+            for (int i = 0; i < request.getNumTrees(); i++) {
+                RandomForestTrainReq reqTree = (RandomForestTrainReq) BeanUtils.cloneBean(request);
+                messageBodys.add(reqTree);
+                modelIDs.add(String.valueOf(i));
+            }
+            splitResult.setReduceType(ReduceType.needMerge);
+            splitResult.setMessageBodys(messageBodys);
+            splitResult.setModelIDs(modelIDs);
+        }
         return splitResult;
     }
 
@@ -1982,7 +2039,6 @@ public class DistributedRandomForestModel implements Model, Serializable {
 
         if (req == null) {
             splitResult.setReduceType(ReduceType.noMerge);
-            return splitResult;
         } else {
             RandomForestTrainReq request;
             if (req instanceof RandomForestTrainReq) {
@@ -1992,8 +2048,14 @@ public class DistributedRandomForestModel implements Model, Serializable {
             }
             if (request.getDistributedEncryptY() == null) {
                 if (request.getTidToSampleID() == null || request.getTidToSampleID().size() == 0) {
-                    splitResult.setReduceType(ReduceType.noMerge);
-                    return splitResult;
+                    for (int i = 0; i < request.getNumTrees(); i++) {
+                        RandomForestTrainReq reqTree = (RandomForestTrainReq) BeanUtils.cloneBean(request);
+                        messageBodys.add(reqTree);
+                        modelIDs.add(String.valueOf(i));
+                    }
+                    splitResult.setReduceType(ReduceType.needMerge);
+                    splitResult.setMessageBodys(messageBodys);
+                    splitResult.setModelIDs(modelIDs);
                 }
                 if (request.getTidToSampleID().size() > 0) {
                     Integer[] treeIds = request.getTidToSampleID().keySet().toArray(new Integer[0]);
@@ -2008,10 +2070,9 @@ public class DistributedRandomForestModel implements Model, Serializable {
                     splitResult.setReduceType(ReduceType.needMerge);
                     splitResult.setMessageBodys(messageBodys);
                     splitResult.setModelIDs(modelIDs);
-                    return splitResult;
+
                 }
             } else if (request.getDistributedEncryptY().length >= 1) {
-
                 for (int i = 0; i < request.getDistributedEncryptY().length; i++) {
                     RandomForestTrainReq reqTree = (RandomForestTrainReq) BeanUtils.cloneBean(request);
                     Map<Integer, List<Integer>> tidToSampleID = new HashMap<>();
@@ -2025,10 +2086,17 @@ public class DistributedRandomForestModel implements Model, Serializable {
                 splitResult.setReduceType(ReduceType.needMerge);
                 splitResult.setMessageBodys(messageBodys);
                 splitResult.setModelIDs(modelIDs);
-                return splitResult;
+            } else {
+                for (int i = 0; i < request.getNumTrees(); i++) {
+                    RandomForestTrainReq reqTree = (RandomForestTrainReq) BeanUtils.cloneBean(request);
+                    messageBodys.add(reqTree);
+                    modelIDs.add(String.valueOf(i));
+                }
+                splitResult.setReduceType(ReduceType.needMerge);
+                splitResult.setMessageBodys(messageBodys);
+                splitResult.setModelIDs(modelIDs);
             }
         }
-        splitResult.setReduceType(ReduceType.noMerge);
         return splitResult;
     }
 
@@ -2104,86 +2172,147 @@ public class DistributedRandomForestModel implements Model, Serializable {
                 splitResult.setMessageBodys(messageBodys);
                 splitResult.setModelIDs(modelIDs);
             } else {
+                for (int i = 0; i < request.getNumTrees(); i++) {
+                    RandomForestTrainReq reqTree = (RandomForestTrainReq) BeanUtils.cloneBean(request);
+                    messageBodys.add(reqTree);
+                    modelIDs.add(String.valueOf(i));
+                }
+                splitResult.setMessageBodys(messageBodys);
+                splitResult.setModelIDs(modelIDs);
                 splitResult.setReduceType(ReduceType.noMerge);
             }
         }
         return splitResult;
     }
 
-    /**
-     * 模型合并
-     *
-     * @param models 模型列表
-     * @return 合并后模型
-     */
-    public List<Model> mergeModel(List<Model> models) {
+    private SplitResult mapPhaseDefault(Message req) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        SplitResult splitResult = new SplitResult();
+        List<String> modelIDs = new ArrayList<>();
+        List<Message> messageBodys = new ArrayList<>();
+        if (req == null) {
+            splitResult.setReduceType(ReduceType.noMerge);
+        } else {
+            RandomForestTrainReq request;
+            if (req instanceof RandomForestTrainReq) {
+                request = (RandomForestTrainReq) req;
+            } else {
+                throw new NotMatchException("Message to RandomForestTrainReq error in map phase5");
+            }
+            //此部分为map步骤:拆分为n个Request请求
+            for (int i = 0; i < request.getNumTrees(); i++) {
+                RandomForestTrainReq reqTree = (RandomForestTrainReq) BeanUtils.cloneBean(request);
+                messageBodys.add(reqTree);
+                modelIDs.add(String.valueOf(i));
+            }
+            splitResult.setReduceType(ReduceType.needMerge);
+            splitResult.setMessageBodys(messageBodys);
+            splitResult.setModelIDs(modelIDs);
+        }
+        return splitResult;
+    }
+
+    private SubModel mapSubModel() {
         Map<String, Double> localTrees = new HashMap<>();
-        ArrayList<Boolean> isFinished = new ArrayList<>();
-        ArrayList<TreeNodeRF> roots = new ArrayList<>();
+        Map<Integer, Boolean> isFinished = new HashMap<>();
+        Map<Integer, TreeNodeRF> roots = new HashMap<>();
         Map<Integer, TreeNodeRF> treeNodeMap = new HashMap<>();
         Map<Integer, TreeNodeRF> currentNodeMap = new HashMap<>();
-        ArrayList<Queue<TreeNodeRF>> aliveNodes = new ArrayList<>();
-        String privateKey = null;
-        String keyPublic = null;
-        for (int i = 0; i < models.size(); i++) {
-            DistributedRandomForestModel model = (DistributedRandomForestModel) models.get(i);
-            if (privateKey == null) {
-                privateKey = model.getPrivateKeyString();
-                keyPublic = model.getPublicKeyString();
-            }
-            localTrees.putAll(model.getLocalTree());
-            int treeID = model.getTreeID();
-            TypeRandomForest forest = model.getForest();
-            if (forest != null) {
-                if (roots.size() == 0) {
-                    roots.addAll(forest.getRoots());
-                } else {
-                    roots.set(treeID, forest.getRoots().get(treeID));
-                }
-                if (isFinished.size() == 0) {
-                    isFinished.addAll(forest.getIsFinished());
-                } else {
-                    isFinished.set(treeID, forest.getIsFinished().get(treeID));
-                }
-                if (aliveNodes.size() == 0) {
-                    aliveNodes.addAll(forest.getAliveNodes());
-                } else {
-                    if (forest.getAliveNodes().get(treeID) != null) {
-                        aliveNodes.set(treeID, forest.getAliveNodes().get(treeID));
-                    }
-                }
-                if (treeNodeMap.size() == 0) {
-                    treeNodeMap.putAll(forest.getTreeNodeMap());
-                } else {
-                    if (forest.getTreeNodeMap().get(treeID) != null) {
-                        treeNodeMap.put(treeID, forest.getTreeNodeMap().get(treeID));
-                    }
-                }
-                if (currentNodeMap.size() == 0) {
-                    currentNodeMap.putAll(model.getCurrentNodeMap());
-                } else {
-                    if (model.getCurrentNodeMap().get(treeID) != null) {
-                        currentNodeMap.put(treeID, model.getCurrentNodeMap().get(treeID));
-                    }
-                }
-            }
+        Map<Integer, Queue<TreeNodeRF>> aliveNodes = new HashMap<>();
+        localTrees.putAll(this.localTree);
+        TypeRandomForest forest = this.forest;
+        if (forest != null) {
+            roots.putAll(forest.getRoots());
+            isFinished.putAll(forest.getIsFinished());
+            aliveNodes.putAll(forest.getAliveNodes());
+            treeNodeMap.putAll(forest.getTreeNodeMap());
+            currentNodeMap.putAll(this.currentNodeMap);
         }
-        for (int i = 0; i < models.size(); i++) {
-            DistributedRandomForestModel model = (DistributedRandomForestModel) models.get(i);
-            TypeRandomForest forest = model.getForest();
-            if (forest != null) {
-                forest.setRoots(roots);
-                forest.setTreeNodeMap(treeNodeMap);
-                forest.setAliveNodes(aliveNodes);
-                forest.setIsFinished(isFinished);
-                model.setCurrentNodeMap(currentNodeMap);
-                model.setForest(forest);
+        List<Integer> treeIDs = new ArrayList<>();
+        treeIDs.add(this.treeID);
+        return new SubModel(localTrees, isFinished, roots, treeNodeMap, currentNodeMap, aliveNodes, treeIDs);
+    }
+
+    private static SubModel reduceSubModel(List<SubModel> subModels) {
+        Map<String, Double> localTrees = new HashMap<>();
+        Map<Integer, Boolean> isFinished = new HashMap<>();
+        Map<Integer, TreeNodeRF> roots = new HashMap<>();
+        Map<Integer, TreeNodeRF> treeNodeMap = new HashMap<>();
+        Map<Integer, TreeNodeRF> currentNodeMap = new HashMap<>();
+        Map<Integer, Queue<TreeNodeRF>> aliveNodes = new HashMap<>();
+        List<Integer> treeIDs = new ArrayList<>();
+        for (int i = 0; i < subModels.size(); i++) {
+            SubModel subModel = subModels.get(i);
+            if (subModel == null) {
+                return null;
             }
-            model.setPrivateKeyString(privateKey);
-            model.setPublicKeyString(keyPublic);
-            model.setLocalTree(localTrees);
+            localTrees.putAll(subModel.getLocalTrees());
+            List<Integer> eachTreeIDs = subModel.getTreeIDs();
+            for (int j = 0; j < eachTreeIDs.size(); j++) {
+                int treeID = eachTreeIDs.get(j);
+                if(subModel.getRoots().get(treeID) != null) {
+                    if (roots.size() == 0) {
+                        roots.putAll(subModel.getRoots());
+                    } else {
+                        roots.put(treeID, subModel.getRoots().get(treeID));
+                    }
+                }
+                if(subModel.getIsFinished().get(treeID) != null) {
+                    if (isFinished.size() == 0) {
+                        isFinished.putAll(subModel.getIsFinished());
+                    } else {
+                        isFinished.put(treeID, subModel.getIsFinished().get(treeID));
+                    }
+                }
+                if(subModel.getAliveNodes().get(treeID) != null) {
+                    if (aliveNodes.size() == 0) {
+                        aliveNodes.putAll(subModel.getAliveNodes());
+                    } else {
+                        aliveNodes.put(treeID, subModel.getAliveNodes().get(treeID));
+                    }
+                }
+                if(subModel.getTreeNodeMap().get(treeID) != null) {
+                    if (treeNodeMap.size() == 0) {
+                        treeNodeMap.putAll(subModel.getTreeNodeMap());
+                    } else {
+                        treeNodeMap.put(treeID, subModel.getTreeNodeMap().get(treeID));
+                    }
+                }
+
+                if(subModel.getCurrentNodeMap().get(treeID) != null) {
+                    if (currentNodeMap.size() == 0) {
+                        currentNodeMap.putAll(subModel.getCurrentNodeMap());
+                    } else {
+                        currentNodeMap.put(treeID, subModel.getCurrentNodeMap().get(treeID));
+                    }
+                }
+            }
+            treeIDs.addAll(subModel.getTreeIDs());
         }
-        return models;
+
+        return new SubModel(localTrees, isFinished, roots, treeNodeMap, currentNodeMap, aliveNodes, treeIDs);
+    }
+
+    @Override
+    public Message updateSubModel(Message message) {
+        RandomForestTrainRes res;
+        if (message instanceof RandomForestTrainRes) {
+            res = (RandomForestTrainRes) message;
+        } else {
+            throw new NotMatchException("Message to RandomForestTrainRes error updateSubModel");
+        }
+        SubModel subModel = res.getSubModel();
+        if (this.forest != null && subModel != null) {
+            this.forest.setRoots(subModel.getRoots());
+            this.forest.setTreeNodeMap(subModel.getTreeNodeMap());
+            this.forest.setAliveNodes(subModel.getAliveNodes());
+            this.forest.setIsFinished(subModel.getIsFinished());
+            this.currentNodeMap = subModel.getCurrentNodeMap();
+        }
+        if(subModel != null) {
+            this.localTree = subModel.getLocalTrees();
+        }
+        res.setSubModel(null);
+        return res;
     }
 
     public Map<String, Double> getLocalTree() {

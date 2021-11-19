@@ -1,6 +1,6 @@
 package com.jdt.fedlearn.coordinator.util;
 
-import com.jdt.fedlearn.common.util.JsonUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
 import com.jdt.fedlearn.core.parameter.FgbParameter;
 import org.testng.Assert;
 import org.testng.annotations.Test;

@@ -18,6 +18,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.encryption.IterativeAffineNew.IterativeAffineToolNew;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
@@ -26,26 +28,24 @@ import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.Exponential;
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.Laplace;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
-import com.jdt.fedlearn.core.entity.feature.Features;
 import com.jdt.fedlearn.core.entity.localModel.LocalLinearModel;
 import com.jdt.fedlearn.core.entity.localModel.LocalModel;
 import com.jdt.fedlearn.core.entity.localModel.LocalNullModel;
 import com.jdt.fedlearn.core.entity.randomForest.*;
 import com.jdt.fedlearn.core.exception.NotMatchException;
+import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
 import com.jdt.fedlearn.core.preprocess.Scaling;
-import com.jdt.fedlearn.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.type.RFModelPhaseType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.Tool;
 import com.jdt.fedlearn.grpc.federatedlearning.Vector;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
-import com.jdt.fedlearn.core.loader.randomForest.RFInferenceData;
 import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.metrics.Metric;
@@ -96,7 +96,7 @@ public class RandomForestModel implements Model {
     // 私钥在active方，公钥在positive方
     private PrivateKey privateKey;
     private PublicKey publicKey;
-    private SimpleMatrix XTest;
+    private double[][] XTest;
     private double[][] yPredValues;
     // 采样特征id
     private List<Integer>[] featureIds;
@@ -115,6 +115,7 @@ public class RandomForestModel implements Model {
     private String[] mess;
     private Map<Integer, TreeNodeRF> currentNodeMap = new ConcurrentHashMap<>();
     private Map<Integer, Map<Integer, List<String>>> treeInfo = new HashMap<>();
+    private List<String> expressions = new ArrayList<>();
 
     // 归一化相关，当使用差分隐私且是回归问题的时候，需要对label进行归一化， 固定加噪强度
     private Scaling scaling;
@@ -138,16 +139,15 @@ public class RandomForestModel implements Model {
         logger.info("Init train start{}", splitLine);
         this.parameter = (RandomForestParameter) parameter;
         Tuple2<String[], String[]> trainTestUid = Tool.splitUid(uids, testIndex);
+//        RFTrainData trainData = new RFTrainData(rawData, trainTestUid._1(), features, this.parameter.isUseDP());
         RFTrainData trainData = new RFTrainData(rawData, trainTestUid._1(), features, this.parameter.isUseDP());
-        trainData.fillna(0);
+        this.expressions = trainData.getExpressions();
         String labelName = features.getLabel();
         // 随机种子
         Random randgauss = new Random(666);
         Random rand = new Random(this.parameter.getRandomSeed());
         this.scaling = trainData.getScaling();
         // 初始化 train data
-        List<String> headers = trainData.getHeaders();
-        logger.info("header: {}", String.join(" ", headers));
         logger.info("HasLabel: {}, label name: {}", trainData.hasLabel, labelName);
         logger.info("Dataframe: {} rows, {} columns", trainData.numRows(), trainData.numCols());
         // 按照树的个数和最大深度提前均分差分隐私预算epsilon
@@ -185,7 +185,6 @@ public class RandomForestModel implements Model {
         trainData.setXsTrain(XsTrain);
         trainData.setRawTable(null);
         trainData.setUid(null);
-        trainData.setContent(null);
 
         logger.info("Init train end{}", splitLine);
         return trainData;
@@ -244,8 +243,8 @@ public class RandomForestModel implements Model {
 
         // fill mean
         Set<Integer> setSampleIds = new HashSet<>();
-        for (TreeNodeRF treei : forest.getRoots()) {
-            List<Integer> sampleIdi = treei.sampleIds;
+        for(Map.Entry<Integer, TreeNodeRF> entry : forest.getRoots().entrySet()) {
+            List<Integer> sampleIdi = entry.getValue().sampleIds;
             setSampleIds.addAll(sampleIdi);
         }
         logger.info("trainID length = {}", setSampleIds.size());
@@ -1267,31 +1266,15 @@ public class RandomForestModel implements Model {
     public Message inference(int phase, Message jsonData, InferenceData data) {
         logger.info("Inference process, phase {} start{}", phase, splitLine);
         if (phase == -1) {
-            RFInferenceData inferenceData = (RFInferenceData) data;
-            String[] subUid = inferencePhase1(inferenceData, jsonData);
+            CommonInferenceData inferenceData = (CommonInferenceData) data;
+            String[] subUid = ((InferenceInit) jsonData).getUid();
             if (subUid.length == 0) {
                 return null;
             }
-            XTest = inferenceData.selectToSmpMatrix(subUid);
+            XTest = inferenceData.getSample();
             inferenceUid = subUid;
         }
         return inferenceOneShot(phase, jsonData);
-    }
-
-    /**
-     * 推理初始化，处理推理数据集
-     *
-     * @param inferenceData 推理数据集
-     * @param request       服务端请求
-     */
-    public String[] inferencePhase1(RFInferenceData inferenceData, Message request) {
-//        String[][] rawTable = inferenceData.getUidFeature();
-        // TODO 确定 inference 到底带不带 header
-        inferenceData.init();
-        inferenceData.fillna(0);
-        // 接受 jsonData 里的 InferenceInit 中的 uid
-        InferenceInit init = (InferenceInit) request;
-        return init.getUid();
     }
 
     /**
@@ -1315,8 +1298,8 @@ public class RandomForestModel implements Model {
                         // split
                         int feature = Integer.parseInt(s[0]);
                         double threshold = Double.parseDouble(s[1]);
-                        for (int i = 0; i < XTest.numRows(); i++) {
-                            if (XTest.get(i, feature) < threshold) {
+                        for (int i = 0; i < XTest.length; i++) {
+                            if (XTest[i][feature] < threshold) {
                                 vals.add("L");
                             } else {
                                 vals.add("R");
@@ -1324,7 +1307,7 @@ public class RandomForestModel implements Model {
                         }
                     } else {
                         // prediction
-                        for (int i = 0; i < XTest.numRows(); i++) {
+                        for (int i = 0; i < XTest.length; i++) {
                             vals.add(s[0]);
                         }
                     }
@@ -1336,7 +1319,7 @@ public class RandomForestModel implements Model {
             // check if is active
             if (modelString.contains("localModel")) {
                 // do local prediction
-                double[] localPredict = localModel.batchPredict(XTest);
+                double[] localPredict = null;
                 return new RandomForestInferMessage(inferenceUid, localPredict, "active", new HashMap<>());
             } else {
                 return new RandomForestInferMessage(inferenceUid, null, "", res);
@@ -1464,9 +1447,11 @@ public class RandomForestModel implements Model {
      * @param input 序列化的模型，
      */
     public void deserialize(String input) {
+        String[] contents = Tool.splitExpressionsAndModel(input);
+        this.expressions = Tool.splitExpressions(contents[0]);
         Map<String, String> strTrees;
         logger.info("Model deserialize...");
-        modelString = input;
+        modelString = contents[1];
         // check if model string is start with {
         if ("{".equals(modelString.substring(0, 1))) {
             // deserialize string
@@ -1519,7 +1504,7 @@ public class RandomForestModel implements Model {
             return "";
         }
         modelString = getModel().toString();
-        return modelString;
+        return Tool.addExpressions(modelString, this.expressions);
     }
 
     /**
@@ -1543,15 +1528,14 @@ public class RandomForestModel implements Model {
 
     private Map<String, String> getModelAll(String client) {
         Map<String, String> strTrees = new HashMap<>();
-        List<TreeNodeRF> roots = forest.getRoots();
         int numTrees = 0;
 
-        for (TreeNodeRF root : roots) {
+        for (Map.Entry<Integer, TreeNodeRF> entry : forest.getRoots().entrySet()) {
             logger.info("Tree to json...");
-            if (null != root) { /* check is null tree */
-                if (!root.isLeaf) {
+            if (null != entry.getValue()) { /* check is null tree */
+                if (!entry.getValue().isLeaf) {
                     /* is non-null tree */
-                    strTrees.put(String.format("Tree%s", numTrees), forest.tree2json(root, client));
+                    strTrees.put(String.format("Tree%s", numTrees), forest.tree2json(entry.getValue(), client));
                     numTrees += 1;
                 }
             }
@@ -1647,6 +1631,14 @@ public class RandomForestModel implements Model {
 
     public void setClientInfos(List<ClientInfo> clientInfos) {
         this.clientInfos = clientInfos;
+    }
+
+    public List<String> getExpressions() {
+        return expressions;
+    }
+
+    public void setExpressions(List<String> expressions) {
+        this.expressions = expressions;
     }
 }
 

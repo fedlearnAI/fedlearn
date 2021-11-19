@@ -48,6 +48,8 @@ public class CacheConstant {
      */
     public static final String MODEL_TRAIN_DATA_PRE="model_train_data:pre_";
 
+    public static final String SUB_MESSAGE_PRE="sub_message:pre_";
+
     private CacheConstant() {
 
     }
@@ -113,5 +115,10 @@ public class CacheConstant {
     public static String getModelAndTrainDataKey(String modelToken ,String requestId) {
         return MODEL_TRAIN_DATA_PRE + modelToken + "_" + requestId;
     }
+
+    public static String getSubMessageKey(String modelToken ,String modelId) {
+        return SUB_MESSAGE_PRE + modelToken + "_" + modelId;
+    }
+
 
 }

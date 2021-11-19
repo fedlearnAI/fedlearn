@@ -13,8 +13,8 @@ limitations under the License.
 
 package com.jdt.fedlearn.client.constant;
 
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 
 /**
  * 缓存数据

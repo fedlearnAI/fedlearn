@@ -1,13 +1,12 @@
 package com.jdt.fedlearn.core.psi.diffieHellman;
 
-import ch.qos.logback.core.net.server.Client;
 import com.jdt.fedlearn.core.encryption.DiffieHellman;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.fake.FakeTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.psi.*;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
@@ -17,8 +16,6 @@ import org.testng.annotations.Test;
 
 import java.math.BigInteger;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class TestDHMatchClient {
     private final BigInteger n = DiffieHellman.generateG();

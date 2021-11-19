@@ -16,7 +16,7 @@ package com.jdt.fedlearn.core.encryption.distributedPaillier;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.core.encryption.nativeLibLoader;
-import com.jdt.fedlearn.core.exception.SerializeException;
+import com.jdt.fedlearn.common.exception.SerializeException;
 import com.jdt.fedlearn.core.exception.WrongValueException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

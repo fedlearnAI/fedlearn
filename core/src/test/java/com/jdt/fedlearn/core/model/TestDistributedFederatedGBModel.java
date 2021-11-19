@@ -1,12 +1,15 @@
 package com.jdt.fedlearn.core.model;
 
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.ReduceType;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.fake.FakeTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.base.StringArray;
 import com.jdt.fedlearn.core.entity.boost.*;
@@ -15,8 +18,8 @@ import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.core.entity.common.TrainInit;
 import com.jdt.fedlearn.core.entity.distributed.InitResult;
 import com.jdt.fedlearn.core.entity.distributed.SplitResult;
-import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.entity.feature.SingleFeature;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.SingleFeature;
 import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.exception.NotMatchException;
 import com.jdt.fedlearn.core.fake.StructureGenerate;
@@ -66,7 +69,7 @@ public class TestDistributedFederatedGBModel {
         /*
         trainInit test
         */
-        DistributedFederatedGBModel model = new DistributedFederatedGBModel();
+
         List<Tuple3<String[][], String[], Features>> dataArray = new ArrayList<>();
         dataArray.add(StructureGenerate.trainInputStd());
         dataArray.add(StructureGenerate.trainClassInputStd());
@@ -88,6 +91,7 @@ public class TestDistributedFederatedGBModel {
                 String[] result = compoundInput._2().get();
                 Features features = compoundInput._3().get();
                 try {
+                    DistributedFederatedGBModel model = new DistributedFederatedGBModel();
                     BoostTrainData trainData = model.trainInit(raw, result, new int[0], fp, features, new HashMap<>());
                     Assert.assertEquals(model.pred[0].length, 3);
                     if ((fp.getObjective() == ObjectiveType.multiSoftProb) || (fp.getObjective() == ObjectiveType.multiSoftmax)) {
@@ -835,10 +839,11 @@ public class TestDistributedFederatedGBModel {
         Map<String, Object> other = new HashMap<>();
         other.put("newTree", true);
         other.put("dataset", "dataset");
+        other.put("matchSize", 10);
         TrainInit req = new TrainInit(parameter, localFeature, matchResult.getMatchId(), other);
         SplitResult splitResult = model.split(phase, req);
-        Assert.assertEquals(splitResult.getModelIDs().size(), 1);
-        Assert.assertEquals(splitResult.getMessageBodys().size(), 1);
+        Assert.assertEquals(splitResult.getModelIDs().size(), 2);
+        Assert.assertEquals(splitResult.getMessageBodys().size(), 2);
         Assert.assertEquals(splitResult.getReduceType(), ReduceType.needMerge);
     }
 
@@ -896,7 +901,7 @@ public class TestDistributedFederatedGBModel {
         Assert.assertEquals(splitResult1.getReduceType(), ReduceType.needMerge);
         Assert.assertEquals(splitResult1.getModelIDs().size(), workerNum);
         Assert.assertEquals(splitResult.getModelIDs().get(0), "0");
-        Assert.assertEquals(splitResult1.getMessageBodys().size(), workerNum);
+        Assert.assertEquals(splitResult1.getMessageBodys().size(), 0);
     }
 
     @Test
@@ -930,7 +935,7 @@ public class TestDistributedFederatedGBModel {
         Assert.assertEquals(splitResult1.getReduceType(), ReduceType.needMerge);
         Assert.assertEquals(splitResult1.getModelIDs().size(), workerNum);
         Assert.assertEquals(splitResult.getModelIDs().get(0), "0");
-        Assert.assertEquals(splitResult1.getMessageBodys().size(), workerNum);
+        Assert.assertEquals(splitResult1.getMessageBodys().size(), 0);
     }
 
 
@@ -957,7 +962,7 @@ public class TestDistributedFederatedGBModel {
         Assert.assertEquals(splitResult1.getReduceType(), ReduceType.needMerge);
         Assert.assertEquals(splitResult1.getModelIDs().size(), workerNum);
         Assert.assertEquals(splitResult.getModelIDs().get(0), "0");
-        Assert.assertEquals(splitResult1.getMessageBodys().size(), workerNum);
+        Assert.assertEquals(splitResult1.getMessageBodys().size(), 0);
     }
 
     @Test
@@ -1091,49 +1096,11 @@ public class TestDistributedFederatedGBModel {
         messages.add(encryptedGradHess);
         try {
             Message result = model.merge(phase, messages);
-        }catch (NotMatchException e){
+        } catch (NotMatchException e) {
             Assert.assertEquals(e.getMessage(), e.getMessage());
         }
     }
 
-    @Test
-    public void testMergeModel(){
-
-        DistributedFederatedGBModel model = new DistributedFederatedGBModel();
-        List<Model> models = new ArrayList<>();
-        // first time
-        List<Model> res = model.mergeModel(models);
-        Assert.assertEquals(res,models);
-        String[][] raw1 = new String[3][3];
-        raw1[0] = new String[]{"uid","age","y"};
-        raw1[1] = new String[]{"1a","22","1.6"};
-        raw1[2] = new String[]{"2s","2","0.8"};
-        List<SingleFeature> featureList = new ArrayList<>();
-        featureList.add(new SingleFeature("uid","String"));
-        featureList.add(new SingleFeature("age","int"));
-        featureList.add(new SingleFeature("y","double"));
-        Features features1 = new Features(featureList);
-        String[] result = new String[]{"uid","1a","2s"};
-
-        FgbParameter fp = new FgbParameter.Builder(50, new MetricType[]{MetricType.ACC}, ObjectiveType.binaryLogistic).gamma(0.6).minSampleSplit(30).scalePosWeight(5).maxDepth(5).build();
-        model.trainInit(raw1, result, new int[0], fp, features1, new HashMap<>());
-        models.add(model);
-        DistributedFederatedGBModel model1 = new DistributedFederatedGBModel();
-        String[][] raw2 = new String[3][3];
-        raw2[0] = new String[]{"uid","outcome","y"};
-        raw2[1] = new String[]{"1a","2.2","1.6"};
-        raw2[2] = new String[]{"2s","1.2","0.8"};
-        List<SingleFeature> featureList1 = new ArrayList<>();
-        featureList1.add(new SingleFeature("uid","String"));
-        featureList1.add(new SingleFeature("outcome","int"));
-        featureList1.add(new SingleFeature("y","double"));
-        Features features2 = new Features(featureList1);
-        model1.trainInit(raw2, result, new int[0], fp, features2, new HashMap<>());
-        models.add(model1);
-        DistributedFederatedGBModel model2 = new DistributedFederatedGBModel();
-        List<Model> res1 = model2.mergeModel(models);
-        Assert.assertEquals(res1.size(),2);
-    }
 
     @Test
     public void testReducePhase2() {
@@ -1166,6 +1133,81 @@ public class TestDistributedFederatedGBModel {
 
 
     @Test
+    public void testUpdateSubModel() {
+
+        EncryptedGradHess encryptedGradHess = new EncryptedGradHess();
+        EncryptedGradHess encryptedGradHess1 = new EncryptedGradHess();
+        String priKey = "priKey";
+        String pubKey = "pubKey";
+        TreeNode node = new TreeNode();
+        encryptedGradHess.setSubModel(new SubModel(priKey, pubKey, node));
+        DistributedFederatedGBModel model = new DistributedFederatedGBModel();
+        model.setModelId(1);
+        Message result = model.updateSubModel(encryptedGradHess);
+        Assert.assertEquals(model.currentNode, node);
+        Assert.assertEquals(model.getPrivateKeyString(), priKey);
+        Assert.assertEquals(((EncryptedGradHess) result).getSubModel(),encryptedGradHess.getSubModel());
+
+        DistributedFederatedGBModel model1 = new DistributedFederatedGBModel();
+        Message result1 = model1.updateSubModel(encryptedGradHess1);
+        Assert.assertEquals(result1, encryptedGradHess1);
+    }
+
+    @Test
+    public void testMessageSplit() {
+        DistributedFederatedGBModel model = new DistributedFederatedGBModel();
+        Message message = new EmptyMessage();
+        Map<String, Object> res = model.messageSplit(message);
+        Map<String, Object> messageSplit = new HashMap<>();
+        messageSplit.put("trainRequest", message);
+        Assert.assertEquals(res, messageSplit);
+
+        Message message1 = new BoostP3Res();
+        Map<String, Object> res1 = model.messageSplit(message1);
+        Map<String, Object> messageSplit1 = new HashMap<>();
+        messageSplit1.put("trainRequest", message1);
+        Assert.assertEquals(res1, messageSplit1);
+
+
+        Message message2 = new BoostP5Res();
+        Map<String, Object> res2 = model.messageSplit(message2);
+        Map<String, Object> messageSplit2 = new HashMap<>();
+        messageSplit2.put("trainRequest", message2);
+        Assert.assertEquals(res2, messageSplit2);
+
+        Message message3 = new LeftTreeInfo(0, new int[]{0, 1});
+        Map<String, Object> res3 = model.messageSplit(message3);
+        Map<String, Object> messageSplit3 = new HashMap<>();
+        messageSplit3.put("trainRequest", message3);
+        Assert.assertEquals(res3, messageSplit3);
+
+        StringTuple2[] gh = new StringTuple2[3];
+        for (int i = 0; i < 3; i++) {
+            gh[i] = new StringTuple2(String.valueOf(i), String.valueOf(i + 1));
+        }
+        ClientInfo clientInfo = new ClientInfo("127", 8094, "http");
+        EncryptedGradHess encryptedGradHess = new EncryptedGradHess(clientInfo, new int[]{0, 1, 2}, gh, "pubKey", true);
+        Message message5 = encryptedGradHess;
+        Map<String, Object> res5 = model.messageSplit(message5);
+        Map<String, Object> messageSplit5 = new HashMap<>();
+        messageSplit5.put("trainRequest", message5);
+        Assert.assertEquals(res5, messageSplit5);
+
+
+        encryptedGradHess.setWorkerNum(2);
+        Message message4 = encryptedGradHess;
+        Map<String, Object> res4 = model.messageSplit(message4);
+        Assert.assertEquals(res4.size(), 2);
+        encryptedGradHess.setGh(null);
+        Assert.assertEquals(res4.get("trainRequest"), encryptedGradHess);
+        List<Message> messageList = (List<Message>) res4.get("messageList");
+        Assert.assertEquals(messageList.size(), 2);
+        EncryptedGradHess subMessage = (EncryptedGradHess) messageList.get(0);
+        Assert.assertEquals(subMessage.getGh().length, 2);
+
+    }
+
+    @Test
     public void inferenceInit() {
         DistributedFederatedGBModel model = new DistributedFederatedGBModel();
         String[] uidList = new String[]{"aa", "1a", "c3"};
@@ -1177,6 +1219,131 @@ public class TestDistributedFederatedGBModel {
         Assert.assertFalse(res.isAllowList());
         System.out.println(res.getUid()[0]);
         Assert.assertEquals(res.getUid(), new int[]{2}); // uidList中的第三个没有在data出现所以返回2这个index
+    }
+
+    @Test
+    public void testGetInstanceLists() {
+        DistributedFederatedGBModel model = new DistributedFederatedGBModel();
+        Message message = new EncryptedGradHess();
+        Map<String, List<int[]>> res = model.getInstanceLists(message);
+        Assert.assertEquals(res.size(), 0);
+
+        Message message1 = new BoostP3Res();
+        Map<String, List<int[]>> res1 = model.getInstanceLists(message1);
+        Assert.assertEquals(res1.size(), 0);
+
+
+        Message message2 = new LeftTreeInfo(0, new int[]{0, 1});
+        Map<String, List<int[]>> res2 = model.getInstanceLists(message2);
+        Assert.assertEquals(res2.size(), 0);
+
+        Message message3 = new BoostP5Res();
+        Map<String, List<int[]>> res3 = model.getInstanceLists(message3);
+        Assert.assertEquals(res3.size(), 0);
+
+
+        FeatureLeftGH[] featureLeftGHS = new FeatureLeftGH[2];
+        StringTuple2[] stringTuple2s = new StringTuple2[3];
+        for (int i = 0; i < stringTuple2s.length; i++) {
+            stringTuple2s[i] = new StringTuple2(String.valueOf(i), String.valueOf(i + 1));
+        }
+        featureLeftGHS[0] = new FeatureLeftGH("0", stringTuple2s);
+        List<int[]> ints = new ArrayList<>();
+        ints.add(new int[]{0, 1, 2});
+        ints.add(new int[]{0, 1, 2});
+        featureLeftGHS[0].setInstanceList(ints);
+        featureLeftGHS[1] = new FeatureLeftGH("1", stringTuple2s);
+        featureLeftGHS[1].setInstanceList(ints);
+        Message message5 = new BoostP2Res(featureLeftGHS);
+        Map<String, List<int[]>> res5 = model.getInstanceLists(message5);
+        Assert.assertEquals(res5.size(), 2);
+    }
+
+    @Test
+    public void testUpdateSubMessage(){
+        DistributedFederatedGBModel model = new DistributedFederatedGBModel();
+        EncryptionTool encryptionTool = new JavallierTool();
+        PrivateKey privateKey = encryptionTool.keyGenerate(256, 64);
+        // publicKey
+        String publicKey = privateKey.generatePublicKey().serialize();
+        model.setPublicKeyString(publicKey);
+        StringTuple2[] stringTuple2s1 = new StringTuple2[3];
+        for (int i = 0; i < stringTuple2s1.length; i++) {
+            stringTuple2s1[i] = new StringTuple2(encryptionTool.encrypt(i, privateKey.generatePublicKey()).serialize(), encryptionTool.encrypt(i + 2, privateKey.generatePublicKey()).serialize());
+        }
+        EncryptedGradHess encryptedGradHess = new EncryptedGradHess();
+        encryptedGradHess.setGh(stringTuple2s1);
+        List<Message> messageList =  new ArrayList<>();
+        messageList.add(encryptedGradHess);
+        messageList.add(new EncryptedGradHess());
+        model.updateSubMessage(messageList);
+    }
+    @Test
+    public void testSubCalculation() {
+        DistributedFederatedGBModel model = new DistributedFederatedGBModel();
+        EncryptionTool encryptionTool = new JavallierTool();
+        PrivateKey privateKey = encryptionTool.keyGenerate(256, 64);
+        // publicKey
+        String publicKey = privateKey.generatePublicKey().serialize();
+        model.setPublicKeyString(publicKey);
+        StringTuple2[] stringTuple2s1 = new StringTuple2[3];
+        for (int i = 0; i < stringTuple2s1.length; i++) {
+            stringTuple2s1[i] = new StringTuple2(encryptionTool.encrypt(i, privateKey.generatePublicKey()).serialize(), encryptionTool.encrypt(i + 2, privateKey.generatePublicKey()).serialize());
+        }
+        EncryptedGradHess encryptedGradHess = new EncryptedGradHess();
+        encryptedGradHess.setGh(stringTuple2s1);
+        List<Message> messageList =  new ArrayList<>();
+        messageList.add(encryptedGradHess);
+        messageList.add(new EncryptedGradHess());
+        model.updateSubMessage(messageList);
+
+        List<int[]> ints = new ArrayList<>();
+        ints.add(new int[]{0, 1, 2});
+        ints.add(new int[]{0, 3, 6});
+        Map<String,List<int[]>> feaInts = new HashMap<>();
+        feaInts.put("1",ints);
+        feaInts.put("2",ints);
+        Message res = model.subCalculation(feaInts);
+
+    }
+
+    @Test
+    public void testMergeSubResult() {
+        DistributedFederatedGBModel model = new DistributedFederatedGBModel();
+        EncryptionTool encryptionTool = new JavallierTool();
+        PrivateKey privateKey = encryptionTool.keyGenerate(256, 64);
+        // publicKey
+        String publicKey = privateKey.generatePublicKey().serialize();
+        model.setPublicKeyString(publicKey);
+        FeatureLeftGH[] featureLeftGHS = new FeatureLeftGH[2];
+        StringTuple2[] stringTuple2s = new StringTuple2[3];
+        for (int i = 0; i < stringTuple2s.length; i++) {
+            stringTuple2s[i] = new StringTuple2(encryptionTool.encrypt(i, privateKey.generatePublicKey()).serialize(), encryptionTool.encrypt(i + 1, privateKey.generatePublicKey()).serialize());
+        }
+        featureLeftGHS[0] = new FeatureLeftGH("0", stringTuple2s);
+        List<int[]> ints = new ArrayList<>();
+        ints.add(new int[]{0, 1, 2});
+        ints.add(new int[]{0, 1, 2});
+        featureLeftGHS[0].setInstanceList(ints);
+        featureLeftGHS[1] = new FeatureLeftGH("1", stringTuple2s);
+        featureLeftGHS[1].setInstanceList(ints);
+        BoostP2Res boostP2Res = new BoostP2Res(featureLeftGHS);
+
+        FeatureLeftGH[] featureLeftGHS1 = new FeatureLeftGH[2];
+        StringTuple2[] stringTuple2s1 = new StringTuple2[3];
+        for (int i = 0; i < stringTuple2s1.length; i++) {
+            stringTuple2s1[i] = new StringTuple2(encryptionTool.encrypt(i, privateKey.generatePublicKey()).serialize(), encryptionTool.encrypt(i + 2, privateKey.generatePublicKey()).serialize());
+        }
+        featureLeftGHS1[0] = new FeatureLeftGH("0", stringTuple2s1);
+        featureLeftGHS1[1] = new FeatureLeftGH("1", stringTuple2s1);
+        BoostP2Res boostP2Res1 = new BoostP2Res(featureLeftGHS1);
+        List<Message> messageList = new ArrayList<>();
+        messageList.add(boostP2Res1);
+        Message res = model.mergeSubResult(boostP2Res, messageList);
+        BoostP2Res boostP2Res2 = (BoostP2Res) res;
+        FeatureLeftGH[] resGH = boostP2Res2.getFeatureGL();
+        Assert.assertEquals(res.getClass(), BoostP2Res.class);
+        Assert.assertEquals(resGH.length, 2);
     }
 
 
@@ -1403,5 +1570,23 @@ public class TestDistributedFederatedGBModel {
         Assert.assertEquals(s1, s2);
     }
 
+    @Test
+    public void StringTest() {
+        StringTuple2[] stringTuple2s = new StringTuple2[2];
+        stringTuple2s[0] = new StringTuple2("", "");
+        Assert.assertEquals(stringTuple2s[0].getFirst(), "");
+
+        System.out.println("".equals(stringTuple2s[0].getFirst()));
+
+        Tuple2[] tuple2s = new Tuple2[2];
+        tuple2s[0] = new Tuple2();
+        tuple2s[1] = new Tuple2("", "");
+//        System.out.println("0 is " + tuple2s[0]._1().equals(""));
+        System.out.println("1 is str " + tuple2s[1]._1().toString());
+        System.out.println("1 is " + tuple2s[1]._1());
+        System.out.println("1 is " + tuple2s[1]._1().equals(""));
+
+
+    }
 
 }

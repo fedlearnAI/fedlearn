@@ -1,12 +1,12 @@
 package com.jdt.fedlearn.coordinator.service.train;
 
-import com.jdt.fedlearn.common.tool.ResponseHandler;
-import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.entity.train.AutoTrain;
 import com.jdt.fedlearn.coordinator.network.OkHttpUtil;
 import com.jdt.fedlearn.coordinator.service.CommonService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.tools.TokenUtil;
+import com.jdt.fedlearn.tools.internel.ResponseHandler;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
@@ -40,7 +40,7 @@ public class TrainAutoServiceImpl implements TrainService {
     public Map<String, Object> train(AutoTrain signal) {
         String taskId = signal.getTaskId();
         AlgorithmType algorithmType = AlgorithmType.valueOf(signal.getModel());
-        String trainId = TokenUtil.generateTrainId(taskId, algorithmType);
+        String trainId = TokenUtil.generateTrainId(taskId, algorithmType.getAlgorithm());
 
 
         Map<String, Object> requestBody = new HashMap<>();

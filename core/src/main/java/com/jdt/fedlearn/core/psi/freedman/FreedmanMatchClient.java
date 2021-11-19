@@ -18,16 +18,15 @@ import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.psi.*;
 import com.jdt.fedlearn.core.math.MathExt;
 import com.jdt.fedlearn.core.psi.PrepareClient;
 import com.jdt.fedlearn.core.psi.md5.Md5Match;
 import com.jdt.fedlearn.core.type.FreedmanType;
 import com.jdt.fedlearn.core.util.LagrangeInterpolation;
-import com.jdt.fedlearn.core.util.StringToIntUtil;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.*;

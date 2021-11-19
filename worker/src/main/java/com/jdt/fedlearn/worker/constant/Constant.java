@@ -12,8 +12,8 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.constant;
 
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 
 /**
  * @Name: Constant

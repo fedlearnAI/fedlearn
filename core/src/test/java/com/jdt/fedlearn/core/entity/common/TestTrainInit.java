@@ -1,10 +1,10 @@
 package com.jdt.fedlearn.core.entity.common;
 
-import com.jdt.fedlearn.core.entity.Message;
-import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.entity.serialize.JavaSerializer;
+import com.jdt.fedlearn.common.entity.core.Message;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
+import com.jdt.fedlearn.tools.serializer.JavaSerializer;
+import com.jdt.fedlearn.tools.serializer.Serializer;
 import com.jdt.fedlearn.core.entity.serialize.JsonSerializer;
-import com.jdt.fedlearn.core.entity.serialize.Serializer;
 import com.jdt.fedlearn.core.parameter.MixGBParameter;
 import com.jdt.fedlearn.core.psi.MatchResult;
 import org.testng.Assert;

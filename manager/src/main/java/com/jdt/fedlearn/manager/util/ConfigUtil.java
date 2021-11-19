@@ -13,7 +13,7 @@ limitations under the License.
 package com.jdt.fedlearn.manager.util;
 
 import ch.qos.logback.core.joran.spi.JoranException;
-import com.jdt.fedlearn.common.util.LogbackConfigLoader;
+import com.jdt.fedlearn.tools.LogbackConfigLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

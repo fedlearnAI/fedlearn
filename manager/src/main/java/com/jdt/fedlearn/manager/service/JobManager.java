@@ -15,10 +15,9 @@ package com.jdt.fedlearn.manager.service;
 import com.jdt.fedlearn.common.entity.Job;
 import com.jdt.fedlearn.common.entity.JobReq;
 import com.jdt.fedlearn.common.entity.JobResult;
-import com.jdt.fedlearn.common.util.NameUtil;
-import com.jdt.fedlearn.common.util.TimeUtil;
+import com.jdt.fedlearn.tools.NameUtil;
+import com.jdt.fedlearn.tools.TimeUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.joda.time.DateTime;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;

@@ -14,8 +14,6 @@ limitations under the License.
 package com.jdt.fedlearn.coordinator.service.inference;
 
 import com.jdt.fedlearn.common.entity.project.PartnerInfoNew;
-import com.jdt.fedlearn.common.util.FileUtil;
-import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.allocation.ResourceManager;
 import com.jdt.fedlearn.coordinator.constant.Constant;
 import com.jdt.fedlearn.coordinator.dao.UniversalMapper;
@@ -33,13 +31,15 @@ import com.jdt.fedlearn.coordinator.util.ConfigUtil;
 import com.jdt.fedlearn.coordinator.network.SendAndRecv;
 import com.jdt.fedlearn.core.dispatch.common.DispatcherFactory;
 import com.jdt.fedlearn.core.dispatch.common.Control;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.common.PredictRes;
 import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.parameter.common.CommonParameter;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.tools.FileUtil;
+import com.jdt.fedlearn.tools.TokenUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

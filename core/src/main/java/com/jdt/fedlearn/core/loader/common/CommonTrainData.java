@@ -13,21 +13,34 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.loader.common;
 
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
+
+import java.util.List;
 
 /**
  *
  */
-public class CommonTrainData extends AbstractTrainData implements TrainData{
+public class CommonTrainData extends AbstractTrainData implements TrainData {
 
     /**
-     *
-     * @param rawTable 表
+     * @param rawTable  表
      * @param commonIds id对齐结果，公共ID
-     * @param features 特征
+     * @param features  特征
      */
     public CommonTrainData(String[][] rawTable, String[] commonIds, Features features) {
         super.scan(rawTable, commonIds, features);
     }
 
+    /**
+     * @param rawTable  数据
+     * @param commonIds id对齐结果，公共ID
+     * @param features  特征
+     * @param expressions 特征处理表达式
+     */
+    public CommonTrainData(String[][] rawTable, String[] commonIds, Features features, List<String> expressions) {
+        super.scan(rawTable, commonIds, features);
+        if (expressions != null && expressions.size() != 0) {
+            super.featureProcessing(expressions);
+        }
+    }
 }

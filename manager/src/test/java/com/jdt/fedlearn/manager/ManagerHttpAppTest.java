@@ -14,9 +14,9 @@ package com.jdt.fedlearn.manager;
 
 import com.jdt.fedlearn.common.entity.JobResult;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
-import com.jdt.fedlearn.common.util.GZIPCompressUtil;
-import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.common.network.INetWorkService;
+import com.jdt.fedlearn.tools.GZIPCompressUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
+import com.jdt.fedlearn.tools.network.INetWorkService;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;

@@ -16,7 +16,7 @@ package com.jdt.fedlearn.coordinator.service.system;
 
 import com.google.common.collect.Maps;
 import com.jdt.fedlearn.coordinator.service.AbstractDispatchService;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,7 +1,7 @@
 package com.jdt.fedlearn.core.util;
 
-import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.entity.feature.SingleFeature;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.SingleFeature;
 import com.jdt.fedlearn.core.loader.common.Data;
 
 import java.io.*;

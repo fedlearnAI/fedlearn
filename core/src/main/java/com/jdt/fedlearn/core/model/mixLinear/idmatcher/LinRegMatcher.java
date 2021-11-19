@@ -1,7 +1,7 @@
 package com.jdt.fedlearn.core.model.mixLinear.idmatcher;
 
 import com.jdt.fedlearn.core.dispatch.mixLinear.LinearRegression.LinRegTrainInitParams;
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
 import com.jdt.fedlearn.core.entity.mixedLinearRegression.LinearRegressionInferInitOthers;
 import com.jdt.fedlearn.core.entity.mixedLinearRegression.LinearRegressionTrainInitOthers;

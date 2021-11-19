@@ -14,7 +14,7 @@ limitations under the License.
 package com.jdt.fedlearn.common.entity.project;
 
 
-import com.jdt.fedlearn.core.entity.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
 
 import java.io.Serializable;
 import java.util.Objects;

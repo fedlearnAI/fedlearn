@@ -1,7 +1,7 @@
 package com.jdt.fedlearn.client.entity.prepare;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jdt.fedlearn.core.exception.DeserializeException;
+import com.jdt.fedlearn.common.exception.DeserializeException;
 
 import java.io.IOException;
 

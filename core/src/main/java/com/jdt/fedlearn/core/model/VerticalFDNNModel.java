@@ -1,9 +1,9 @@
 package com.jdt.fedlearn.core.model;
 
 import com.google.protobuf.ByteString;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.entity.randomForest.DataUtils;
 import com.jdt.fedlearn.core.entity.verticalFDNN.VFDNNInferenceData;
 import com.jdt.fedlearn.core.entity.verticalFDNN.VFDNNMessage;
@@ -14,7 +14,7 @@ import com.jdt.fedlearn.core.loader.randomForest.RFTrainData;
 import com.jdt.fedlearn.core.parameter.HyperParameter;
 import com.jdt.fedlearn.core.parameter.VerticalFDNNParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.grpc.federatedlearning.CalculateGrpc;
 import com.jdt.fedlearn.grpc.federatedlearning.Matrix;
 import com.jdt.fedlearn.grpc.federatedlearning.Vector;
@@ -72,7 +72,6 @@ public class VerticalFDNNModel implements Model {
         this.parameter = (VerticalFDNNParameter) parameter;
         // 初始化 train data
         logger.info("HasLabel: " + trainData.hasLabel);
-        trainData.fillna(0);
         logger.info(String.format("Dataframe: %s rows, %s columns", trainData.numRows(), trainData.numCols()));
         SimpleMatrix X = trainData.toSmpMatrix(0, trainData.numRows(), 0, trainData.numCols());
         XTrain = DataUtils.toMatrix(X);

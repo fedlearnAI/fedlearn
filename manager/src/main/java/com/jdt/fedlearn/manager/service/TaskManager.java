@@ -23,10 +23,11 @@ import com.jdt.fedlearn.common.enums.ResultTypeEnum;
 import com.jdt.fedlearn.common.enums.RunStatusEnum;
 import com.jdt.fedlearn.common.enums.WorkerCommandEnum;
 import com.jdt.fedlearn.common.enums.TaskTypeEnum;
-import com.jdt.fedlearn.manager.ManagerLocalApp;
+import com.jdt.fedlearn.manager.worker.WorkerManager;
+import com.jdt.fedlearn.manager.worker.service.IWorkerSelect;
 import com.jdt.fedlearn.manager.task.Executor;
-import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.common.util.WorkerCommandUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
+import com.jdt.fedlearn.tools.WorkerCommandUtil;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,11 +54,13 @@ public class TaskManager {
     private final Table<String, String, Task> taskTable = HashBasedTable.create();
 
     @Resource
-    private ManagerLocalApp managerLocalApp;
-    @Resource
     private Executor finishExecutor;
     @Resource
     private JobManager jobManager;
+    @Resource
+    WorkerManager workerManager;
+    @Resource
+    IWorkerSelect workerRandomImpl;
     private volatile boolean exit = false;
     //IO密集型
     private static ExecutorService fixedThreadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
@@ -228,9 +231,10 @@ public class TaskManager {
                 sleep(1000);
                 continue;
             }
-            //获取第一个可以执行的机器
-            WorkerUnit workerUnit = managerLocalApp.getWorkerManager().getFirstReadyWorkerUnit(readyTask.getTaskTypeEnum());
-
+            if(readyTask.getSubRequest() != null && readyTask.getSubRequest().getData()!= null){
+                logger.info("任务信息：类型：{},phase:{},length:{}",readyTask.getTaskTypeEnum(),readyTask.getSubRequest().getPhase(),readyTask.getSubRequest().getData().length());
+            }
+            WorkerUnit workerUnit = workerRandomImpl.getWorker(readyTask);
             if (workerUnit == null) {
                 logger.info("没有合适的机器, task is {} ", readyTask.getTaskId());
                 //fixme                避免cpu过高执行
@@ -281,7 +285,7 @@ public class TaskManager {
                     throw new RuntimeException("执行worker处理异常: " + JsonUtil.object2json(commonResultStatus));
                 }
             } finally {
-                managerLocalApp.getWorkerManager().updateWorkerUnitStatus(workerUnit, false);
+                workerManager.updateWorkerUnitStatus(workerUnit, false);
             }
         }
     }

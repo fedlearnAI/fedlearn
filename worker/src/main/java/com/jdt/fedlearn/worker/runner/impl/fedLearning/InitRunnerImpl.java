@@ -12,10 +12,8 @@ limitations under the License.
 */
 package com.jdt.fedlearn.worker.runner.impl.fedLearning;
 
-import com.google.common.collect.Lists;
 import com.jdt.fedlearn.client.util.ConfigUtil;
-import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.util.TimeUtil;
+import com.jdt.fedlearn.tools.TimeUtil;
 import com.jdt.fedlearn.worker.runner.Runner;
 import com.jdt.fedlearn.worker.service.AlgorithmService;
 import com.jdt.fedlearn.worker.service.WorkerRunner;
@@ -23,9 +21,8 @@ import com.jdt.fedlearn.common.entity.CommonResultStatus;
 import com.jdt.fedlearn.common.entity.Job;
 import com.jdt.fedlearn.common.entity.Task;
 import com.jdt.fedlearn.common.enums.*;
-import com.jdt.fedlearn.common.util.ManagerCommandUtil;
+import com.jdt.fedlearn.tools.ManagerCommandUtil;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.lucene.util.RamUsageEstimator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -85,12 +82,10 @@ public class InitRunnerImpl implements Runner {
     private static final Integer LIST_MAX_SIZE = 2;
     private static final String MANAGER_ADDRESS = "manager.address";
     private void notifyManager(List<Task> taskList) {
-//        logger.info("当前taskList长度:{},占用内存：{} byte",taskList.size(),RamUsageEstimator.shallowSizeOf(taskList));
         String managerAddress = ConfigUtil.getProperty(MANAGER_ADDRESS);
         if(taskList.size() > LIST_MAX_SIZE){
             List<List<Task>> partition = ListUtils.partition(taskList, LIST_MAX_SIZE);
             partition.stream().forEach(l -> {
-//                logger.info("分片发送，当前发送list占用内存：{} byte",RamUsageEstimator.shallowSizeOf(l));
                 ManagerCommandUtil.addTask(managerAddress, l);
             });
         }else {

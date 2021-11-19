@@ -20,11 +20,11 @@ import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.DifferentialPrivacyFactory;
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.IDifferentialPrivacy;
 import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.DoubleArray;
 import com.jdt.fedlearn.core.entity.base.StringArray;
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.entity.verticalLinearRegression.*;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
@@ -37,11 +37,14 @@ import com.jdt.fedlearn.core.parameter.VerticalLRParameter;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
 import com.jdt.fedlearn.core.preprocess.Scaling;
 import com.jdt.fedlearn.core.model.serialize.LinearModelSerializer;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.core.util.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
@@ -59,10 +62,11 @@ public class VerticalLRModel implements Model {
     private VerticalLRParameter parameter;
     private double maxGradient = 100;
     private double[] label;
-    private Scaling sacling;
+    private Scaling scaling;
     private LogisticLoss logisticLoss;
     private IDifferentialPrivacy differentialPrivacy;
     EncryptionTool encryptionTool = new PaillierTool();
+    private List<String> expressions = new ArrayList<>();
 
     public VerticalLRModel() {
 
@@ -71,7 +75,7 @@ public class VerticalLRModel implements Model {
     public VerticalLRModel(String modelToken, double[] weight, Scaling scaling) {
         this.modelToken = modelToken;
         this.weight = weight;
-        this.sacling = scaling;
+        this.scaling = scaling;
     }
 
     @Override
@@ -79,6 +83,7 @@ public class VerticalLRModel implements Model {
                                              HyperParameter hyperParameter, Features features, Map<String, Object> others) {
         parameter = (VerticalLRParameter) hyperParameter;
         VerticalLinearTrainData trainData = new VerticalLinearTrainData(rawData, uids, features, this.parameter.isUseDP());
+        this.expressions = trainData.getExpressions();
         //初始化预测值和gradient hessian
         logger.info("actual received features:" + features.getFeatureList().toString());
         logger.info("client data dim:" + trainData.getDatasetSize() + "," + trainData.getFeatureDim());
@@ -86,7 +91,7 @@ public class VerticalLRModel implements Model {
         int datasetSize = trainData.getDatasetSize();
         logger.info("client parameter init");
         weight = Tool.initWeight1(trainData.getFeatureDim());
-        sacling = trainData.getScaling();
+        scaling = trainData.getScaling();
         logisticLoss = new LogisticLoss();
         // 如果是目标或者输出扰动的话，则提前生成高斯噪声
         if (this.parameter.isUseDP()) {
@@ -315,8 +320,8 @@ public class VerticalLRModel implements Model {
     public DoubleArray inferencePhase1(Message message, CommonInferenceData data) {
         String[] newUidIndex = ((StringArray) (message)).getData();
         data.filterOtherUid(newUidIndex);
-        if (sacling != null) {
-            sacling.inferenceMinMaxScaling(data.getSample());
+        if (scaling != null) {
+            scaling.inferenceMinMaxScaling(data.getSample());
         }
         double[] res = MathExt.forward1(data.getSample(), weight);
         DoubleArray response = new DoubleArray(res);
@@ -338,19 +343,25 @@ public class VerticalLRModel implements Model {
         if (this.parameter.isUseDP() && DifferentialPrivacyType.OUTPUT_PERTURB.equals(this.parameter.getDpType())) {
             this.differentialPrivacy.addNoises(this.weight, this.weight);
         }
-        return LinearModelSerializer.saveModelVrticalLinear(modelToken, weight, sacling);
+        return Tool.addExpressions(LinearModelSerializer.saveModelVrticalLinear(modelToken, weight, scaling), this.expressions);
     }
 
 
     public void deserialize(String content) {
-        VerticalLRModel model = LinearModelSerializer.loadVerticalLRModel(content);
+        String[] contents = Tool.splitExpressionsAndModel(content);
+        this.expressions = Tool.splitExpressions(contents[0]);
+        VerticalLRModel model = LinearModelSerializer.loadVerticalLRModel(contents[1]);
         this.modelToken = model.modelToken;
         this.weight = model.weight;
-        this.sacling = model.sacling;
+        this.scaling = model.scaling;
     }
 
     public AlgorithmType getModelType() {
         return AlgorithmType.VerticalLR;
+    }
+
+    public List<String> getExpressions() {
+        return expressions;
     }
 
 }

@@ -13,12 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.coordinator.service.train;
 
-import com.jdt.fedlearn.common.constant.ResponseConstant;
-import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.common.tool.ResponseHandler;
-import com.jdt.fedlearn.common.util.TimeUtil;
-import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.allocation.ResourceManager;
 import com.jdt.fedlearn.coordinator.dao.db.TrainMapper;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
@@ -27,7 +22,10 @@ import com.jdt.fedlearn.coordinator.entity.train.TrainContext;
 import com.jdt.fedlearn.coordinator.entity.train.StartTrain;
 import com.jdt.fedlearn.coordinator.service.CommonService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.tools.TimeUtil;
+import com.jdt.fedlearn.tools.TokenUtil;
+import com.jdt.fedlearn.tools.internel.ResponseHandler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +70,7 @@ public class TrainStartServiceImpl implements TrainService {
         //生成trainId
         String taskId = req.getTaskId();
         AlgorithmType algorithmType = AlgorithmType.valueOf(req.getModel());
-        String trainId = TokenUtil.generateTrainId(taskId, algorithmType);
+        String trainId = TokenUtil.generateTrainId(taskId, algorithmType.getAlgorithm());
         String matchId = req.getMatchId();
 
         //将用户选择的参数持久化存储

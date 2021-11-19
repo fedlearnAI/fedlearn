@@ -3,9 +3,9 @@
 //import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 //import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 //import com.jdt.fedlearn.core.encryption.fake.FakeTool;
-//import com.jdt.fedlearn.core.entity.Message;
+//import com.jdt.fedlearn.common.entity.core.Message;
 //import com.jdt.fedlearn.core.entity.common.InferenceInitRes;
-//import com.jdt.fedlearn.core.entity.feature.Features;
+//import com.jdt.fedlearn.common.entity.core.feature.Features;
 //import com.jdt.fedlearn.core.entity.mixGBoost.*;
 //import com.jdt.fedlearn.core.fake.StructureGenerate;
 //import com.jdt.fedlearn.core.loader.common.CommonLoad;
@@ -13,7 +13,7 @@
 //import com.jdt.fedlearn.core.loader.mixGBoost.MixGBTrainData;
 //import com.jdt.fedlearn.core.model.common.tree.MixTreeNode;
 //import com.jdt.fedlearn.core.parameter.MixGBParameter;
-//import com.jdt.fedlearn.core.type.AlgorithmType;
+//import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 //import com.jdt.fedlearn.core.type.MessageType;
 //import com.jdt.fedlearn.core.type.MetricType;
 //import com.jdt.fedlearn.core.type.ObjectiveType;

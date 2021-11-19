@@ -30,7 +30,7 @@
     <dependencies>
         <dependency>
             <groupId>com.jdt.fedlearn</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>tools</artifactId>
         </dependency>
 
         <!-- jackson -->
@@ -94,6 +94,11 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.jdt.fedlearn</groupId>
+            <artifactId>core</artifactId>
         </dependency>
     </dependencies>
 

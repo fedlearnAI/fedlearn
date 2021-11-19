@@ -19,14 +19,14 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jdt.fedlearn.common.entity.TokenDTO;
 import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.common.util.TimeUtil;
-import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.entity.table.TrainInfo;
 import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 import com.jdt.fedlearn.coordinator.util.DbUtil;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 
+import com.jdt.fedlearn.tools.TimeUtil;
+import com.jdt.fedlearn.tools.TokenUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;

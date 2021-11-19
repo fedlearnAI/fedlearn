@@ -1,6 +1,6 @@
 package com.jdt.fedlearn.core.entity.delphiInference;
 
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 
 import java.util.Map;
 

@@ -4,8 +4,8 @@ import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.fake.FakeTool;
-import com.jdt.fedlearn.core.entity.ClientInfo;
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.ClientInfo;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
 import com.jdt.fedlearn.core.entity.psi.*;
 import org.testng.Assert;
@@ -14,8 +14,6 @@ import org.testng.annotations.Test;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static org.testng.Assert.*;
 
 public class FreedmanMatchClientTest {
     FreedmanMatchClient freedmanMatchClient;

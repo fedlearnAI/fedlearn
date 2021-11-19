@@ -14,8 +14,8 @@ package com.jdt.fedlearn.worker;
 
 import com.jdt.fedlearn.client.cache.InferenceDataCache;
 import com.jdt.fedlearn.client.entity.inference.InferenceRequest;
-import com.jdt.fedlearn.common.network.INetWorkService;
-import com.jdt.fedlearn.common.util.GZIPCompressUtil;
+import com.jdt.fedlearn.tools.network.INetWorkService;
+import com.jdt.fedlearn.tools.GZIPCompressUtil;
 import com.jdt.fedlearn.worker.constant.Constant;
 import com.jdt.fedlearn.common.constant.AppConstant;
 import com.jdt.fedlearn.common.entity.Job;
@@ -25,14 +25,12 @@ import com.jdt.fedlearn.common.entity.Task;
 import com.jdt.fedlearn.common.enums.ResultTypeEnum;
 import com.jdt.fedlearn.common.enums.RunStatusEnum;
 import com.jdt.fedlearn.common.enums.TaskTypeEnum;
-import com.jdt.fedlearn.common.util.JsonUtil;
-import com.jdt.fedlearn.common.util.ManagerCommandUtil;
+import com.jdt.fedlearn.tools.serializer.JsonUtil;
+import com.jdt.fedlearn.tools.ManagerCommandUtil;
 import com.jdt.fedlearn.core.entity.common.InferenceInit;
 import com.jdt.fedlearn.core.loader.common.CommonLoad;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
-import com.jdt.fedlearn.core.type.AlgorithmType;
-
-import org.apache.lucene.util.RamUsageEstimator;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;

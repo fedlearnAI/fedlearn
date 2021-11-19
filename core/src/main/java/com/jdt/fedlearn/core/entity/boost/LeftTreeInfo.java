@@ -13,7 +13,7 @@ limitations under the License.
 
 package com.jdt.fedlearn.core.entity.boost;
 
-import com.jdt.fedlearn.core.entity.Message;
+import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.common.MetricValue;
 
 import java.util.Arrays;
@@ -25,6 +25,7 @@ public class LeftTreeInfo implements Message {
     private final int recordId;
     private final int[] leftInstances;
     private MetricValue trainMetric;
+    private SubModel subModel;
 
 
     public LeftTreeInfo(int recordId, int[] leftIns) {
@@ -46,6 +47,14 @@ public class LeftTreeInfo implements Message {
 
     public MetricValue getTrainMetric() {
         return trainMetric;
+    }
+
+    public SubModel getSubModel() {
+        return subModel;
+    }
+
+    public void setSubModel(SubModel subModel) {
+        this.subModel = subModel;
     }
 
     @Override

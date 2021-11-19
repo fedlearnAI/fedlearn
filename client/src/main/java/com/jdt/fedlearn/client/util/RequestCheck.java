@@ -1,8 +1,8 @@
 package com.jdt.fedlearn.client.util;
 
-import com.jdt.fedlearn.common.util.IpAddressUtil;
-import com.jdt.fedlearn.core.entity.feature.Features;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
+import com.jdt.fedlearn.tools.IpAddressUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

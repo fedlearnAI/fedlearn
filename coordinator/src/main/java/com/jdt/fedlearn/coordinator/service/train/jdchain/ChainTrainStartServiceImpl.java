@@ -18,18 +18,18 @@ import com.jdt.fedlearn.common.constant.ResponseConstant;
 import com.jdt.fedlearn.common.entity.SingleParameter;
 import com.jdt.fedlearn.common.entity.jdchain.JdchainTask;
 import com.jdt.fedlearn.common.enums.RunningType;
-import com.jdt.fedlearn.common.util.TimeUtil;
-import com.jdt.fedlearn.common.util.TokenUtil;
 import com.jdt.fedlearn.coordinator.allocation.ResourceManager;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdchainTrainInfo;
 import com.jdt.fedlearn.coordinator.entity.train.*;
-import com.jdt.fedlearn.core.type.AlgorithmType;
+import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTaskMapper;
 import com.jdt.fedlearn.coordinator.dao.jdchain.ChainTrainMapper;
 import com.jdt.fedlearn.coordinator.entity.jdchain.JdChainTaskStatus;
 import com.jdt.fedlearn.coordinator.service.CommonService;
 import com.jdt.fedlearn.coordinator.service.TrainService;
 import com.jdt.fedlearn.coordinator.service.train.TrainCommonServiceImpl;
+import com.jdt.fedlearn.tools.TimeUtil;
+import com.jdt.fedlearn.tools.TokenUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +75,7 @@ public class ChainTrainStartServiceImpl implements TrainService {
      **/
     private String trainStart(StartTrain req) {
         StartValues values = TrainCommonServiceImpl.startPrepare(req);
-        String modelToken = TokenUtil.generateTrainId(req.getTaskId(), AlgorithmType.valueOf(req.getModel()));
+        String modelToken = TokenUtil.generateTrainId(req.getTaskId(), AlgorithmType.valueOf(req.getModel()).getAlgorithm());
         List<SingleParameter> algorithmParams = req.getAlgorithmParams();
 //        algorithmParams.add(req.getCommonParams().get(0));
         // 更新全局上下文, 并将状态设置为 READY

@@ -12,14 +12,13 @@ limitations under the License.
 */
 package com.jdt.fedlearn.common.entity;
 
-import com.jdt.fedlearn.common.util.ToString;
-
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * @Description: 任务入口总入口
  */
-public class Job extends ToString {
+public class Job implements Serializable {
     //请求参数
     private JobReq jobReq;
     //结果参数

@@ -14,10 +14,12 @@ limitations under the License.
 package com.jdt.fedlearn.core.loader.kernelLinearRegression;
 
 
-import com.jdt.fedlearn.core.entity.feature.Features;
+import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.core.loader.common.AbstractTrainData;
 import com.jdt.fedlearn.core.loader.common.TrainData;
 import com.jdt.fedlearn.core.preprocess.MissingValueFilling;
+
+import java.util.List;
 
 
 public class KernelLinearRegressionTrainData extends AbstractTrainData implements TrainData {
@@ -25,8 +27,10 @@ public class KernelLinearRegressionTrainData extends AbstractTrainData implement
 
     public KernelLinearRegressionTrainData(String[][] rawTable, String[] idMap, Features features) {
         super.scan(rawTable, idMap, features);
+        if (expressions != null && expressions.size() != 0) {
+            super.featureProcessing(expressions);
+        }
         this.feature = super.sample;
-
         MissingValueFilling filling = new MissingValueFilling(feature);
         if (feature.length > 0) {
             filling.avgFilling();
