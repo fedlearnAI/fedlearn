@@ -62,12 +62,12 @@ public class CommonRunKeyGene {
         for (ClientInfo client : clientInfos) {
             DistributedPaillierKeyGenerator generator = generatorMap.get(client);
             Map<String, Object> keys = generator.postGeneration();
-            Files.write(Paths.get("privKey-" + cnt),
+            Files.write(Paths.get("privKey-" + cnt+".key"),
                     ((DistributedPaillier.DistPaillierPrivkey)keys
                             .get("privKey"))
                             .toJson()
                             .getBytes(StandardCharsets.UTF_8));
-            Files.write(Paths.get("pubKey"),
+            Files.write(Paths.get("pubKey"+".key"),
                     ((DistributedPaillier.DistPaillierPubkey)keys.
                             get("pubKey"))
                             .toJson()

@@ -38,7 +38,7 @@ public class TestDistPaillierDistribute {
 
         List<ClientInfo> clientList;
         String[] allAddr;
-        final String testLogFileName = "GeneKeyInTestDistPaillierDistribute";
+        final String testLogFileName = "GeneKeyInTestDistPaillierDistribute.log";
         final int bitLen = l;
         final int batchSize = 100;
 
@@ -69,10 +69,10 @@ public class TestDistPaillierDistribute {
         DistributedPaillier.DistPaillierPrivkey privkey2 = new DistributedPaillier.DistPaillierPrivkey();
         DistributedPaillier.DistPaillierPrivkey privkey3 = new DistributedPaillier.DistPaillierPrivkey();
 
-        pubkey.loadClassFromFile("pubKey");
-        privkey1.loadClassFromFile("privKey-" + 1);
-        privkey2.loadClassFromFile("privKey-" + 2);
-        privkey3.loadClassFromFile("privKey-" + 3);
+        pubkey.loadClassFromFile("pubKey.key");
+        privkey1.loadClassFromFile("privKey-" + 1 + ".key");
+        privkey2.loadClassFromFile("privKey-" + 2 + ".key");
+        privkey3.loadClassFromFile("privKey-" + 3 + ".key");
         DistributedPaillier.DistPaillierPrivkey[] allSk = new DistributedPaillier.DistPaillierPrivkey[3];
         allSk[0] = privkey1;
         allSk[1] = privkey2;

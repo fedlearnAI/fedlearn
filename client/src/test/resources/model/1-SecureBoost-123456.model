@@ -1,4 +1,4 @@
-first_round_predict=0.0
+##splitSymbol##first_round_predict=0.0
 eta=0.0
 crossEntropy
 passiveQueryTable=[]
