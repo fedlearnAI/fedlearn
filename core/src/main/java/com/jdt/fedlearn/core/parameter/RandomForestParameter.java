@@ -70,7 +70,7 @@ public class RandomForestParameter implements HyperParameter {
         this.loss = "Regression:MSE";
         this.cat_features = "";
         this.boostRatio = 0.;
-        this.encryptionType = EncryptionType.IterativeAffine;
+        this.encryptionType = EncryptionType.Javallier;
         this.encryptionKeyPath = "/export/Data/paillier/";
         this.encryptionCertainty = 1024;
     }
@@ -161,7 +161,7 @@ public class RandomForestParameter implements HyperParameter {
 //        res.add(new CategoryParameter("loss", "loss", "Regression:MSE", new String[]{"Regression:MSE", "Classification:Cross entropy"}, ParameterType.STRING));
         res.add(new CategoryParameter("cat_features", "cat_features", "null", new String[]{}, ParameterType.STRING));
 //        res.add(new NumberParameter("boostRatio", "boostRatio(无需改动)", 1, new String[]{"1", "100"}, ParameterType.NUMS));
-        res.add(new CategoryParameter("encryptionType", "加密方式", "IterativeAffine", new String[]{"Paillier", "IterativeAffine"}, ParameterType.STRING));
+        res.add(new CategoryParameter("encryptionType", "加密方式", "Javallier", new String[]{"Javallier"}, ParameterType.STRING));
         res.add(new NumberParameter("randomSeed", "随机种子", 666, new String[]{"1", "1000"}, ParameterType.NUMS));
         res.add(new NumberParameter("dpEpsilon", "dpEpsilon", 3.2, new String[]{"1.0", "3.2"}, ParameterType.NUMS));
         res.add(new CategoryParameter("useDP", "useDP", "false", new String[]{"true", "false"}, ParameterType.STRING));

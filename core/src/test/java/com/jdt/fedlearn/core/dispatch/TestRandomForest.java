@@ -52,7 +52,7 @@ public class TestRandomForest {
                 30,
                 "Null",
                 10,
-                EncryptionType.IterativeAffine,
+                EncryptionType.Javallier,
                 metrics,
                 loss,
                 666);

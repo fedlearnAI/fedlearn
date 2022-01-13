@@ -19,7 +19,7 @@ import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.DifferentialPrivacyFactory;
 import com.jdt.fedlearn.core.encryption.differentialPrivacy.IDifferentialPrivacy;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
+import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.DoubleArray;
@@ -65,7 +65,7 @@ public class VerticalLRModel implements Model {
     private Scaling scaling;
     private LogisticLoss logisticLoss;
     private IDifferentialPrivacy differentialPrivacy;
-    EncryptionTool encryptionTool = new PaillierTool();
+    EncryptionTool encryptionTool = new JavallierTool();
     private List<String> expressions = new ArrayList<>();
 
     public VerticalLRModel() {

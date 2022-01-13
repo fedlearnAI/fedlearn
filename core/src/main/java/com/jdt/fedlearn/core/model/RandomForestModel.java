@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.jdt.fedlearn.common.entity.core.feature.Features;
 import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
-import com.jdt.fedlearn.core.encryption.IterativeAffineNew.IterativeAffineToolNew;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
@@ -40,6 +39,7 @@ import com.jdt.fedlearn.core.exception.NotMatchException;
 import com.jdt.fedlearn.core.loader.common.CommonInferenceData;
 import com.jdt.fedlearn.core.preprocess.InferenceFilter;
 import com.jdt.fedlearn.core.preprocess.Scaling;
+import com.jdt.fedlearn.core.type.EncryptionType;
 import com.jdt.fedlearn.core.type.RFModelPhaseType;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.Tool;
@@ -254,17 +254,11 @@ public class RandomForestModel implements Model {
         double filled_mean = sum / (count + Double.MIN_VALUE);
         sampleId.forEach(idx -> yPredBagging[idx] = filled_mean);
 
-        switch (this.parameter.getEncryptionType()) {
-            case Paillier:
-                encryptData = new Ciphertext[yLabel.length];
-                privateKey = encryptionTool.keyGenerate(1024, 0);
-                break;
-            case IterativeAffine:
-                encryptData = new Ciphertext[yLabel.length];
-                privateKey = encryptionTool.keyGenerate(1024, 2);
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported encryption type!");
+        if (this.parameter.getEncryptionType() == EncryptionType.Javallier) {
+            encryptData = new Ciphertext[yLabel.length];
+            privateKey = encryptionTool.keyGenerate(1024, 0);
+        } else {
+            throw new IllegalArgumentException("Unsupported encryption type!");
         }
         return yTrain;
     }
@@ -1580,15 +1574,10 @@ public class RandomForestModel implements Model {
      */
     private EncryptionTool getEncryptionTool() {
         EncryptionTool encryptionTool;
-        switch (this.parameter.getEncryptionType()) {
-            case Paillier:
-                encryptionTool = new JavallierTool();
-                break;
-            case IterativeAffine:
-                encryptionTool = new IterativeAffineToolNew();
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported encryption type!");
+        if (this.parameter.getEncryptionType() == EncryptionType.Javallier) {
+            encryptionTool = new JavallierTool();
+        } else {
+            throw new IllegalArgumentException("Unsupported encryption type!");
         }
         return encryptionTool;
     }

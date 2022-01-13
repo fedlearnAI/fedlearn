@@ -1,8 +1,9 @@
 package com.jdt.fedlearn.core.dispatch;
 
+import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
+import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.DoubleArray;
@@ -201,7 +202,7 @@ public class TestVerticalLinearRegression {
         List<CommonResponse> responses = new ArrayList<>();
         double[] target_L = new double[] {-3.585, -2.578, -1.952};
         double[] target_G = new double[] {-0.761977, 0.069951, -0.617763, -1.804997};
-        PaillierTool encryptionTool = new PaillierTool();
+        EncryptionTool encryptionTool = new JavallierTool();
         PrivateKey privateKey = encryptionTool.keyGenerate(256, 64);
         PublicKey publicKey = privateKey.generatePublicKey();
         VerticalLinearRegression verticalLinearRegression = new VerticalLinearRegression(encryptionTool, privateKey, new VerticalLinearParameter());

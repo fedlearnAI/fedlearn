@@ -16,7 +16,7 @@ package com.jdt.fedlearn.core.dispatch;
 import com.jdt.fedlearn.core.dispatch.common.Control;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
+import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.DoubleArray;
@@ -58,7 +58,7 @@ public class VerticalLinearRegression implements Control {
     private double fullLoss = Double.MAX_VALUE;
     private int epoch = 0;
     private VerticalLinearParameter parameter;
-    private EncryptionTool encryptionTool = new PaillierTool();
+    private EncryptionTool encryptionTool = new JavallierTool();
     private PrivateKey privateKey = encryptionTool.keyGenerate(256, 64);
     private String publicKey = privateKey.generatePublicKey().serialize();
     private Optimizer optimizer;

@@ -1,7 +1,5 @@
 package com.jdt.fedlearn.core.encryption;
 
-import com.jdt.fedlearn.core.encryption.paillier.PaillierCore;
-import com.jdt.fedlearn.core.type.data.KeyPair;
 import com.jdt.fedlearn.core.fake.DataGenerate;
 import com.jdt.fedlearn.grpc.federatedlearning.Vector;
 import com.n1analytics.paillier.EncryptedNumber;
@@ -16,7 +14,6 @@ import java.util.Arrays;
 import java.util.List;
 
 public class PaillierBenchmark {
-    private KeyPair keyPair = PaillierCore.keyGenerate( 1024,64);
 
 //    @Test
 //    public void testPaillier() {

@@ -15,7 +15,6 @@ package com.jdt.fedlearn.core.util;
 
 
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierCiphertext;
 import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
@@ -84,7 +83,7 @@ public class Tool {
     }
 
     public static Ciphertext[] arrayAppend(Ciphertext[] a, Ciphertext b) {
-        Ciphertext[] arr = new PaillierCiphertext[a.length + 1];//开辟新数组长度为两数组之和
+        Ciphertext[] arr = new Ciphertext[a.length + 1];//开辟新数组长度为两数组之和
         for (int i = 0; i < a.length; i++) {//拷贝a数组到目标数组arr
             arr[i] = a[i];
         }

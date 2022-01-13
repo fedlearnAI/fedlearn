@@ -4,7 +4,7 @@ import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
+import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -33,7 +33,7 @@ public class CommonFunction {
 
     @Test
     public void testMultiplyDouble() {
-        EncryptionTool encryptionTool = new PaillierTool();
+        EncryptionTool encryptionTool = new JavallierTool();
         PrivateKey paillierPriKey = encryptionTool.keyGenerate(1024, 64);
         PublicKey paillierPubKey = paillierPriKey.generatePublicKey();
         double m1 = -100.7777;
@@ -52,7 +52,7 @@ public class CommonFunction {
 
     @Test
     public static void addThenMultiply() {
-        EncryptionTool encryptionTool = new PaillierTool();
+        EncryptionTool encryptionTool = new JavallierTool();
         PrivateKey paillierPriKey = encryptionTool.keyGenerate(1024, 64);
         PublicKey paillierPubKey = paillierPriKey.generatePublicKey();
 
@@ -76,7 +76,7 @@ public class CommonFunction {
 
     @Test
     public void multiplyThenAdd() {
-        EncryptionTool encryptionTool = new PaillierTool();
+        EncryptionTool encryptionTool = new JavallierTool();
         PrivateKey paillierPriKey = encryptionTool.keyGenerate(1024, 64);
         PublicKey paillierPubKey = paillierPriKey.generatePublicKey();
 

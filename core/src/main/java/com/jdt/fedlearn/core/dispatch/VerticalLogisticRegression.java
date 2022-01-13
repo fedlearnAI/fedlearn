@@ -18,7 +18,7 @@ import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
+import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.base.DoubleArray;
 import com.jdt.fedlearn.core.entity.base.EmptyMessage;
@@ -65,7 +65,7 @@ public class VerticalLogisticRegression implements Control {
     private double fullLoss = Double.MAX_VALUE;
     private int epoch = 0;
     private final VerticalLRParameter parameter;
-    EncryptionTool encryptionTool = new PaillierTool();
+    EncryptionTool encryptionTool = new JavallierTool();
     private PrivateKey privateKey = encryptionTool.keyGenerate(256, 64);
     private final PublicKey publicKey = privateKey.generatePublicKey();
     private final Optimizer optimizer;

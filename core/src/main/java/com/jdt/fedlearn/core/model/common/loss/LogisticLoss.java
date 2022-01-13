@@ -16,12 +16,11 @@ package com.jdt.fedlearn.core.model.common.loss;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierCiphertext;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
+import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 
 public class LogisticLoss extends Loss {
     private static final long serialVersionUID = 7329721029421498541L;
-    transient EncryptionTool encryptionTool = new PaillierTool();
+    transient EncryptionTool encryptionTool = new JavallierTool();
     private double clip(double val) {
         if (val < 0.00001) {
             return 0.00001;
@@ -111,13 +110,6 @@ public class LogisticLoss extends Loss {
         return ret;
     }
 
-    public Ciphertext[] sigmoidApproxEnc(Ciphertext[] wx, PublicKey pubKey) {
-        Ciphertext[] ret = new PaillierCiphertext[wx.length];
-        for(int i = 0; i < wx.length; i++) {
-            ret[i] = sigmoidApproxEnc(wx[i], pubKey);
-        }
-        return ret;
-    }
 
     public double sigmoidDiffApprox(double wx) {
         if (wx >= 2 || wx <= -2) {

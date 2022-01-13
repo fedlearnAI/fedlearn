@@ -4,7 +4,7 @@ import com.jdt.fedlearn.core.dispatch.common.Control;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
+import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.core.entity.common.CommonRequest;
 import com.jdt.fedlearn.core.entity.common.CommonResponse;
@@ -47,7 +47,7 @@ public class TreeInferenceClient implements Control {
 
 
     public TreeInferenceClient() {
-        this.encryptionTool = new PaillierTool();
+        this.encryptionTool = new JavallierTool();
         this.privateKey = encryptionTool.keyGenerate(1024, 64);
         this.pubKey = privateKey.generatePublicKey();
     }

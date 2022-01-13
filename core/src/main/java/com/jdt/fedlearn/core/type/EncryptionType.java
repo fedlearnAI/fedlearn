@@ -18,8 +18,6 @@ public enum EncryptionType {
     Paillier("Paillier"),
     Javallier("Javallier"),
     Palisade("Palisade"),
-    Affine("Affine"),
-    IterativeAffine("IterativeAffine")
     ;
 
     private final String type;

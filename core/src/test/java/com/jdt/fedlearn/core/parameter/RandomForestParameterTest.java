@@ -25,7 +25,7 @@ public class RandomForestParameterTest {
                 30,
                 "Null",
                 10,
-                EncryptionType.Paillier,
+                EncryptionType.Javallier,
                 metrics,
                 loss,
                 1024);;
@@ -47,7 +47,7 @@ public class RandomForestParameterTest {
                 30,
                 "Null",
                 10,
-                EncryptionType.Paillier,
+                EncryptionType.Javallier,
                 metrics,
                 loss,
                 1024);
@@ -68,7 +68,7 @@ public class RandomForestParameterTest {
                 30,
                 "Null",
                 10,
-                EncryptionType.Paillier,
+                EncryptionType.Javallier,
                 metrics,
                 loss,
                 1024,

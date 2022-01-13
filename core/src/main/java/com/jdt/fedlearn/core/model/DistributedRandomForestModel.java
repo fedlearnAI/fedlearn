@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.jdt.fedlearn.common.entity.core.type.AlgorithmType;
 import com.jdt.fedlearn.common.entity.core.type.ReduceType;
-import com.jdt.fedlearn.core.encryption.IterativeAffineNew.IterativeAffineToolNew;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
@@ -268,15 +267,10 @@ public class DistributedRandomForestModel implements Model, Serializable {
             privateKeyString = (String) others.get("privateKeyString");
         } else {
             // 生成密钥
-            switch (this.parameter.getEncryptionType()) {
-                case Paillier:
-                    privateKeyString = encryptionTool.keyGenerate(1024, 0).serialize();
-                    break;
-                case IterativeAffine:
-                    privateKeyString = encryptionTool.keyGenerate(1024, 2).serialize();
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported encryption type!");
+            if (this.parameter.getEncryptionType() == EncryptionType.Javallier) {
+                privateKeyString = encryptionTool.keyGenerate(1024, 0).serialize();
+            } else {
+                throw new IllegalArgumentException("Unsupported encryption type!");
             }
         }
         return yTrain;
@@ -284,15 +278,10 @@ public class DistributedRandomForestModel implements Model, Serializable {
 
     private EncryptionTool getEncryptionTool(RandomForestParameter parameter) {
         EncryptionTool encryptionTool;
-        switch (parameter.getEncryptionType()) {
-            case Paillier:
-                encryptionTool = new JavallierTool();
-                break;
-            case IterativeAffine:
-                encryptionTool = new IterativeAffineToolNew();
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported encryption type!");
+        if (parameter.getEncryptionType() == EncryptionType.Javallier) {
+            encryptionTool = new JavallierTool();
+        } else {
+            throw new IllegalArgumentException("Unsupported encryption type!");
         }
         return encryptionTool;
     }
@@ -1982,15 +1971,10 @@ public class DistributedRandomForestModel implements Model, Serializable {
         RandomForestParameter parameter = (RandomForestParameter) request.getParameter();
         // 生成密钥
         EncryptionTool encryptionTool = getEncryptionTool(parameter);
-        switch (parameter.getEncryptionType()) {
-            case Paillier:
-                privateKeyString = encryptionTool.keyGenerate(1024, 0).serialize();
-                break;
-            case IterativeAffine:
-                privateKeyString = encryptionTool.keyGenerate(1024, 2).serialize();
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported encryption type!");
+        if (parameter.getEncryptionType() == EncryptionType.Javallier) {
+            privateKeyString = encryptionTool.keyGenerate(1024, 0).serialize();
+        } else {
+            throw new IllegalArgumentException("Unsupported encryption type!");
         }
         for (int i = 0; i < parameter.getNumTrees(); i++) {
             Map<String, Object> others = request.getOthers();

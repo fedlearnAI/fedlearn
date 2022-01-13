@@ -45,8 +45,4 @@ public class Encryptor {
         }
     }
 
-    public PaillierPublicKey getPaillierPublicKey() {
-        return paillierPublicKey;
-    }
-
 }

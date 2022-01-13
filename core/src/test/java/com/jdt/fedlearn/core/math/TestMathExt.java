@@ -1,6 +1,5 @@
 package com.jdt.fedlearn.core.math;
 
-import com.jdt.fedlearn.core.encryption.Decryptor;
 import com.jdt.fedlearn.core.encryption.common.Ciphertext;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
@@ -8,7 +7,6 @@ import com.jdt.fedlearn.core.encryption.common.PublicKey;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierCiphertext;
 import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 import com.jdt.fedlearn.core.entity.randomForest.DataUtils;
-import com.jdt.fedlearn.core.parameter.RandomForestParameter;
 import com.jdt.fedlearn.core.type.data.Tuple2;
 import com.jdt.fedlearn.core.util.Tool;
 import com.jdt.fedlearn.grpc.federatedlearning.PaillierKeyPublic;
@@ -604,13 +602,11 @@ public class TestMathExt {
 
     @Test
     public void testAverage_Enc() {
-        // 随机森林参数
-        RandomForestParameter parameter = new RandomForestParameter();
         // 密钥
         PaillierKeyPublic keyPublic = null;
         String privateKeyString;
         // 生成密钥
-        PaillierPrivateKey privateKey = PaillierPrivateKey.create(parameter.getEncryptionCertainty());
+        PaillierPrivateKey privateKey = PaillierPrivateKey.create(1024);
         // 待加密信息
         Vector.Builder vectorOrBuilder = Vector.newBuilder();
         double[] yLabel = {1.0, 0.0, 0.0, 1.0};
@@ -628,10 +624,7 @@ public class TestMathExt {
             encryptedNumber[j] = yEnc.get(j);
         }
         EncryptedNumber res = MathExt.average(encryptedNumber, start, end);
-        // 解密
-        Decryptor decryptor = new Decryptor(privateKey);
-        double decrypted_res;
-        decrypted_res = decryptor.decrypt(res);
+        double decrypted_res = privateKey.decrypt(res).decodeDouble();
         // expected
         double sum = 0.0;
         for (int i = start; i < end; i++) {

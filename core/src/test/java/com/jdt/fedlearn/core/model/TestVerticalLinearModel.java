@@ -1,9 +1,10 @@
 package com.jdt.fedlearn.core.model;
 
 
+import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.fake.FakeTool;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
+import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 import com.jdt.fedlearn.common.entity.core.ClientInfo;
 import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.core.entity.base.DoubleArray;
@@ -192,7 +193,7 @@ public class TestVerticalLinearModel {
     @Test
     public void trainPhase3() {
         double[] weight1 = new double[]{0.0, 0.0, 0.0, 0.0};
-        PaillierTool ft = new PaillierTool();
+        EncryptionTool ft = new JavallierTool();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();
@@ -218,11 +219,11 @@ public class TestVerticalLinearModel {
         double[] target_L = new double[]{-3.585, -2.578, -1.952};
         double[] target_G = new double[]{-0.761977, 0.069951, -0.617763, -1.804997};
         for (int i = 0; i < target_L.length; i++) {
-            Assert.assertEquals(target_L[i], decrypted_L[i], 1e-6);
+            Assert.assertEquals(decrypted_L[i], target_L[i], 1e-3);
         }
 
         for (int i = 0; i < decrypted_G.length; i++) {
-            Assert.assertEquals(target_G[i], decrypted_G[i], 1e-6);
+            Assert.assertEquals(decrypted_G[i], target_G[i], 1e-3);
         }
 
     }
@@ -230,7 +231,7 @@ public class TestVerticalLinearModel {
     @Test
     public void trainPhase4() {
         double[] weight1 = new double[]{0.0, 0.0, 0.0, 0.0};
-        PaillierTool ft = new PaillierTool();
+        EncryptionTool ft = new JavallierTool();
         Tuple3<String[][], String[], Features> compoundInput = StructureGenerate.trainInputStd();
         String[][] raw = compoundInput._1().get();
         String[] result = compoundInput._2().get();

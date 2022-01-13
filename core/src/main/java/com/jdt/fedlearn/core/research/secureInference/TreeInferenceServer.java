@@ -3,9 +3,9 @@ package com.jdt.fedlearn.core.research.secureInference;
 import com.jdt.fedlearn.core.encryption.common.EncryptionTool;
 import com.jdt.fedlearn.core.encryption.common.PrivateKey;
 import com.jdt.fedlearn.core.encryption.common.PublicKey;
-import com.jdt.fedlearn.core.encryption.paillier.PaillierTool;
 import com.jdt.fedlearn.common.entity.core.Message;
 import com.jdt.fedlearn.common.entity.core.feature.Features;
+import com.jdt.fedlearn.core.encryption.javallier.JavallierTool;
 import com.jdt.fedlearn.core.entity.secureInference.SecureInferenceInitRes;
 import com.jdt.fedlearn.core.exception.NotImplementedException;
 import com.jdt.fedlearn.core.loader.common.InferenceData;
@@ -48,13 +48,13 @@ public class TreeInferenceServer implements Model {
 //    private KK13OTextensionSender sender;
 
     public TreeInferenceServer() {
-        this.encryptionTool = new PaillierTool();
+        this.encryptionTool = new JavallierTool();
     }
 
     public TreeInferenceServer(double firstRoundPredict, Map<Integer, InferTreeNode> originalNodes) {
         this.firstPred = firstRoundPredict;
         this.originalNodes = originalNodes;
-        this.encryptionTool = new PaillierTool();
+        this.encryptionTool = new JavallierTool();
     }
 
     /**
